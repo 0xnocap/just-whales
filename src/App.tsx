@@ -446,49 +446,47 @@ const MintPage = ({ onMintSuccess }: { onMintSuccess: (t: TokenMetadata & { id: 
       style={{ padding: 'clamp(1.25rem, 2.5vw, 2rem)', borderRadius: 'clamp(1rem, 1.5vw, 1.5rem)' }}
     >
       {/* Header */}
-      <div style={{ marginBottom: 'clamp(1rem, 2vh, 1.5rem)' }}>
-        <h2 className="font-bold text-dream-cyan font-sans tracking-tight uppercase" style={{ fontSize: 'clamp(0.8rem, 1.2vw, 1.1rem)' }}>MINT</h2>
+      <div className="mb-5">
+        <h2 className="font-bold text-dream-cyan font-sans tracking-tight uppercase text-xl">MINT</h2>
       </div>
 
       {/* Supply */}
-      <div style={{ marginBottom: 'clamp(0.75rem, 1.5vh, 1.25rem)' }}>
-        <div className="flex justify-between items-end" style={{ marginBottom: 'clamp(0.25rem, 0.4vh, 0.35rem)' }}>
-          <span className="font-mono text-white/40 uppercase tracking-[0.15em]" style={{ fontSize: 'clamp(9px, 0.75vw, 11px)' }}>Supply</span>
-          <span className="font-bold text-dream-white" style={{ fontSize: 'clamp(0.6rem, 0.9vw, 0.85rem)' }}>{totalSupply} / {maxSupply}</span>
+      <div className="mb-4">
+        <div className="flex justify-between items-end mb-1.5">
+          <span className="font-mono text-white/40 uppercase tracking-[0.15em] text-xs">Supply</span>
+          <span className="font-bold text-dream-white text-lg">{totalSupply} / {maxSupply}</span>
         </div>
-        <div className="w-full bg-white/10 rounded-full overflow-hidden" style={{ height: 'clamp(3px, 0.4vh, 5px)' }}>
+        <div className="w-full bg-white/10 rounded-full overflow-hidden h-1">
           <div className="h-full bg-gradient-to-r from-dream-cyan to-dream-purple transition-all duration-500" style={{ width: `${supplyPct}%` }} />
         </div>
       </div>
 
       {/* Status */}
-      <div className="flex items-center" style={{ gap: 'clamp(0.3rem, 0.4vw, 0.4rem)', marginBottom: 'clamp(0.75rem, 1.5vh, 1.25rem)' }}>
-        <div className="rounded-full" style={{ width: 'clamp(4px, 0.4vw, 6px)', height: 'clamp(4px, 0.4vw, 6px)', background: isActive ? '#22c55e' : '#ef4444' }} />
-        <span className="font-mono uppercase tracking-[0.15em]" style={{ fontSize: 'clamp(9px, 0.7vw, 11px)', color: isActive ? 'rgba(34,197,94,0.7)' : 'rgba(239,68,68,0.7)' }}>
+      <div className="flex items-center gap-2 mb-5">
+        <div className="w-2 h-2 rounded-full" style={{ background: isActive ? '#22c55e' : '#ef4444' }} />
+        <span className="font-mono uppercase tracking-[0.15em] text-xs" style={{ color: isActive ? 'rgba(34,197,94,0.7)' : 'rgba(239,68,68,0.7)' }}>
           {isActive ? 'PUBLIC MINT ACTIVE' : 'MINT PAUSED'}
         </span>
-        <span className="font-mono text-white/20" style={{ fontSize: 'clamp(9px, 0.7vw, 11px)' }}>|</span>
-        <span className="font-mono text-dream-cyan/60 uppercase tracking-[0.15em]" style={{ fontSize: 'clamp(9px, 0.7vw, 11px)' }}>
+        <span className="font-mono text-white/20 text-xs">|</span>
+        <span className="font-mono text-dream-cyan/60 uppercase tracking-[0.15em] text-xs">
           {mintPrice === 0n ? 'FREE' : `${Number(mintPrice) / 1e18} TEMPO`}
         </span>
       </div>
 
       {/* Count selector */}
-      <div className="flex items-center justify-center" style={{ gap: 'clamp(0.75rem, 1.2vw, 1rem)', marginBottom: 'clamp(0.75rem, 1.5vh, 1.25rem)' }}>
+      <div className="flex items-center justify-center gap-5 mb-5">
         <button
           onClick={() => setMintCount(c => Math.max(1, c - 1))}
-          className="border border-white/10 bg-white/5 text-white/50 hover:border-dream-cyan/30 hover:text-dream-cyan transition-colors cursor-pointer flex items-center justify-center"
-          style={{ width: 'clamp(1.5rem, 2.5vw, 2rem)', height: 'clamp(1.5rem, 2.5vw, 2rem)', borderRadius: 'clamp(0.3rem, 0.5vw, 0.5rem)' }}
+          className="w-10 h-10 border border-white/10 bg-white/5 text-white/50 hover:border-dream-cyan/30 hover:text-dream-cyan transition-colors cursor-pointer flex items-center justify-center rounded-lg"
         >
-          <Minus style={{ width: 'clamp(0.5rem, 0.8vw, 0.7rem)' }} />
+          <Minus className="w-4 h-4" />
         </button>
-        <span className="font-bold text-dream-white font-mono" style={{ fontSize: 'clamp(1rem, 1.8vw, 1.5rem)', minWidth: 'clamp(1.5rem, 2.5vw, 2rem)', textAlign: 'center' }}>{mintCount}</span>
+        <span className="font-bold text-dream-white font-mono text-2xl min-w-[2rem] text-center">{mintCount}</span>
         <button
           onClick={() => setMintCount(c => Math.min(maxPerAddr, c + 1))}
-          className="border border-white/10 bg-white/5 text-white/50 hover:border-dream-cyan/30 hover:text-dream-cyan transition-colors cursor-pointer flex items-center justify-center"
-          style={{ width: 'clamp(1.5rem, 2.5vw, 2rem)', height: 'clamp(1.5rem, 2.5vw, 2rem)', borderRadius: 'clamp(0.3rem, 0.5vw, 0.5rem)' }}
+          className="w-10 h-10 border border-white/10 bg-white/5 text-white/50 hover:border-dream-cyan/30 hover:text-dream-cyan transition-colors cursor-pointer flex items-center justify-center rounded-lg"
         >
-          <Plus style={{ width: 'clamp(0.5rem, 0.8vw, 0.7rem)' }} />
+          <Plus className="w-4 h-4" />
         </button>
       </div>
 
@@ -496,26 +494,17 @@ const MintPage = ({ onMintSuccess }: { onMintSuccess: (t: TokenMetadata & { id: 
       <button
         onClick={handleMint}
         disabled={!isActive || isBusy || !isConnected}
-        className={`w-full font-bold font-mono tracking-[0.2em] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center ${
-          isSuccess ? '' : txError ? '' : 'bg-dream-cyan text-ocean-deep hover:bg-dream-white'
+        className={`w-full font-bold font-mono tracking-[0.2em] text-sm py-3 rounded-xl transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
+          isSuccess ? 'bg-green-500 text-white' : txError ? 'border border-red-500/50 text-red-400' : 'bg-dream-cyan text-ocean-deep hover:bg-dream-white'
         }`}
-        style={{
-          padding: 'clamp(0.5rem, 1vh, 0.75rem)',
-          borderRadius: 'clamp(0.5rem, 0.8vw, 0.75rem)',
-          fontSize: 'clamp(10px, 0.85vw, 12px)',
-          background: isSuccess ? '#22c55e' : txError ? 'transparent' : undefined,
-          border: txError ? '1px solid rgba(239,68,68,0.5)' : undefined,
-          color: isSuccess ? 'white' : txError ? '#ef4444' : undefined,
-          gap: 'clamp(0.3rem, 0.5vw, 0.4rem)',
-        }}
       >
-        {isBusy && <Loader2 className="animate-spin" style={{ width: 'clamp(0.6rem, 0.8vw, 0.75rem)' }} />}
+        {isBusy && <Loader2 className="animate-spin w-4 h-4" />}
         {statusLabel}
       </button>
 
       {/* Error message */}
       {txError && (
-        <p className="font-mono text-center" style={{ fontSize: 'clamp(9px, 0.7vw, 11px)', color: 'rgba(239,68,68,0.7)', marginTop: 'clamp(0.3rem, 0.5vh, 0.5rem)' }}>
+        <p className="font-mono text-center text-xs text-red-400/70 mt-2">
           {(txError as any)?.shortMessage || txError.message}
         </p>
       )}
