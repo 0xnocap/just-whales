@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Home, Coins, Search, Image as ImageIcon, Skull, ChevronLeft, Sparkles, Minus, Plus, Loader2, X, ArrowLeftRight } from 'lucide-react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
@@ -251,132 +251,135 @@ const GalleryPage = ({ onSelectToken }: { onSelectToken: (t: TokenMetadata & { i
   const [tokens, setTokens] = useState<(TokenMetadata & { id: number })[]>([]);
   const [totalMinted, setTotalMinted] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(0);
-  const PAGE_SIZE = 10;
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextId, setNextId] = useState(-1);
+  const BATCH = 12;
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
+  // Initial load
   useEffect(() => {
-    async function load() {
+    async function init() {
       setLoading(true);
       try {
         const supply = await readTotalSupply();
         const total = Number(supply);
         setTotalMinted(total);
         if (total === 0) { setLoading(false); return; }
-
-        const startId = total - 1 - (page * PAGE_SIZE);
-        const endId = Math.max(startId - PAGE_SIZE + 1, 0);
-        const ids: number[] = [];
-        for (let i = startId; i >= endId; i--) ids.push(i);
-
-        const results = await Promise.all(
-          ids.map(async (id) => {
-            const uri = await readTokenURI(BigInt(id));
-            return { ...decodeTokenURI(uri), id };
-          })
-        );
-        setTokens(results);
-      } catch (e) { console.error('Gallery load error', e); }
+        const startId = total - 1;
+        await loadBatch(startId);
+      } catch (e) { console.error('Gallery init error', e); }
       setLoading(false);
     }
-    load();
-  }, [page]);
+    init();
+  }, []);
 
-  const totalPages = Math.ceil(totalMinted / PAGE_SIZE);
-  const filtered = tokens.filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()));
-  const animalColor: Record<string, string> = { Sharks: 'text-dream-cyan', Whales: 'text-dream-purple', SeaLions: 'text-dream-blue' };
+  const loadBatch = useCallback(async (fromId: number) => {
+    if (fromId < 0) return;
+    const endId = Math.max(fromId - BATCH + 1, 0);
+    const ids: number[] = [];
+    for (let i = fromId; i >= endId; i--) ids.push(i);
+
+    const results = await Promise.all(
+      ids.map(async (id) => {
+        try {
+          const uri = await readTokenURI(BigInt(id));
+          return { ...decodeTokenURI(uri), id };
+        } catch { return null; }
+      })
+    );
+    const valid = results.filter(Boolean) as (TokenMetadata & { id: number })[];
+    setTokens(prev => [...prev, ...valid]);
+    setNextId(endId - 1);
+  }, []);
+
+  // Infinite scroll via IntersectionObserver
+  useEffect(() => {
+    if (!sentinelRef.current || nextId < 0 || loadingMore) return;
+    const observer = new IntersectionObserver(
+      async ([entry]) => {
+        if (entry.isIntersecting && nextId >= 0 && !loadingMore) {
+          setLoadingMore(true);
+          await loadBatch(nextId);
+          setLoadingMore(false);
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [nextId, loadingMore, loadBatch]);
+
+  const filtered = searchQuery
+    ? tokens.filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : tokens;
+  const animalColor: Record<string, string> = { Shark: 'text-dream-cyan', Whale: 'text-dream-purple', SeaLion: 'text-dream-blue', Sharks: 'text-dream-cyan', Whales: 'text-dream-purple', SeaLions: 'text-dream-blue' };
+  const hasMore = nextId >= 0;
 
   return (
-    <div
-      className="w-full"
-    >
-      <div className="flex justify-between items-center" style={{ gap: 'clamp(0.5rem, 1vw, 1rem)', marginBottom: 'clamp(0.75rem, 1.5vh, 1.25rem)' }}>
-        <h2 className="font-bold font-sans text-dream-white tracking-tight uppercase" style={{ fontSize: 'clamp(0.8rem, 1.3vw, 1.2rem)' }}>
+    <div className="w-full">
+      <div className="flex justify-between items-center gap-4 mb-4">
+        <h2 className="font-bold font-sans text-dream-white tracking-tight uppercase text-lg">
           GALLERY
-          {totalMinted > 0 && <span className="font-mono text-white/30 font-normal" style={{ fontSize: 'clamp(0.4rem, 0.55vw, 0.5rem)', marginLeft: 'clamp(0.3rem, 0.5vw, 0.5rem)' }}>{totalMinted} MINTED</span>}
+          {totalMinted > 0 && <span className="font-mono text-white/30 font-normal text-xs ml-2">{totalMinted} MINTED</span>}
         </h2>
-        <div className="relative" style={{ width: 'clamp(10rem, 20vw, 18rem)' }}>
-          <Search className="absolute top-1/2 -translate-y-1/2 text-white/20" style={{ left: 'clamp(0.5rem, 0.8vw, 0.75rem)', width: 'clamp(0.6rem, 0.8vw, 0.75rem)', height: 'clamp(0.6rem, 0.8vw, 0.75rem)' }} />
+        <div className="relative w-48">
+          <Search className="absolute top-1/2 -translate-y-1/2 left-3 w-3.5 h-3.5 text-white/20" />
           <input
             type="text"
             placeholder="SEARCH..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 font-mono text-dream-white placeholder:text-white/20 focus:border-dream-cyan outline-none transition-all backdrop-blur-md"
-            style={{ paddingLeft: 'clamp(1.5rem, 2.5vw, 2rem)', paddingRight: 'clamp(0.5rem, 0.8vw, 0.75rem)', paddingTop: 'clamp(0.3rem, 0.5vh, 0.5rem)', paddingBottom: 'clamp(0.3rem, 0.5vh, 0.5rem)', borderRadius: 'clamp(0.5rem, 0.8vw, 0.75rem)', fontSize: 'clamp(10px, 0.8vw, 12px)' }}
+            className="w-full pl-9 pr-3 py-2 bg-white/5 border border-white/10 rounded-lg font-mono text-xs text-dream-white placeholder:text-white/20 focus:border-dream-cyan outline-none transition-all backdrop-blur-md"
           />
         </div>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center" style={{ padding: 'clamp(3rem, 8vh, 5rem)' }}>
-          <Loader2 className="animate-spin text-dream-cyan/40" style={{ width: 'clamp(1.5rem, 2.5vw, 2rem)', height: 'clamp(1.5rem, 2.5vw, 2rem)' }} />
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="animate-spin text-dream-cyan/40 w-6 h-6" />
         </div>
       ) : totalMinted === 0 ? (
-        <div className="text-center" style={{ padding: 'clamp(3rem, 8vh, 5rem)' }}>
-          <ImageIcon className="text-white/10 mx-auto" style={{ width: 'clamp(2rem, 4vw, 3rem)', height: 'clamp(2rem, 4vw, 3rem)' }} />
-          <p className="font-mono text-white/30 tracking-widest uppercase" style={{ fontSize: 'clamp(0.4rem, 0.6vw, 0.55rem)', marginTop: 'clamp(0.5rem, 1vh, 0.75rem)' }}>
-            NO TOKENS MINTED YET
-          </p>
+        <div className="text-center py-16">
+          <ImageIcon className="text-white/10 mx-auto w-8 h-8" />
+          <p className="font-mono text-white/30 tracking-widest uppercase text-xs mt-3">NO TOKENS MINTED YET</p>
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5" style={{ gap: 'clamp(0.5rem, 0.8vw, 0.75rem)' }}>
-            <AnimatePresence mode="popLayout">
-              {filtered.map((token) => {
-                const animalType = token.attributes.find(a => a.trait_type === 'Animal Type')?.value || '';
-                return (
-                  <motion.div
-                    key={token.id}
-                    layout
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="group relative border border-white/10 bg-white/5 backdrop-blur-xl hover:border-white/30 transition-all duration-500 cursor-pointer"
-                    style={{ padding: 'clamp(0.4rem, 0.8vw, 0.7rem)', borderRadius: 'clamp(0.75rem, 1.2vw, 1.1rem)' }}
-                    onClick={() => onSelectToken(token)}
-                  >
-                    <div className="overflow-hidden relative bg-ocean-deep/50" style={{ borderRadius: 'clamp(0.5rem, 0.8vw, 0.75rem)', marginBottom: 'clamp(0.3rem, 0.5vh, 0.5rem)', aspectRatio: '1/1' }}>
-                      <img
-                        src={token.image_data}
-                        alt={token.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                        style={{ imageRendering: 'pixelated' }}
-                      />
-                    </div>
-                    <h3 className="font-bold font-sans text-dream-white truncate" style={{ fontSize: 'clamp(0.5rem, 0.75vw, 0.7rem)', marginBottom: 'clamp(0.05rem, 0.1vh, 0.1rem)' }}>{token.name}</h3>
-                    <span className={`font-mono uppercase tracking-[0.15em] ${animalColor[animalType] || 'text-white/40'}`} style={{ fontSize: 'clamp(8px, 0.65vw, 10px)' }}>
-                      {animalType}
-                    </span>
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            {filtered.map((token) => {
+              const animalType = token.attributes.find(a => a.trait_type === 'Animal Type')?.value || '';
+              return (
+                <div
+                  key={token.id}
+                  className="group relative border border-white/10 bg-white/5 backdrop-blur-xl hover:border-white/30 transition-all duration-300 cursor-pointer p-2 rounded-xl"
+                  onClick={() => onSelectToken(token)}
+                >
+                  <div className="overflow-hidden relative bg-ocean-deep/50 rounded-lg mb-2" style={{ aspectRatio: '1/1' }}>
+                    <img
+                      src={token.image_data}
+                      alt={token.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      style={{ imageRendering: 'pixelated' }}
+                      loading="lazy"
+                    />
+                  </div>
+                  <h3 className="font-bold font-sans text-dream-white truncate text-sm">{token.name}</h3>
+                  <span className={`font-mono uppercase tracking-[0.15em] text-[10px] ${animalColor[animalType] || 'text-white/40'}`}>
+                    {animalType}
+                  </span>
+                </div>
+              );
+            })}
           </div>
 
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center" style={{ gap: 'clamp(0.5rem, 1vw, 0.75rem)', marginTop: 'clamp(0.5rem, 1vh, 0.75rem)' }}>
-              <button
-                onClick={() => setPage(p => Math.max(0, p - 1))}
-                disabled={page === 0}
-                className="font-mono font-bold tracking-[0.15em] text-white/40 border border-white/10 bg-white/5 hover:border-dream-cyan/30 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                style={{ fontSize: 'clamp(9px, 0.7vw, 11px)', padding: 'clamp(4px, 0.4vh, 6px) clamp(10px, 1vw, 14px)', borderRadius: 'clamp(0.3rem, 0.5vw, 0.4rem)' }}
-              >
-                PREV
-              </button>
-              <span className="font-mono text-white/30" style={{ fontSize: 'clamp(9px, 0.7vw, 11px)' }}>{page + 1} / {totalPages}</span>
-              <button
-                onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-                disabled={page >= totalPages - 1}
-                className="font-mono font-bold tracking-[0.15em] text-white/40 border border-white/10 bg-white/5 hover:border-dream-cyan/30 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                style={{ fontSize: 'clamp(9px, 0.7vw, 11px)', padding: 'clamp(4px, 0.4vh, 6px) clamp(10px, 1vw, 14px)', borderRadius: 'clamp(0.3rem, 0.5vw, 0.4rem)' }}
-              >
-                NEXT
-              </button>
+          {/* Infinite scroll sentinel */}
+          {hasMore && (
+            <div ref={sentinelRef} className="flex items-center justify-center py-6">
+              {loadingMore && <Loader2 className="animate-spin text-dream-cyan/30 w-5 h-5" />}
             </div>
           )}
         </>
       )}
-
     </div>
   );
 };
