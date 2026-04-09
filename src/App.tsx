@@ -469,7 +469,7 @@ const MintPage = ({ onMintSuccess }: { onMintSuccess: (t: TokenMetadata & { id: 
         </span>
         <span className="font-mono text-white/20 text-xs">|</span>
         <span className="font-mono text-dream-cyan/60 uppercase tracking-[0.15em] text-xs">
-          {mintPrice === 0n ? 'FREE' : `${Number(mintPrice) / 1e18} TEMPO`}
+          {mintPrice === 0n ? 'FREE' : `$${(Number(mintPrice) / 1e18).toFixed(2)} USD`}
         </span>
       </div>
 
