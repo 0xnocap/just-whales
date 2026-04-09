@@ -724,8 +724,8 @@ export default function App() {
         <RetroButton icon={Home} label="Home" active={activeTab === 'home'} onClick={() => changeTab('home')} />
         <RetroButton icon={Sparkles} label="Mint" active={activeTab === 'mint'} onClick={() => changeTab('mint')} />
         <RetroButton icon={ImageIcon} label="Gallery" active={activeTab === 'gallery'} onClick={() => changeTab('gallery')} />
-        <RetroButton icon={ArrowLeftRight} label="Trade" active={false} onClick={() => {}} disabled tooltip="SOON" />
         <RetroButton icon={Coins} label="Staking" active={activeTab === 'staking'} onClick={() => changeTab('staking')} />
+        <RetroButton icon={ArrowLeftRight} label="Trade" active={false} onClick={() => {}} disabled tooltip="SOON" />
       </nav>
 
       {/* Token Detail Modal - rendered at app root to avoid parent container issues */}
