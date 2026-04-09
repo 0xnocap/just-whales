@@ -35,29 +35,29 @@ const TokenModal = ({ token, onClose }: { token: (TokenMetadata & { id: number }
         transition={{ duration: 0.25, ease: [0.2, 0.8, 0.2, 1] }}
         onClick={e => e.stopPropagation()}
         className="relative z-10 border border-white/10 bg-ocean-deep/95 backdrop-blur-2xl flex flex-col items-center text-center"
-        style={{ width: 'clamp(14rem, 24vw, 20rem)', maxHeight: '70vh', borderRadius: 'clamp(0.6rem, 1vw, 0.85rem)', padding: 'clamp(0.4rem, 0.7vw, 0.6rem)' }}
+        style={{ width: 'min(90vw, 22rem)', maxHeight: '80vh', borderRadius: '0.75rem', padding: '0.75rem' }}
       >
         {/* Close */}
-        <button onClick={onClose} className="absolute z-20 flex items-center justify-center text-white/30 hover:text-white transition-colors cursor-pointer" style={{ top: 'clamp(0.3rem, 0.5vw, 0.4rem)', right: 'clamp(0.3rem, 0.5vw, 0.4rem)' }}>
-          <X style={{ width: 'clamp(0.55rem, 0.8vw, 0.7rem)', height: 'clamp(0.55rem, 0.8vw, 0.7rem)' }} />
+        <button onClick={onClose} className="absolute z-20 flex items-center justify-center text-white/40 hover:text-white transition-colors cursor-pointer" style={{ top: '0.5rem', right: '0.5rem' }}>
+          <X className="w-4 h-4" />
         </button>
 
         {/* Image */}
-        <div className="w-full overflow-hidden bg-ocean-deep/80 border border-white/5" style={{ borderRadius: 'clamp(0.35rem, 0.6vw, 0.5rem)', aspectRatio: '1/1', marginBottom: 'clamp(0.3rem, 0.5vh, 0.4rem)' }}>
+        <div className="w-full overflow-hidden bg-ocean-deep/80 border border-white/5 rounded-lg mb-3" style={{ aspectRatio: '1/1' }}>
           <img src={token.image_data} alt={token.name} className="w-full h-full object-cover" style={{ imageRendering: 'pixelated' }} />
         </div>
 
         {/* Name + type */}
-        <h3 className="font-bold font-sans text-dream-white" style={{ fontSize: 'clamp(0.6rem, 0.9vw, 0.8rem)' }}>{token.name}</h3>
-        <span className="font-mono text-dream-cyan/50 uppercase tracking-[0.2em]" style={{ fontSize: 'clamp(5px, 0.45vw, 6px)', marginBottom: 'clamp(0.25rem, 0.5vh, 0.35rem)' }}>{animalType}</span>
+        <h3 className="font-bold font-sans text-dream-white text-base">{token.name}</h3>
+        <span className="font-mono text-dream-cyan/50 uppercase tracking-[0.2em] text-[10px] mb-3">{animalType}</span>
 
         {/* Traits */}
         {traits.length > 0 && (
-          <div className="w-full grid grid-cols-3" style={{ gap: 'clamp(2px, 0.2vw, 3px)' }}>
+          <div className="w-full grid grid-cols-3 gap-1.5">
             {traits.map(attr => (
-              <div key={attr.trait_type} className="bg-white/5 text-left" style={{ borderRadius: 'clamp(2px, 0.25vw, 3px)', padding: 'clamp(2px, 0.2vw, 3px) clamp(3px, 0.3vw, 5px)' }}>
-                <div className="font-mono text-white/25 uppercase tracking-wider" style={{ fontSize: 'clamp(3px, 0.28vw, 4px)', lineHeight: 1.2 }}>{attr.trait_type}</div>
-                <div className="font-mono text-white/70 truncate" style={{ fontSize: 'clamp(4px, 0.38vw, 5.5px)', lineHeight: 1.3 }}>{attr.value}</div>
+              <div key={attr.trait_type} className="bg-white/5 text-left rounded px-2 py-1.5">
+                <div className="font-mono text-white/30 uppercase tracking-wider text-[8px] leading-tight mb-0.5">{attr.trait_type}</div>
+                <div className="font-mono text-white/80 truncate text-[10px] leading-tight">{attr.value}</div>
               </div>
             ))}
           </div>
@@ -630,10 +630,10 @@ const HomePage = () => {
         href="https://x.com/whaletowntempo"
         target="_blank"
         rel="noopener noreferrer"
-        className="text-white/30 hover:text-white transition-colors"
-        style={{ marginTop: 'clamp(0.6rem, 1.2vh, 0.9rem)' }}
+        className="text-white/40 hover:text-white transition-colors inline-block"
+        style={{ marginTop: 'clamp(0.8rem, 1.5vh, 1.1rem)' }}
       >
-        <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: 'clamp(0.8rem, 1.1vw, 1rem)', height: 'clamp(0.8rem, 1.1vw, 1rem)' }}>
+        <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: 'clamp(1rem, 1.4vw, 1.25rem)', height: 'clamp(1rem, 1.4vw, 1.25rem)' }}>
           <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
         </svg>
       </a>
