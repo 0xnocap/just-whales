@@ -525,7 +525,7 @@ const HomePage = () => {
       className="text-center w-full"
     >
       {/* Hero */}
-      <div className="relative inline-block" style={{ marginBottom: 'clamp(0.25rem, 0.5vh, 0.5rem)' }}>
+      <div className="relative inline-block mb-4">
         <motion.h1
           className="font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-dream-white via-dream-cyan to-dream-purple"
           style={{ fontSize: 'clamp(3rem, 8.5vw, 7rem)' }}
@@ -542,12 +542,12 @@ const HomePage = () => {
         </motion.h1>
       </div>
 
-      <p className="font-mono text-white/50 tracking-widest uppercase" style={{ fontSize: 'clamp(0.65rem, 1.2vw, 1rem)', marginBottom: 'clamp(0.5rem, 1vh, 0.75rem)' }}>
+      <p className="font-mono text-white/50 tracking-widest uppercase mb-5" style={{ fontSize: 'clamp(0.65rem, 1.2vw, 1rem)' }}>
         welcome to whale town.
       </p>
 
       {/* Meta bar */}
-      <div className="flex items-center justify-center flex-wrap" style={{ gap: 'clamp(0.3rem, 0.5vw, 0.5rem)', marginBottom: 'clamp(0.75rem, 1.5vh, 1.25rem)' }}>
+      <div className="flex items-center justify-center flex-wrap mb-6" style={{ gap: 'clamp(0.3rem, 0.5vw, 0.5rem)' }}>
         <span className="rounded-full border border-white/10 bg-white/5 backdrop-blur-md font-mono font-bold tracking-[0.15em] text-white/30 uppercase" style={{ fontSize: 'clamp(9px, 0.8vw, 11px)', padding: 'clamp(4px, 0.5vh, 6px) clamp(10px, 1vw, 16px)' }}>
           Tempo Network
         </span>
@@ -562,12 +562,12 @@ const HomePage = () => {
       </div>
 
       {/* Creature intro */}
-      <p className="font-mono text-white/30 tracking-[0.2em] uppercase" style={{ fontSize: 'clamp(0.5rem, 0.8vw, 0.75rem)', marginBottom: 'clamp(0.75rem, 1.5vh, 1.25rem)' }}>
+      <p className="font-mono text-white/30 tracking-[0.2em] uppercase mb-6" style={{ fontSize: 'clamp(0.5rem, 0.8vw, 0.75rem)' }}>
         sea lions, sharks, and whales, oh my!
       </p>
 
       {/* Tagline cards */}
-      <div className="grid grid-cols-3 mx-auto" style={{ gap: 'clamp(0.5rem, 1vw, 0.85rem)', marginBottom: 'clamp(0.75rem, 1.5vh, 1.25rem)', maxWidth: 'clamp(20rem, 54vw, 46rem)' }}>
+      <div className="grid grid-cols-3 mx-auto mb-6" style={{ gap: 'clamp(0.5rem, 1vw, 0.85rem)', maxWidth: 'clamp(20rem, 54vw, 46rem)' }}>
         {taglines.map((item, i) => (
           <motion.div
             key={i}
