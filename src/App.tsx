@@ -525,21 +525,21 @@ const HomePage = () => {
       className="text-center w-full"
     >
       {/* Hero */}
-      <div className="relative inline-block" style={{ marginBottom: 'clamp(0.5rem, 1vh, 0.75rem)' }}>
-        <motion.img
-          src="/whaletownbig.png"
-          alt="WHALE Town"
-          className="mx-auto"
-          style={{ width: 'clamp(24rem, 65vw, 52rem)', imageRendering: 'pixelated' }}
+      <div className="relative inline-block" style={{ marginBottom: 'clamp(0.25rem, 0.5vh, 0.5rem)' }}>
+        <motion.h1
+          className="font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-dream-white via-dream-cyan to-dream-purple"
+          style={{ fontSize: 'clamp(3rem, 8.5vw, 7rem)' }}
           animate={{
             filter: [
-              "drop-shadow(0 0 20px rgba(34,211,238,0.3))",
-              "drop-shadow(0 0 40px rgba(34,211,238,0.15))",
-              "drop-shadow(0 0 20px rgba(34,211,238,0.3))"
+              "drop-shadow(0 0 20px rgba(34,211,238,0.2))",
+              "drop-shadow(0 0 40px rgba(192,132,252,0.2))",
+              "drop-shadow(0 0 20px rgba(34,211,238,0.2))"
             ]
           }}
           transition={{ duration: 6, repeat: Infinity }}
-        />
+        >
+          WHALE Town
+        </motion.h1>
       </div>
 
       <p className="font-mono text-white/50 tracking-widest uppercase" style={{ fontSize: 'clamp(0.65rem, 1.2vw, 1rem)', marginBottom: 'clamp(0.5rem, 1vh, 0.75rem)' }}>
