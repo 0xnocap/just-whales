@@ -178,7 +178,7 @@ const RetroButton = ({ icon: Icon, label, active, onClick }: { icon: any, label:
       />
 
       <Icon className="mb-1 z-10 transition-colors duration-500" style={{ width: 'clamp(1rem, 1.5vw, 1.25rem)', height: 'clamp(1rem, 1.5vw, 1.25rem)' }} />
-      <span className={`font-mono font-bold tracking-[0.15em] uppercase z-10 transition-colors duration-500 ${active ? 'text-dream-cyan' : 'text-white/30'}`} style={{ fontSize: 'clamp(6px, 0.6vw, 8px)' }}>
+      <span className={`font-mono font-bold tracking-[0.15em] uppercase z-10 transition-colors duration-500 ${active ? 'text-dream-cyan' : 'text-white/30'}`} style={{ fontSize: 'clamp(8px, 0.7vw, 10px)' }}>
         {label}
       </span>
     </motion.button>
@@ -195,15 +195,15 @@ const StakingPage = () => {
         <h2 className="font-bold text-dream-cyan font-sans tracking-tight text-left uppercase" style={{ fontSize: 'clamp(0.7rem, 1.1vw, 1rem)', marginBottom: 'clamp(0.75rem, 1.5vh, 1.25rem)' }}>STAKING POOL</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(0.5rem, 1vh, 0.75rem)' }}>
           <div className="flex justify-between items-end border-b border-white/5" style={{ paddingBottom: 'clamp(0.4rem, 0.8vh, 0.6rem)' }}>
-            <span className="font-mono text-white/40 uppercase tracking-[0.15em]" style={{ fontSize: 'clamp(0.4rem, 0.6vw, 0.6rem)' }}>Total Staked</span>
+            <span className="font-mono text-white/40 uppercase tracking-[0.15em]" style={{ fontSize: 'clamp(10px, 0.8vw, 12px)' }}>Total Staked</span>
             <span className="font-bold text-dream-white" style={{ fontSize: 'clamp(0.7rem, 1.1vw, 1rem)' }}>-- OCEAN</span>
           </div>
           <div className="flex justify-between items-end border-b border-white/5" style={{ paddingBottom: 'clamp(0.4rem, 0.8vh, 0.6rem)' }}>
-            <span className="font-mono text-white/40 uppercase tracking-[0.15em]" style={{ fontSize: 'clamp(0.4rem, 0.6vw, 0.6rem)' }}>Current APY</span>
+            <span className="font-mono text-white/40 uppercase tracking-[0.15em]" style={{ fontSize: 'clamp(10px, 0.8vw, 12px)' }}>Current APY</span>
             <span className="font-bold text-dream-cyan" style={{ fontSize: 'clamp(0.7rem, 1.1vw, 1rem)' }}>--%</span>
           </div>
           <div className="relative group">
-            <button disabled className="w-full bg-dream-cyan/20 text-dream-cyan/40 font-bold font-mono tracking-[0.2em] cursor-not-allowed" style={{ padding: 'clamp(0.4rem, 0.8vh, 0.6rem)', borderRadius: 'clamp(0.5rem, 0.8vw, 0.75rem)', fontSize: 'clamp(0.5rem, 0.7vw, 0.7rem)' }}>
+            <button disabled className="w-full bg-dream-cyan/20 text-dream-cyan/40 font-bold font-mono tracking-[0.2em] cursor-not-allowed" style={{ padding: 'clamp(0.4rem, 0.8vh, 0.6rem)', borderRadius: 'clamp(0.5rem, 0.8vw, 0.75rem)', fontSize: 'clamp(10px, 0.85vw, 12px)' }}>
               STAKE
             </button>
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-ocean-deep/80 backdrop-blur-sm" style={{ borderRadius: 'clamp(0.5rem, 0.8vw, 0.75rem)' }}>
@@ -217,15 +217,15 @@ const StakingPage = () => {
         <h2 className="font-bold text-dream-purple font-sans tracking-tight text-left uppercase" style={{ fontSize: 'clamp(0.7rem, 1.1vw, 1rem)', marginBottom: 'clamp(0.75rem, 1.5vh, 1.25rem)' }}>REWARDS</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(0.5rem, 1vh, 0.75rem)' }}>
           <div className="flex justify-between items-end border-b border-white/5" style={{ paddingBottom: 'clamp(0.4rem, 0.8vh, 0.6rem)' }}>
-            <span className="font-mono text-white/40 uppercase tracking-[0.15em]" style={{ fontSize: 'clamp(0.4rem, 0.6vw, 0.6rem)' }}>Unclaimed</span>
+            <span className="font-mono text-white/40 uppercase tracking-[0.15em]" style={{ fontSize: 'clamp(10px, 0.8vw, 12px)' }}>Unclaimed</span>
             <span className="font-bold text-dream-white" style={{ fontSize: 'clamp(0.7rem, 1.1vw, 1rem)' }}>-- OCEAN</span>
           </div>
           <div className="flex justify-between items-end border-b border-white/5" style={{ paddingBottom: 'clamp(0.4rem, 0.8vh, 0.6rem)' }}>
-            <span className="font-mono text-white/40 uppercase tracking-[0.15em]" style={{ fontSize: 'clamp(0.4rem, 0.6vw, 0.6rem)' }}>Daily Yield</span>
+            <span className="font-mono text-white/40 uppercase tracking-[0.15em]" style={{ fontSize: 'clamp(10px, 0.8vw, 12px)' }}>Daily Yield</span>
             <span className="font-bold text-dream-purple" style={{ fontSize: 'clamp(0.7rem, 1.1vw, 1rem)' }}>-- OCEAN</span>
           </div>
           <div className="relative group">
-            <button disabled className="w-full border border-dream-purple/30 text-dream-purple/40 font-bold font-mono tracking-[0.2em] cursor-not-allowed" style={{ padding: 'clamp(0.4rem, 0.8vh, 0.6rem)', borderRadius: 'clamp(0.5rem, 0.8vw, 0.75rem)', fontSize: 'clamp(0.5rem, 0.7vw, 0.7rem)' }}>
+            <button disabled className="w-full border border-dream-purple/30 text-dream-purple/40 font-bold font-mono tracking-[0.2em] cursor-not-allowed" style={{ padding: 'clamp(0.4rem, 0.8vh, 0.6rem)', borderRadius: 'clamp(0.5rem, 0.8vw, 0.75rem)', fontSize: 'clamp(10px, 0.85vw, 12px)' }}>
               CLAIM
             </button>
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-ocean-deep/80 backdrop-blur-sm" style={{ borderRadius: 'clamp(0.5rem, 0.8vw, 0.75rem)' }}>
@@ -295,7 +295,7 @@ const GalleryPage = ({ onSelectToken }: { onSelectToken: (t: TokenMetadata & { i
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-white/5 border border-white/10 font-mono text-dream-white placeholder:text-white/20 focus:border-dream-cyan outline-none transition-all backdrop-blur-md"
-            style={{ paddingLeft: 'clamp(1.5rem, 2.5vw, 2rem)', paddingRight: 'clamp(0.5rem, 0.8vw, 0.75rem)', paddingTop: 'clamp(0.3rem, 0.5vh, 0.5rem)', paddingBottom: 'clamp(0.3rem, 0.5vh, 0.5rem)', borderRadius: 'clamp(0.5rem, 0.8vw, 0.75rem)', fontSize: 'clamp(0.4rem, 0.6vw, 0.6rem)' }}
+            style={{ paddingLeft: 'clamp(1.5rem, 2.5vw, 2rem)', paddingRight: 'clamp(0.5rem, 0.8vw, 0.75rem)', paddingTop: 'clamp(0.3rem, 0.5vh, 0.5rem)', paddingBottom: 'clamp(0.3rem, 0.5vh, 0.5rem)', borderRadius: 'clamp(0.5rem, 0.8vw, 0.75rem)', fontSize: 'clamp(10px, 0.8vw, 12px)' }}
           />
         </div>
       </div>
@@ -337,7 +337,7 @@ const GalleryPage = ({ onSelectToken }: { onSelectToken: (t: TokenMetadata & { i
                       />
                     </div>
                     <h3 className="font-bold font-sans text-dream-white truncate" style={{ fontSize: 'clamp(0.5rem, 0.75vw, 0.7rem)', marginBottom: 'clamp(0.05rem, 0.1vh, 0.1rem)' }}>{token.name}</h3>
-                    <span className={`font-mono uppercase tracking-[0.15em] ${animalColor[animalType] || 'text-white/40'}`} style={{ fontSize: 'clamp(4px, 0.45vw, 6px)' }}>
+                    <span className={`font-mono uppercase tracking-[0.15em] ${animalColor[animalType] || 'text-white/40'}`} style={{ fontSize: 'clamp(8px, 0.65vw, 10px)' }}>
                       {animalType}
                     </span>
                   </motion.div>
@@ -352,16 +352,16 @@ const GalleryPage = ({ onSelectToken }: { onSelectToken: (t: TokenMetadata & { i
                 onClick={() => setPage(p => Math.max(0, p - 1))}
                 disabled={page === 0}
                 className="font-mono font-bold tracking-[0.15em] text-white/40 border border-white/10 bg-white/5 hover:border-dream-cyan/30 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                style={{ fontSize: 'clamp(5px, 0.5vw, 7px)', padding: 'clamp(2px, 0.3vh, 4px) clamp(6px, 0.8vw, 10px)', borderRadius: 'clamp(0.3rem, 0.5vw, 0.4rem)' }}
+                style={{ fontSize: 'clamp(9px, 0.7vw, 11px)', padding: 'clamp(4px, 0.4vh, 6px) clamp(10px, 1vw, 14px)', borderRadius: 'clamp(0.3rem, 0.5vw, 0.4rem)' }}
               >
                 PREV
               </button>
-              <span className="font-mono text-white/30" style={{ fontSize: 'clamp(5px, 0.5vw, 7px)' }}>{page + 1} / {totalPages}</span>
+              <span className="font-mono text-white/30" style={{ fontSize: 'clamp(9px, 0.7vw, 11px)' }}>{page + 1} / {totalPages}</span>
               <button
                 onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
                 disabled={page >= totalPages - 1}
                 className="font-mono font-bold tracking-[0.15em] text-white/40 border border-white/10 bg-white/5 hover:border-dream-cyan/30 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                style={{ fontSize: 'clamp(5px, 0.5vw, 7px)', padding: 'clamp(2px, 0.3vh, 4px) clamp(6px, 0.8vw, 10px)', borderRadius: 'clamp(0.3rem, 0.5vw, 0.4rem)' }}
+                style={{ fontSize: 'clamp(9px, 0.7vw, 11px)', padding: 'clamp(4px, 0.4vh, 6px) clamp(10px, 1vw, 14px)', borderRadius: 'clamp(0.3rem, 0.5vw, 0.4rem)' }}
               >
                 NEXT
               </button>
@@ -445,17 +445,17 @@ const MintPage = ({ onMintSuccess }: { onMintSuccess: (t: TokenMetadata & { id: 
           {({ account, chain, openConnectModal, openAccountModal, openChainModal, mounted }) => {
             if (!mounted) return null;
             if (!account) return (
-              <button onClick={openConnectModal} className="font-mono font-bold tracking-[0.1em] text-dream-cyan border border-dream-cyan/30 bg-dream-cyan/5 hover:bg-dream-cyan/10 transition-colors cursor-pointer" style={{ fontSize: 'clamp(5px, 0.55vw, 8px)', padding: 'clamp(2px, 0.3vh, 4px) clamp(6px, 0.8vw, 10px)', borderRadius: 'clamp(0.3rem, 0.5vw, 0.5rem)' }}>
+              <button onClick={openConnectModal} className="font-mono font-bold tracking-[0.1em] text-dream-cyan border border-dream-cyan/30 bg-dream-cyan/5 hover:bg-dream-cyan/10 transition-colors cursor-pointer" style={{ fontSize: 'clamp(9px, 0.75vw, 11px)', padding: 'clamp(4px, 0.4vh, 6px) clamp(10px, 1vw, 14px)', borderRadius: 'clamp(0.3rem, 0.5vw, 0.5rem)' }}>
                 CONNECT
               </button>
             );
             if (chain?.unsupported) return (
-              <button onClick={openChainModal} className="font-mono font-bold tracking-[0.1em] text-red-400 border border-red-400/30 bg-red-400/5 cursor-pointer" style={{ fontSize: 'clamp(5px, 0.55vw, 8px)', padding: 'clamp(2px, 0.3vh, 4px) clamp(6px, 0.8vw, 10px)', borderRadius: 'clamp(0.3rem, 0.5vw, 0.5rem)' }}>
+              <button onClick={openChainModal} className="font-mono font-bold tracking-[0.1em] text-red-400 border border-red-400/30 bg-red-400/5 cursor-pointer" style={{ fontSize: 'clamp(9px, 0.75vw, 11px)', padding: 'clamp(4px, 0.4vh, 6px) clamp(10px, 1vw, 14px)', borderRadius: 'clamp(0.3rem, 0.5vw, 0.5rem)' }}>
                 WRONG NETWORK
               </button>
             );
             return (
-              <button onClick={openAccountModal} className="font-mono font-bold tracking-[0.1em] text-white/40 border border-white/10 bg-white/5 hover:border-dream-cyan/30 transition-colors cursor-pointer" style={{ fontSize: 'clamp(5px, 0.55vw, 8px)', padding: 'clamp(2px, 0.3vh, 4px) clamp(6px, 0.8vw, 10px)', borderRadius: 'clamp(0.3rem, 0.5vw, 0.5rem)' }}>
+              <button onClick={openAccountModal} className="font-mono font-bold tracking-[0.1em] text-white/40 border border-white/10 bg-white/5 hover:border-dream-cyan/30 transition-colors cursor-pointer" style={{ fontSize: 'clamp(9px, 0.75vw, 11px)', padding: 'clamp(4px, 0.4vh, 6px) clamp(10px, 1vw, 14px)', borderRadius: 'clamp(0.3rem, 0.5vw, 0.5rem)' }}>
                 {account.displayName}
               </button>
             );
@@ -466,7 +466,7 @@ const MintPage = ({ onMintSuccess }: { onMintSuccess: (t: TokenMetadata & { id: 
       {/* Supply */}
       <div style={{ marginBottom: 'clamp(0.75rem, 1.5vh, 1.25rem)' }}>
         <div className="flex justify-between items-end" style={{ marginBottom: 'clamp(0.25rem, 0.4vh, 0.35rem)' }}>
-          <span className="font-mono text-white/40 uppercase tracking-[0.15em]" style={{ fontSize: 'clamp(0.4rem, 0.55vw, 0.55rem)' }}>Supply</span>
+          <span className="font-mono text-white/40 uppercase tracking-[0.15em]" style={{ fontSize: 'clamp(9px, 0.75vw, 11px)' }}>Supply</span>
           <span className="font-bold text-dream-white" style={{ fontSize: 'clamp(0.6rem, 0.9vw, 0.85rem)' }}>{totalSupply} / {maxSupply}</span>
         </div>
         <div className="w-full bg-white/10 rounded-full overflow-hidden" style={{ height: 'clamp(3px, 0.4vh, 5px)' }}>
@@ -477,11 +477,11 @@ const MintPage = ({ onMintSuccess }: { onMintSuccess: (t: TokenMetadata & { id: 
       {/* Status */}
       <div className="flex items-center" style={{ gap: 'clamp(0.3rem, 0.4vw, 0.4rem)', marginBottom: 'clamp(0.75rem, 1.5vh, 1.25rem)' }}>
         <div className="rounded-full" style={{ width: 'clamp(4px, 0.4vw, 6px)', height: 'clamp(4px, 0.4vw, 6px)', background: isActive ? '#22c55e' : '#ef4444' }} />
-        <span className="font-mono uppercase tracking-[0.15em]" style={{ fontSize: 'clamp(0.35rem, 0.5vw, 0.5rem)', color: isActive ? 'rgba(34,197,94,0.7)' : 'rgba(239,68,68,0.7)' }}>
+        <span className="font-mono uppercase tracking-[0.15em]" style={{ fontSize: 'clamp(9px, 0.7vw, 11px)', color: isActive ? 'rgba(34,197,94,0.7)' : 'rgba(239,68,68,0.7)' }}>
           {isActive ? 'PUBLIC MINT ACTIVE' : 'MINT PAUSED'}
         </span>
-        <span className="font-mono text-white/20" style={{ fontSize: 'clamp(0.35rem, 0.5vw, 0.5rem)' }}>|</span>
-        <span className="font-mono text-dream-cyan/60 uppercase tracking-[0.15em]" style={{ fontSize: 'clamp(0.35rem, 0.5vw, 0.5rem)' }}>
+        <span className="font-mono text-white/20" style={{ fontSize: 'clamp(9px, 0.7vw, 11px)' }}>|</span>
+        <span className="font-mono text-dream-cyan/60 uppercase tracking-[0.15em]" style={{ fontSize: 'clamp(9px, 0.7vw, 11px)' }}>
           {mintPrice === 0n ? 'FREE' : `${Number(mintPrice) / 1e18} TEMPO`}
         </span>
       </div>
@@ -515,7 +515,7 @@ const MintPage = ({ onMintSuccess }: { onMintSuccess: (t: TokenMetadata & { id: 
         style={{
           padding: 'clamp(0.5rem, 1vh, 0.75rem)',
           borderRadius: 'clamp(0.5rem, 0.8vw, 0.75rem)',
-          fontSize: 'clamp(0.5rem, 0.7vw, 0.65rem)',
+          fontSize: 'clamp(10px, 0.85vw, 12px)',
           background: isSuccess ? '#22c55e' : txError ? 'transparent' : undefined,
           border: txError ? '1px solid rgba(239,68,68,0.5)' : undefined,
           color: isSuccess ? 'white' : txError ? '#ef4444' : undefined,
@@ -528,7 +528,7 @@ const MintPage = ({ onMintSuccess }: { onMintSuccess: (t: TokenMetadata & { id: 
 
       {/* Error message */}
       {txError && (
-        <p className="font-mono text-center" style={{ fontSize: 'clamp(5px, 0.5vw, 7px)', color: 'rgba(239,68,68,0.7)', marginTop: 'clamp(0.3rem, 0.5vh, 0.5rem)' }}>
+        <p className="font-mono text-center" style={{ fontSize: 'clamp(9px, 0.7vw, 11px)', color: 'rgba(239,68,68,0.7)', marginTop: 'clamp(0.3rem, 0.5vh, 0.5rem)' }}>
           {(txError as any)?.shortMessage || txError.message}
         </p>
       )}
@@ -573,15 +573,15 @@ const HomePage = () => {
 
       {/* Meta bar */}
       <div className="flex items-center justify-center flex-wrap" style={{ gap: 'clamp(0.3rem, 0.5vw, 0.5rem)', marginBottom: 'clamp(0.75rem, 1.5vh, 1.25rem)' }}>
-        <span className="rounded-full border border-white/10 bg-white/5 backdrop-blur-md font-mono font-bold tracking-[0.15em] text-white/30 uppercase" style={{ fontSize: 'clamp(6px, 0.65vw, 9px)', padding: 'clamp(3px, 0.4vh, 5px) clamp(8px, 0.85vw, 14px)' }}>
+        <span className="rounded-full border border-white/10 bg-white/5 backdrop-blur-md font-mono font-bold tracking-[0.15em] text-white/30 uppercase" style={{ fontSize: 'clamp(9px, 0.8vw, 11px)', padding: 'clamp(4px, 0.5vh, 6px) clamp(10px, 1vw, 16px)' }}>
           Tempo Network
         </span>
         <span className="rounded-full bg-white/20" style={{ width: 'clamp(2px, 0.25vw, 4px)', height: 'clamp(2px, 0.25vw, 4px)' }} />
-        <span className="rounded-full border border-dream-cyan/20 bg-dream-cyan/5 backdrop-blur-md font-mono font-bold tracking-[0.15em] text-dream-cyan/70 uppercase" style={{ fontSize: 'clamp(6px, 0.65vw, 9px)', padding: 'clamp(3px, 0.4vh, 5px) clamp(8px, 0.85vw, 14px)' }}>
+        <span className="rounded-full border border-dream-cyan/20 bg-dream-cyan/5 backdrop-blur-md font-mono font-bold tracking-[0.15em] text-dream-cyan/70 uppercase" style={{ fontSize: 'clamp(9px, 0.8vw, 11px)', padding: 'clamp(4px, 0.5vh, 6px) clamp(10px, 1vw, 16px)' }}>
           3,333 supply
         </span>
         <span className="rounded-full bg-white/20" style={{ width: 'clamp(2px, 0.25vw, 4px)', height: 'clamp(2px, 0.25vw, 4px)' }} />
-        <span className="rounded-full border border-white/10 bg-white/5 backdrop-blur-md font-mono font-bold tracking-[0.15em] text-white/30 uppercase" style={{ fontSize: 'clamp(6px, 0.65vw, 9px)', padding: 'clamp(3px, 0.4vh, 5px) clamp(8px, 0.85vw, 14px)' }}>
+        <span className="rounded-full border border-white/10 bg-white/5 backdrop-blur-md font-mono font-bold tracking-[0.15em] text-white/30 uppercase" style={{ fontSize: 'clamp(9px, 0.8vw, 11px)', padding: 'clamp(4px, 0.5vh, 6px) clamp(10px, 1vw, 16px)' }}>
           First Onchain Collection
         </span>
       </div>
@@ -604,7 +604,7 @@ const HomePage = () => {
             style={{ padding: 'clamp(0.6rem, 1.4vh, 1.1rem) clamp(0.5rem, 0.75vw, 0.85rem)' }}
           >
             <span className="block opacity-60 group-hover:opacity-100 transition-opacity" style={{ fontSize: 'clamp(1.2rem, 2.2vw, 1.8rem)', marginBottom: 'clamp(0.2rem, 0.4vh, 0.4rem)' }}>{item.icon}</span>
-            <p className="font-mono text-white/50 tracking-widest uppercase group-hover:text-white/70 transition-colors leading-relaxed" style={{ fontSize: 'clamp(6px, 0.65vw, 9px)' }}>
+            <p className="font-mono text-white/50 tracking-widest uppercase group-hover:text-white/70 transition-colors leading-relaxed" style={{ fontSize: 'clamp(9px, 0.8vw, 11px)' }}>
               {item.text}
             </p>
           </motion.div>
@@ -620,7 +620,7 @@ const HomePage = () => {
         style={{ gap: 'clamp(0.25rem, 0.4vw, 0.5rem)', padding: 'clamp(0.3rem, 0.5vh, 0.5rem) clamp(0.5rem, 1vw, 1rem)' }}
       >
         <Skull className="text-dream-purple/60" style={{ width: 'clamp(0.7rem, 1vw, 1rem)', height: 'clamp(0.7rem, 1vw, 1rem)' }} />
-        <p className="font-mono text-dream-purple/60 tracking-[0.12em] uppercase" style={{ fontSize: 'clamp(6px, 0.65vw, 9px)' }}>
+        <p className="font-mono text-dream-purple/60 tracking-[0.12em] uppercase" style={{ fontSize: 'clamp(9px, 0.8vw, 11px)' }}>
           don't swim out to deep waters - pirates are approaching.
         </p>
       </motion.div>
