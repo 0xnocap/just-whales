@@ -13,6 +13,6 @@ export const tempoTestnet = defineChain({
 
 export const wagmiConfig = getDefaultConfig({
   appName: 'Whale Town',
-  projectId: 'whale-town-local', // WalletConnect project ID - works for dev
+  projectId: '3939c628561b5c3ecf7cd4559eadfee2',
   chains: [tempoTestnet],
 });
