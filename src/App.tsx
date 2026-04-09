@@ -624,6 +624,19 @@ const HomePage = () => {
           don't swim out to deep waters - pirates are approaching.
         </p>
       </motion.div>
+
+      {/* X / Twitter */}
+      <a
+        href="https://x.com/whaletowntempo"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-white/30 hover:text-white transition-colors"
+        style={{ marginTop: 'clamp(0.6rem, 1.2vh, 0.9rem)' }}
+      >
+        <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: 'clamp(0.8rem, 1.1vw, 1rem)', height: 'clamp(0.8rem, 1.1vw, 1rem)' }}>
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+        </svg>
+      </a>
     </div>
   );
 };
