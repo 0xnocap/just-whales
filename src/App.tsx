@@ -530,7 +530,7 @@ const HomePage = () => {
           src="/whaletownbig.png"
           alt="WHALE Town"
           className="mx-auto"
-          style={{ width: 'clamp(20rem, 55vw, 44rem)', imageRendering: 'pixelated' }}
+          style={{ width: 'clamp(24rem, 65vw, 52rem)', imageRendering: 'pixelated' }}
           animate={{
             filter: [
               "drop-shadow(0 0 20px rgba(34,211,238,0.3))",
