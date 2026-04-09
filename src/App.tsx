@@ -165,7 +165,7 @@ const RetroButton = ({ icon: Icon, label, active, onClick }: { icon: any, label:
           ? 'border-dream-cyan bg-dream-white/10 backdrop-blur-xl shadow-[0_0_30px_rgba(34,211,238,0.2)]'
           : 'border-white/10 bg-white/5 hover:border-dream-blue/50'
       }`}
-      style={{ width: 'clamp(3.5rem, 7vw, 6.5rem)', height: 'clamp(3.5rem, 7vw, 6.5rem)' }}
+      style={{ width: 'clamp(3.5rem, 6vw, 6rem)', height: 'clamp(3.5rem, 6vw, 6rem)' }}
       whileHover={{ scale: 1.05, y: -3 }}
       whileTap={{ scale: 0.95 }}
     >
@@ -177,8 +177,8 @@ const RetroButton = ({ icon: Icon, label, active, onClick }: { icon: any, label:
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      <Icon className="mb-1 z-10 transition-colors duration-500" style={{ width: 'clamp(1.1rem, 1.8vw, 1.4rem)', height: 'clamp(1.1rem, 1.8vw, 1.4rem)' }} />
-      <span className={`font-mono font-bold tracking-[0.15em] uppercase z-10 transition-colors duration-500 ${active ? 'text-dream-cyan' : 'text-white/30'}`} style={{ fontSize: 'clamp(7px, 0.7vw, 9px)' }}>
+      <Icon className="mb-1 z-10 transition-colors duration-500" style={{ width: 'clamp(1rem, 1.5vw, 1.25rem)', height: 'clamp(1rem, 1.5vw, 1.25rem)' }} />
+      <span className={`font-mono font-bold tracking-[0.15em] uppercase z-10 transition-colors duration-500 ${active ? 'text-dream-cyan' : 'text-white/30'}`} style={{ fontSize: 'clamp(6px, 0.6vw, 8px)' }}>
         {label}
       </span>
     </motion.button>
