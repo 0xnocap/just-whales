@@ -563,7 +563,7 @@ const HomePage = () => {
 
       {/* Creature intro */}
       <p className="font-mono text-white/30 tracking-[0.2em] uppercase" style={{ fontSize: 'clamp(0.5rem, 0.8vw, 0.75rem)', marginBottom: 'clamp(0.75rem, 1.5vh, 1.25rem)' }}>
-        sea lions, sharks, and whales.
+        sea lions, sharks, and whales, oh my!
       </p>
 
       {/* Tagline cards */}
