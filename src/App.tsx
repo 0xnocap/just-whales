@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Home, Coins, Search, Image as ImageIcon, Skull, ChevronLeft, Sparkles, Minus, Plus, Loader2, X } from 'lucide-react';
+import { Home, Coins, Search, Image as ImageIcon, Skull, ChevronLeft, Sparkles, Minus, Plus, Loader2, X, ArrowLeftRight } from 'lucide-react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import {
@@ -156,19 +156,27 @@ const DreamwaveOcean = () => {
   );
 };
 
-const RetroButton = ({ icon: Icon, label, active, onClick }: { icon: any, label: string, active: boolean, onClick: () => void }) => {
+const RetroButton = ({ icon: Icon, label, active, onClick, disabled, tooltip }: { icon: any, label: string, active: boolean, onClick: () => void, disabled?: boolean, tooltip?: string }) => {
   return (
     <motion.button
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
       className={`relative group flex flex-col items-center justify-center rounded-xl border transition-all duration-500 overflow-hidden ${
-        active
-          ? 'border-dream-cyan bg-dream-white/10 backdrop-blur-xl shadow-[0_0_30px_rgba(34,211,238,0.2)]'
-          : 'border-white/10 bg-white/5 hover:border-dream-blue/50'
+        disabled
+          ? 'border-white/5 bg-white/[0.02] cursor-not-allowed opacity-40'
+          : active
+            ? 'border-dream-cyan bg-dream-white/10 backdrop-blur-xl shadow-[0_0_30px_rgba(34,211,238,0.2)]'
+            : 'border-white/10 bg-white/5 hover:border-dream-blue/50'
       }`}
       style={{ width: 'clamp(3.5rem, 6vw, 6rem)', height: 'clamp(3.5rem, 6vw, 6rem)' }}
-      whileHover={{ scale: 1.05, y: -3 }}
-      whileTap={{ scale: 0.95 }}
+      whileHover={disabled ? {} : { scale: 1.05, y: -3 }}
+      whileTap={disabled ? {} : { scale: 0.95 }}
     >
+      {/* Coming soon tooltip */}
+      {disabled && tooltip && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-ocean-deep/80 backdrop-blur-sm rounded-xl">
+          <span className="font-mono font-bold text-white/40 uppercase tracking-[0.15em]" style={{ fontSize: 'clamp(6px, 0.55vw, 8px)' }}>{tooltip}</span>
+        </div>
+      )}
       <motion.div
         className="absolute inset-0 bg-gradient-to-t from-dream-cyan/20 to-transparent pointer-events-none"
         animate={{
@@ -716,6 +724,7 @@ export default function App() {
         <RetroButton icon={Home} label="Home" active={activeTab === 'home'} onClick={() => changeTab('home')} />
         <RetroButton icon={Sparkles} label="Mint" active={activeTab === 'mint'} onClick={() => changeTab('mint')} />
         <RetroButton icon={ImageIcon} label="Gallery" active={activeTab === 'gallery'} onClick={() => changeTab('gallery')} />
+        <RetroButton icon={ArrowLeftRight} label="Trade" active={false} onClick={() => {}} disabled tooltip="SOON" />
         <RetroButton icon={Coins} label="Staking" active={activeTab === 'staking'} onClick={() => changeTab('staking')} />
       </nav>
 

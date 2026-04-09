@@ -13,7 +13,7 @@
 // Mint price: 0 (free mint, configurable by owner)
 // Token naming: "Sharks #0", "Whales #42", "SeaLions #388"
 
-export const WHALE_TOWN_ADDRESS = "0x1A8E6629937F4E88315C3a65DC9eC3740e3b567C";
+export const WHALE_TOWN_ADDRESS = "0x1065ef5996C86C8C90D97974F3c9E5234416839F";
 
 export const TEMPO_TESTNET = {
   id: 42431,

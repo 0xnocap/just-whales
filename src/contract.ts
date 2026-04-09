@@ -1,11 +1,11 @@
 import { createPublicClient, http } from 'viem';
 // @ts-ignore
-import { TEMPO_TESTNET, WHALE_TOWN_ADDRESS, WHALE_TOWN_ABI } from '@/contract.js';
-import { tempoTestnet } from './wagmi';
+import { TEMPO_MAINNET, WHALE_TOWN_ADDRESS, WHALE_TOWN_ABI } from '@/contract.js';
+import { tempo } from './wagmi';
 
 const publicClient = createPublicClient({
-  chain: tempoTestnet,
-  transport: http(TEMPO_TESTNET.rpcUrls.default.http[0]),
+  chain: tempo,
+  transport: http(TEMPO_MAINNET.rpcUrls.default.http[0]),
 });
 
 export const contractAddress = WHALE_TOWN_ADDRESS as `0x${string}`;
