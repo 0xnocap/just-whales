@@ -244,7 +244,7 @@ const GalleryPage = ({ onSelectToken }: { onSelectToken: (t: TokenMetadata & { i
   const [totalMinted, setTotalMinted] = useState(0);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
-  const PAGE_SIZE = 6;
+  const PAGE_SIZE = 10;
 
   useEffect(() => {
     async function load() {
@@ -280,7 +280,6 @@ const GalleryPage = ({ onSelectToken }: { onSelectToken: (t: TokenMetadata & { i
   return (
     <div
       className="w-full"
-      style={{ padding: '0' }}
     >
       <div className="flex justify-between items-center" style={{ gap: 'clamp(0.5rem, 1vw, 1rem)', marginBottom: 'clamp(0.75rem, 1.5vh, 1.25rem)' }}>
         <h2 className="font-bold font-sans text-dream-white tracking-tight uppercase" style={{ fontSize: 'clamp(0.8rem, 1.3vw, 1.2rem)' }}>
@@ -313,7 +312,7 @@ const GalleryPage = ({ onSelectToken }: { onSelectToken: (t: TokenMetadata & { i
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-3" style={{ gap: 'clamp(0.5rem, 1vw, 0.75rem)' }}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5" style={{ gap: 'clamp(0.5rem, 0.8vw, 0.75rem)' }}>
             <AnimatePresence mode="popLayout">
               {filtered.map((token) => {
                 const animalType = token.attributes.find(a => a.trait_type === 'Animal Type')?.value || '';
@@ -546,8 +545,7 @@ const HomePage = () => {
 
   return (
     <div
-      className="text-center w-full mx-auto"
-      style={{ maxWidth: 'clamp(24rem, 70vw, 54rem)' }}
+      className="text-center w-full"
     >
       {/* Hero */}
       <div className="relative inline-block" style={{ marginBottom: 'clamp(0.25rem, 0.5vh, 0.5rem)' }}>
@@ -626,17 +624,18 @@ const HomePage = () => {
       </motion.div>
 
       {/* X / Twitter */}
-      <a
-        href="https://x.com/whaletowntempo"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-white/40 hover:text-white transition-colors inline-block"
-        style={{ marginTop: 'clamp(0.8rem, 1.5vh, 1.1rem)' }}
-      >
-        <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: 'clamp(1rem, 1.4vw, 1.25rem)', height: 'clamp(1rem, 1.4vw, 1.25rem)' }}>
+      <div className="flex justify-center" style={{ marginTop: 'clamp(0.8rem, 1.5vh, 1.1rem)' }}>
+        <a
+          href="https://x.com/whaletowntempo"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-white/40 hover:text-white transition-colors"
+        >
+          <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: 'clamp(1rem, 1.4vw, 1.25rem)', height: 'clamp(1rem, 1.4vw, 1.25rem)' }}>
           <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
         </svg>
-      </a>
+        </a>
+      </div>
     </div>
   );
 };
@@ -681,7 +680,7 @@ export default function App() {
       </div>
 
       {/* Main Content */}
-      <main className="relative z-10 w-full flex flex-col items-center justify-center flex-1" style={{ paddingTop: 'clamp(3rem, 7vh, 4.5rem)', paddingBottom: 'clamp(4rem, 9vh, 6rem)' }}>
+      <main className="relative z-10 w-full flex flex-col items-center flex-1" style={{ paddingTop: 'clamp(5rem, 10vh, 7rem)', paddingBottom: 'clamp(5rem, 10vh, 7rem)' }}>
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -690,17 +689,17 @@ export default function App() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25, ease: 'easeInOut' }}
             className="w-full flex flex-col items-center"
-            style={{ maxWidth: activeTab === 'home' ? undefined : 'clamp(28rem, 58vw, 48rem)' }}
+            style={{ maxWidth: 'clamp(28rem, 65vw, 52rem)' }}
           >
             {/* Back button - consistent position for all non-home pages */}
             {activeTab !== 'home' && (
-              <div className="w-full flex" style={{ marginBottom: 'clamp(0.3rem, 0.6vh, 0.5rem)' }}>
+              <div className="w-full flex" style={{ marginBottom: 'clamp(0.4rem, 0.8vh, 0.6rem)' }}>
                 <button
                   onClick={goBack}
                   className="flex items-center justify-center bg-white/5 border border-white/10 rounded-full text-dream-cyan hover:bg-white/10 transition-all cursor-pointer group backdrop-blur-xl"
-                  style={{ width: 'clamp(1.5rem, 2.2vw, 2rem)', height: 'clamp(1.5rem, 2.2vw, 2rem)' }}
+                  style={{ width: 'clamp(1.75rem, 2.5vw, 2.25rem)', height: 'clamp(1.75rem, 2.5vw, 2.25rem)' }}
                 >
-                  <ChevronLeft className="group-hover:-translate-x-0.5 transition-transform" style={{ width: 'clamp(0.6rem, 0.9vw, 0.8rem)', height: 'clamp(0.6rem, 0.9vw, 0.8rem)' }} />
+                  <ChevronLeft className="group-hover:-translate-x-0.5 transition-transform" style={{ width: 'clamp(0.7rem, 1vw, 0.9rem)', height: 'clamp(0.7rem, 1vw, 0.9rem)' }} />
                 </button>
               </div>
             )}
