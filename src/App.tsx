@@ -538,7 +538,7 @@ const HomePage = () => {
           }}
           transition={{ duration: 6, repeat: Infinity }}
         >
-          WHALE Town.
+          WHALE Town
         </motion.h1>
       </div>
 
