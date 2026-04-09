@@ -446,28 +446,8 @@ const MintPage = ({ onMintSuccess }: { onMintSuccess: (t: TokenMetadata & { id: 
       style={{ padding: 'clamp(1.25rem, 2.5vw, 2rem)', borderRadius: 'clamp(1rem, 1.5vw, 1.5rem)' }}
     >
       {/* Header */}
-      <div className="flex justify-between items-center" style={{ marginBottom: 'clamp(1rem, 2vh, 1.5rem)' }}>
+      <div style={{ marginBottom: 'clamp(1rem, 2vh, 1.5rem)' }}>
         <h2 className="font-bold text-dream-cyan font-sans tracking-tight uppercase" style={{ fontSize: 'clamp(0.8rem, 1.2vw, 1.1rem)' }}>MINT</h2>
-        <ConnectButton.Custom>
-          {({ account, chain, openConnectModal, openAccountModal, openChainModal, mounted }) => {
-            if (!mounted) return null;
-            if (!account) return (
-              <button onClick={openConnectModal} className="font-mono font-bold tracking-[0.1em] text-dream-cyan border border-dream-cyan/30 bg-dream-cyan/5 hover:bg-dream-cyan/10 transition-colors cursor-pointer" style={{ fontSize: 'clamp(9px, 0.75vw, 11px)', padding: 'clamp(4px, 0.4vh, 6px) clamp(10px, 1vw, 14px)', borderRadius: 'clamp(0.3rem, 0.5vw, 0.5rem)' }}>
-                CONNECT
-              </button>
-            );
-            if (chain?.unsupported) return (
-              <button onClick={openChainModal} className="font-mono font-bold tracking-[0.1em] text-red-400 border border-red-400/30 bg-red-400/5 cursor-pointer" style={{ fontSize: 'clamp(9px, 0.75vw, 11px)', padding: 'clamp(4px, 0.4vh, 6px) clamp(10px, 1vw, 14px)', borderRadius: 'clamp(0.3rem, 0.5vw, 0.5rem)' }}>
-                WRONG NETWORK
-              </button>
-            );
-            return (
-              <button onClick={openAccountModal} className="font-mono font-bold tracking-[0.1em] text-white/40 border border-white/10 bg-white/5 hover:border-dream-cyan/30 transition-colors cursor-pointer" style={{ fontSize: 'clamp(9px, 0.75vw, 11px)', padding: 'clamp(4px, 0.4vh, 6px) clamp(10px, 1vw, 14px)', borderRadius: 'clamp(0.3rem, 0.5vw, 0.5rem)' }}>
-                {account.displayName}
-              </button>
-            );
-          }}
-        </ConnectButton.Custom>
       </div>
 
       {/* Supply */}
@@ -681,10 +661,15 @@ export default function App() {
       <DreamwaveOcean />
       <Whale />
 
-      {/* Header / Logo */}
-      <div className="fixed z-50 flex items-center" style={{ top: 'clamp(1rem, 3vh, 2.5rem)', left: 'clamp(1rem, 2vw, 2.5rem)', gap: 'clamp(0.4rem, 0.6vw, 0.75rem)' }}>
-        <div className="bg-gradient-to-br from-dream-cyan to-dream-purple rounded-lg blur-[2px] animate-pulse" style={{ width: 'clamp(1.75rem, 3vw, 2.5rem)', height: 'clamp(1.75rem, 3vw, 2.5rem)' }} />
-        <span className="font-sans font-bold tracking-tight text-dream-white" style={{ fontSize: 'clamp(1rem, 1.5vw, 1.6rem)' }}>WHALE<span className="text-dream-cyan opacity-60">TOWN</span></span>
+      {/* Header */}
+      <div className="fixed z-50 flex items-center justify-between w-full" style={{ top: 'clamp(1rem, 3vh, 2.5rem)', left: 0, padding: '0 clamp(1rem, 2vw, 2.5rem)' }}>
+        {/* Logo */}
+        <div className="flex items-center" style={{ gap: 'clamp(0.4rem, 0.6vw, 0.75rem)' }}>
+          <div className="bg-gradient-to-br from-dream-cyan to-dream-purple rounded-lg blur-[2px] animate-pulse" style={{ width: 'clamp(1.75rem, 3vw, 2.5rem)', height: 'clamp(1.75rem, 3vw, 2.5rem)' }} />
+          <span className="font-sans font-bold tracking-tight text-dream-white" style={{ fontSize: 'clamp(1rem, 1.5vw, 1.6rem)' }}>WHALE<span className="text-dream-cyan opacity-60">TOWN</span></span>
+        </div>
+        {/* Wallet */}
+        <ConnectButton showBalance={false} chainStatus="icon" accountStatus="address" />
       </div>
 
       {/* Main Content */}
