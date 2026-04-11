@@ -541,7 +541,7 @@ const NFTCard = ({ token, isListed, listing, isOwner, isSeller, tokenOwner, rari
       </div>
 
       {/* Real Card Layer */}
-      <div className={`flex flex-col h-full rounded-xl overflow-hidden bg-white/[0.02] hover:bg-white/[0.05] transition-all duration-500 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}>
+      <div className="flex flex-col h-full rounded-xl overflow-hidden bg-white/[0.02] hover:bg-white/[0.05] transition-colors duration-500">
         <div className="relative w-full pb-[100%] overflow-hidden flex-shrink-0">
           <img
             src={token.image_data}
