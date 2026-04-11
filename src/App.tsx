@@ -18,6 +18,7 @@ import { formatEther, parseEther, formatUnits, parseUnits } from 'viem';
 import { Routes, Route, useNavigate, useLocation, Link, useParams } from 'react-router-dom';
 
 // --- Helpers ---
+const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
 
 function truncateAddress(addr: string) {
   if (!addr) return '';
@@ -571,15 +572,15 @@ const DreamwaveOcean = () => {
 // --- Skeleton Card ---
 const SkeletonCard = () => (
   <div className="rounded-xl overflow-hidden bg-[#111113] flex flex-col animate-pulse h-full">
-    <div className="w-full pb-[100%] bg-white/[0.04] relative overflow-hidden flex-shrink-0">
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent skeleton-shimmer" />
+    <div className="w-full pb-[100%] bg-white/[0.12] relative overflow-hidden flex-shrink-0">
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent skeleton-shimmer" />
     </div>
     <div className="px-3 py-2.5 space-y-2 flex-grow">
       <div className="flex items-center justify-between">
-        <div className="h-3 bg-white/[0.06] rounded w-16" />
-        <div className="h-3 bg-white/[0.04] rounded w-8" />
+        <div className="h-3 bg-white/[0.1] rounded w-16" />
+        <div className="h-3 bg-white/[0.08] rounded w-8" />
       </div>
-      <div className="h-3 bg-white/[0.04] rounded w-12" />
+      <div className="h-3 bg-white/[0.08] rounded w-12" />
     </div>
   </div>
 );
@@ -598,58 +599,95 @@ const StatsSkeleton = () => (
 
 // --- NFT Card with image loading ---
 const NFTCard = ({ token, isListed, listing, isOwner, isSeller, tokenOwner, rarityRank, onSelect, fetchData }: any) => {
+  const [isImgLoaded, setIsImgLoaded] = useState(false);
+  const [isTimerDone, setIsTimerDone] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsTimerDone(true), 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const isReady = isImgLoaded && isTimerDone;
+
   return (
     <div
       className="group relative cursor-pointer h-full"
       onClick={() => onSelect({ ...token, isListing: isListed, listingData: listing, isOwner, isSeller, ownerAddress: tokenOwner, refetch: fetchData })}
     >
       <div className="flex flex-col h-full rounded-xl overflow-hidden bg-[#111113] hover:bg-[#1a1a1c] transition-colors duration-300">
-        <div className="relative w-full pb-[100%] overflow-hidden flex-shrink-0">
-          <img
-            src={token.image_data}
-            alt={token.name}
-            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-            style={{ imageRendering: 'pixelated' }}
-          />
-          {/* Listed badge */}
-          {isListed && (
-            <div className="absolute top-2 right-2 z-10 bg-dream-cyan/90 text-[#0a0a0c] px-1.5 py-0.5 rounded text-[9px] font-mono font-bold">
-              LISTED
+        <div className="relative w-full pb-[100%] overflow-hidden flex-shrink-0 bg-white/[0.02]">
+          {/* Shimmer/Skeleton placeholder */}
+          {!isReady ? (
+            <div className="absolute inset-0 bg-white/[0.15] animate-pulse">
+               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.1] to-transparent skeleton-shimmer" />
             </div>
+          ) : (
+            <>
+              <img
+                src={token.image_data}
+                alt={token.name}
+                onLoad={() => setIsImgLoaded(true)}
+                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                style={{ imageRendering: 'pixelated' }}
+              />
+              
+              {/* Badges and Ranks only show in isReady state */}
+              {isListed && (
+                <div className="absolute top-2 right-2 z-10 bg-dream-cyan/90 text-[#0a0a0c] px-1.5 py-0.5 rounded text-[9px] font-mono font-bold">
+                  LISTED
+                </div>
+              )}
+              {isOwner && !isListed && (
+                <div className="absolute top-2 right-2 z-10 bg-dream-purple/80 text-white px-1.5 py-0.5 rounded text-[9px] font-mono font-bold">
+                  OWNED
+                </div>
+              )}
+              {rarityRank && (
+                <div className="absolute bottom-2 left-2 z-10 bg-black/60 backdrop-blur-sm px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                  <Star className="w-2.5 h-2.5 text-amber-400" />
+                  <span className="text-[9px] font-mono text-white/70 font-bold">#{rarityRank}</span>
+                </div>
+              )}
+            </>
           )}
-          {/* Owner badge */}
-          {isOwner && !isListed && (
-            <div className="absolute top-2 right-2 z-10 bg-dream-purple/80 text-white px-1.5 py-0.5 rounded text-[9px] font-mono font-bold">
-              OWNED
-            </div>
-          )}
-          {/* Rarity rank badge */}
-          {rarityRank && (
-            <div className="absolute bottom-2 left-2 z-10 bg-black/60 backdrop-blur-sm px-1.5 py-0.5 rounded flex items-center gap-0.5">
-              <Star className="w-2.5 h-2.5 text-amber-400" />
-              <span className="text-[9px] font-mono text-white/70 font-bold">#{rarityRank}</span>
-            </div>
+          
+          {/* Hidden img to trigger loading even when opacity-0 or unmounted/mounted */}
+          {!isImgLoaded && (
+             <img 
+               src={token.image_data} 
+               onLoad={() => setIsImgLoaded(true)} 
+               className="hidden" 
+             />
           )}
         </div>
 
         <div className="flex flex-col px-3 py-2.5 flex-grow">
-          <div className="flex items-baseline justify-between mb-1.5">
-            <h3 className="font-sans font-bold text-white/90 text-[13px] leading-none truncate">{token.name.split(' ')[0]}</h3>
-            <span className="font-mono text-[11px] text-white/30 font-medium ml-1">{token.name.split(' ')[1] || ''}</span>
-          </div>
-          {isListed ? (
-            <div className="flex items-baseline justify-between">
-              <span className="font-bold text-white text-[14px] leading-none">
-                ${Number(formatUnits(listing.price, 6)).toFixed(2)}
-              </span>
-              {listing.expiresAt > 0n && (
-                <span className="text-[9px] font-mono text-white/20 flex items-center gap-0.5">
-                  <Clock className="w-2.5 h-2.5" />{timeUntil(Number(listing.expiresAt))}
-                </span>
-              )}
+          {!isReady ? (
+            <div className="space-y-2 py-1 animate-pulse">
+              <div className="h-3 bg-white/[0.12] rounded w-24" />
+              <div className="h-3 bg-white/[0.08] rounded w-16" />
             </div>
           ) : (
-            <div className="h-[17px]" />
+            <div className="flex flex-col">
+              <div className="flex items-baseline justify-between mb-1.5">
+                <h3 className="font-sans font-bold text-white/90 text-[13px] leading-none truncate">{token.name.split(' ')[0]}</h3>
+                <span className="font-mono text-[11px] text-white/30 font-medium ml-1">{token.name.split(' ')[1] || ''}</span>
+              </div>
+              {isListed ? (
+                <div className="flex items-baseline justify-between">
+                  <span className="font-bold text-white text-[14px] leading-none">
+                    ${Number(formatUnits(listing.price, 6)).toFixed(2)}
+                  </span>
+                  {listing.expiresAt > 0n && (
+                    <span className="text-[9px] font-mono text-white/20 flex items-center gap-0.5">
+                      <Clock className="w-2.5 h-2.5" />{timeUntil(Number(listing.expiresAt))}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div className="h-[17px]" />
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -1037,7 +1075,7 @@ const { writeContractAsync } = useWriteContract();
     setTokens(prev => {
       const newMap = new Map(prev.map((t: any) => [t.id, t]));
       valid.forEach((t: any) => newMap.set(t.id, t));
-      return Array.from(newMap.values()).sort((a: any, b: any) => b.id - a.id);
+      return Array.from(newMap.values()).sort((a: any, b: any) => a.id - b.id);
     });
     setNextIdAsc(endId + 1);
   }, []);
@@ -1190,7 +1228,9 @@ const { writeContractAsync } = useWriteContract();
     if (start >= filteredMatchIds.length) return;
     setLoadingFiltered(true);
     const batch = filteredMatchIds.slice(start, start + BATCH);
+    
     const loaded = await loadSpecificIds(batch);
+
     setFilteredTokens(prev => [...prev, ...(loaded as any[])]);
     setFilteredPage(prev => prev + 1);
     setLoadingFiltered(false);
