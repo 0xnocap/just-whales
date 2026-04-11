@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Home, Coins, Search, Sparkles, Minus, Plus, Loader2, X, ArrowLeftRight, ChevronLeft, ExternalLink, Copy, Check, User, Clock, Tag, ArrowUpRight, ArrowDownLeft, Grid3X3, List, Filter, ChevronDown, ChevronUp, Star, Zap, ShoppingCart, Trash2 } from 'lucide-react';
+import { Home, Coins, Search, Sparkles, Minus, Plus, Loader2, X, ArrowLeftRight, ChevronLeft, ExternalLink, Copy, Check, User, Clock, Tag, ArrowUpRight, ArrowDownLeft, Grid3X3, List, Filter, ChevronDown, ChevronUp, Star, Zap, ShoppingCart, Trash2, Activity, ArrowRight } from 'lucide-react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
 import {
@@ -584,6 +584,18 @@ const SkeletonCard = () => (
   </div>
 );
 
+// --- Stats Skeleton ---
+const StatsSkeleton = () => (
+  <div className="flex gap-2 mb-6 flex-wrap animate-pulse w-full">
+    {[...Array(7)].map((_, i) => (
+      <div key={i} className="bg-white/[0.03] border border-white/[0.06] rounded-lg px-4 py-2 flex-1 min-w-[80px]">
+        <div className="h-2.5 bg-white/[0.05] rounded w-12 mb-2" />
+        <div className="h-4 bg-white/[0.08] rounded w-16" />
+      </div>
+    ))}
+  </div>
+);
+
 // --- NFT Card with image loading ---
 const NFTCard = ({ token, isListed, listing, isOwner, isSeller, tokenOwner, rarityRank, onSelect, fetchData }: any) => {
   return (
@@ -812,9 +824,136 @@ const RetroButton = ({ icon: Icon, label, to, disabled, tooltip }: { icon: any, 
 
 // --- Trade Page ---
 
-const TradePage = ({ onSelectToken, onSweepModeChange }: { onSelectToken: (t: any) => void; onSweepModeChange?: (active: boolean) => void }) => {
+// --- Global Activity Components ---
+
+const ActivityItem = ({ item }: { item: any }) => {
+  const icon = {
+    sale: <Tag className="w-3.5 h-3.5 text-dream-cyan" />,
+    list: <Sparkles className="w-3.5 h-3.5 text-dream-cyan" />,
+    mint: <Plus className="w-3.5 h-3.5 text-green-400" />,
+    transfer: <ArrowLeftRight className="w-3.5 h-3.5 text-white/40" />,
+  }[item.type as 'sale' | 'list' | 'mint' | 'transfer'] || <Activity className="w-3.5 h-3.5" />;
+
+  const label = {
+    sale: 'Sale',
+    list: 'Listed',
+    mint: 'Minted',
+    transfer: 'Transferred',
+  }[item.type as 'sale' | 'list' | 'mint' | 'transfer'] || 'Activity';
+
+  return (
+    <div className="group bg-white/[0.02] border border-white/[0.05] rounded-xl p-3 hover:bg-white/[0.04] transition-all">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-1.5">
+          <div className="p-1 px-2 rounded-md bg-white/[0.03] border border-white/5 flex items-center gap-1.5">
+            {icon}
+            <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-white/40">{label}</span>
+          </div>
+        </div>
+        <span className="text-[9px] font-mono text-white/20">{timeAgo(Number(item.timestamp))}</span>
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-lg bg-white/5 flex-shrink-0 flex items-center justify-center overflow-hidden border border-white/10 relative">
+           <span className="text-[8px] font-mono text-white/10 absolute bottom-1 right-1">#{item.token_id}</span>
+           <img 
+             src={`https://gateway.pinata.cloud/ipfs/QmPnJ4D8SrgM8pY6X5pTj5zY3W1E2M8E7kL2XkH1N6zD1K/${item.token_id}.png`} 
+             className="w-full h-full object-cover opacity-60"
+             onError={(e) => { e.currentTarget.style.display = 'none'; }}
+           />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between">
+            <h4 className="text-[11px] font-mono font-bold text-white truncate">Whale Town <span className="text-white/40">#{item.token_id}</span></h4>
+            {item.price && (
+              <span className="text-[11px] font-mono font-bold text-dream-cyan">${(Number(item.price)/1e6).toLocaleString()}</span>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 mt-1 opacity-40 hover:opacity-100 transition-opacity">
+             <Link to={`/profile/${item.from}`} className="text-[9px] font-mono text-white hover:text-dream-cyan transition-colors">{truncateAddress(item.from)}</Link>
+             <ArrowRight className="w-2 h-2 text-white/20" />
+             <Link to={`/profile/${item.to || item.from}`} className="text-[9px] font-mono text-white hover:text-dream-cyan transition-colors">{item.to ? truncateAddress(item.to) : 'Market'}</Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ActivitySidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+  const [activity, setActivity] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setLoading(true);
+      fetch('/api/activity')
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            setActivity(data);
+          } else {
+            console.error('Activity data is not an array:', data);
+            setActivity([]);
+          }
+          setLoading(false);
+        })
+        .catch(err => {
+          console.error('Activity fetch error:', err);
+          setActivity([]);
+          setLoading(false);
+        });
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="w-80 flex-shrink-0 bg-white/[0.02] border border-white/[0.06] rounded-xl self-start sticky top-28 max-h-[75vh] flex flex-col overflow-hidden">
+      <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+        <div className="flex items-center gap-2">
+          <Activity className="w-4 h-4 text-dream-cyan" />
+          <h2 className="text-[10px] font-mono font-bold text-white uppercase tracking-[0.2em]">Live Activity</h2>
+        </div>
+        <button 
+          onClick={onClose} 
+          className="p-1.5 hover:bg-white/10 rounded-full text-white/30 hover:text-white transition-all cursor-pointer"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
+        {loading ? (
+          Array.from({ length: 6 }).map((_, i) => (
+             <div key={i} className="h-20 bg-white/[0.01] border border-white/[0.03] rounded-xl animate-pulse" />
+          ))
+        ) : activity.length > 0 ? (
+          activity.map((item, idx) => (
+            <ActivityItem key={idx} item={item} />
+          ))
+        ) : (
+          <div className="text-center py-10">
+            <p className="font-mono text-[9px] text-white/20 uppercase tracking-widest">No recent data</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const TradePage = ({ 
+  onSelectToken, 
+  onSweepModeChange,
+  showActivity,
+  setShowActivity
+}: { 
+  onSelectToken: (t: any) => void; 
+  onSweepModeChange?: (active: boolean) => void;
+  showActivity: boolean;
+  setShowActivity: (show: boolean) => void;
+}) => {
   const { isConnected, address } = useAccount();
-  const { writeContractAsync } = useWriteContract();
+const { writeContractAsync } = useWriteContract();
   const [searchQuery, setSearchQuery] = useState('');
   const [tokens, setTokens] = useState<any[]>([]);
   const [listings, setListings] = useState<any[]>([]);
@@ -828,8 +967,20 @@ const TradePage = ({ onSelectToken, onSweepModeChange }: { onSelectToken: (t: an
   const [filter, setFilter] = useState<'all' | 'listed' | 'unlisted'>('all');
   const [sort, setSort] = useState<'price_asc' | 'price_desc' | 'id_asc' | 'id_desc' | 'rarity_asc' | 'rarity_desc'>('price_asc');
   const [collectionStats, setCollectionStats] = useState<any>(null);
-  const BATCH = 20;
-  const sentinelRef = useRef<HTMLDivElement>(null);
+  const BATCH = 50;
+
+  // Helper to fetch metadata in batches from our high-speed cache
+  const fetchMetadataBatched = async (tokenIds: number[]) => {
+    if (tokenIds.length === 0) return {};
+    try {
+      const res = await fetch(`/api/collection/metadata?ids=${tokenIds.join(',')}`);
+      if (!res.ok) throw new Error('Metadata fetch failed');
+      return await res.json();
+    } catch (e) {
+      console.error('Batch metadata error:', e);
+      return {};
+    }
+  };
 
   // --- Sweep state ---
   const [sweepMode, setSweepMode] = useState(false);
@@ -862,15 +1013,10 @@ const TradePage = ({ onSelectToken, onSweepModeChange }: { onSelectToken: (t: an
     const endId = Math.max(fromId - BATCH + 1, 0);
     const ids: number[] = [];
     for (let i = fromId; i >= endId; i--) ids.push(i);
-    const results = await Promise.all(
-      ids.map(async (id) => {
-        try {
-          const uri = await readTokenURI(BigInt(id));
-          return { ...decodeTokenURI(uri), id };
-        } catch { return null; }
-      })
-    );
-    const valid = results.filter(Boolean);
+    
+    const metadataMap = await fetchMetadataBatched(ids);
+    const valid = ids.map(id => metadataMap[id] ? { ...metadataMap[id], id } : null).filter(Boolean);
+    
     setTokens(prev => {
       const newMap = new Map(prev.map((t: any) => [t.id, t]));
       valid.forEach((t: any) => newMap.set(t.id, t));
@@ -884,15 +1030,10 @@ const TradePage = ({ onSelectToken, onSweepModeChange }: { onSelectToken: (t: an
     const endId = Math.min(fromId + BATCH - 1, maxId - 1);
     const ids: number[] = [];
     for (let i = fromId; i <= endId; i++) ids.push(i);
-    const results = await Promise.all(
-      ids.map(async (id) => {
-        try {
-          const uri = await readTokenURI(BigInt(id));
-          return { ...decodeTokenURI(uri), id };
-        } catch { return null; }
-      })
-    );
-    const valid = results.filter(Boolean);
+    
+    const metadataMap = await fetchMetadataBatched(ids);
+    const valid = ids.map(id => metadataMap[id] ? { ...metadataMap[id], id } : null).filter(Boolean);
+    
     setTokens(prev => {
       const newMap = new Map(prev.map((t: any) => [t.id, t]));
       valid.forEach((t: any) => newMap.set(t.id, t));
@@ -903,65 +1044,65 @@ const TradePage = ({ onSelectToken, onSweepModeChange }: { onSelectToken: (t: an
 
   // Load specific token IDs from chain (for filtered views)
   const loadSpecificIds = useCallback(async (ids: number[]) => {
-    const results = await Promise.all(
-      ids.map(async (id) => {
-        try {
-          const uri = await readTokenURI(BigInt(id));
-          return { ...decodeTokenURI(uri), id };
-        } catch { return null; }
-      })
-    );
-    return results.filter(Boolean);
+    const metadataMap = await fetchMetadataBatched(ids);
+    return ids.map(id => metadataMap[id] ? { ...metadataMap[id], id } : null).filter(Boolean);
   }, []);
 
   const fetchData = async () => {
     setLoading(true);
 
-    // Fetch owners from subgraph
-    try {
-      const res = await fetch('/api/owners');
-      const data = await res.json();
-      setOwnerMap(data);
-    } catch (err) { console.error('Owner fetch error:', err); }
+    // Initial batch of parallel fetches
+    const fetchOwners = fetch('/api/owners').then(r => r.json()).catch(err => { console.error('Owner fetch error:', err); return {}; });
+    const fetchStats = fetch('/api/collection/stats').then(r => r.json()).catch(err => { console.error('Stats fetch error:', err); return null; });
+    const fetchListings = fetch('/api/collection/listings').then(r => r.json()).catch(err => { console.error('Marketplace fetch error:', err); return []; });
+    const fetchSupply = readTotalSupply().catch(err => { console.error('Gallery fetch error:', err); return 0n; });
 
-    // Fetch collection stats
-    try {
-      const res = await fetch('/api/collection/stats');
-      const data = await res.json();
-      setCollectionStats(data);
-    } catch (err) { console.error('Stats fetch error:', err); }
+    // Handle stats and owners as they arrive - these are non-blocking for the main loading state
+    fetchOwners.then(data => setOwnerMap(data));
+    fetchStats.then(data => setCollectionStats(data));
 
-    // Fetch listings
-    try {
-      const nextMarketId = await readNextListingId();
-      const activeListings = [];
-      for (let i = 0n; i < nextMarketId; i++) {
-        try {
-          const listing = await readListing(i);
-          if (listing.active) {
-            // Check expiration
-            const now = BigInt(Math.floor(Date.now() / 1000));
-            if (listing.expiresAt === 0n || now <= listing.expiresAt) {
-              const uri = await readTokenURI(listing.tokenId);
-              const metadata = decodeTokenURI(uri);
-              activeListings.push({ ...listing, id: i, metadata });
-            }
-          }
-        } catch (e) {}
+    // Handle listings (no separate metadata fetch needed now!)
+    const listingsPromise = fetchListings.then(data => {
+      if (!Array.isArray(data)) {
+        console.error('Listings data is not an array:', data);
+        return [];
       }
+      const activeListings = data.map((l: any) => {
+        try {
+           const now = BigInt(Math.floor(Date.now() / 1000));
+           if (l.expires_at === '0' || now <= BigInt(l.expires_at)) {
+             // If metadata is missing from JOIN, provide a minimal fallback instead of filtering out
+             const metadata = l.metadata || { name: `Token #${l.token_id}`, attributes: [], image_data: '' };
+             // Use Math.floor(Number()) for robustness against decimal strings from Postgres numeric type
+             return { 
+               ...l, 
+               tokenId: BigInt(Math.floor(Number(l.token_id))), 
+               price: BigInt(Math.floor(Number(l.price))), 
+               expiresAt: BigInt(Math.floor(Number(l.expires_at))), 
+               id: BigInt(Math.floor(Number(l.listing_id))), 
+               metadata 
+             };
+           }
+        } catch (e) {
+          console.error('Error processing listing:', e, l);
+        }
+        return null;
+      }).filter(Boolean);
       setListings(activeListings);
-    } catch (err) { console.error('Marketplace fetch error:', err); }
+      return activeListings;
+    });
 
-    // Fetch tokens
-    try {
-      const supply = await readTotalSupply();
+    // Handle gallery - also parallel
+    const galleryPromise = fetchSupply.then(async (supply) => {
       const total = Number(supply);
       setTotalMinted(total);
       if (total > 0) {
         await loadBatchDesc(total - 1);
       }
-    } catch (err) { console.error('Gallery fetch error:', err); }
+    });
 
+    // Wait for critical gallery data before turning off loading state for the main grid
+    await Promise.allSettled([listingsPromise, galleryPromise]);
     setLoading(false);
   };
 
@@ -1055,37 +1196,6 @@ const TradePage = ({ onSelectToken, onSweepModeChange }: { onSelectToken: (t: an
     setLoadingFiltered(false);
   }, [filteredPage, filteredMatchIds, loadingFiltered, loadSpecificIds]);
 
-  useEffect(() => {
-    if (!sentinelRef.current) return;
-    const observer = new IntersectionObserver(
-      async ([entry]) => {
-        if (!entry.isIntersecting || loadingMoreRef.current) return;
-        loadingMoreRef.current = true;
-        setLoadingMore(true);
-        try {
-          if (activeFilterCount > 0) {
-            await loadMoreFiltered();
-          } else {
-            if (sort === 'id_asc') {
-              if (nextIdAsc < totalMinted) {
-                await loadBatchAsc(nextIdAsc, totalMinted);
-              }
-            } else {
-              if (nextIdDesc >= 0) {
-                await loadBatchDesc(nextIdDesc);
-              }
-            }
-          }
-        } finally {
-          setLoadingMore(false);
-          loadingMoreRef.current = false;
-        }
-      },
-      { rootMargin: '200px' }
-    );
-    observer.observe(sentinelRef.current);
-    return () => observer.disconnect();
-  }, [nextIdDesc, nextIdAsc, loadBatchDesc, loadBatchAsc, sort, totalMinted, activeFilterCount, loadMoreFiltered]);
 
   // Choose data source: filtered tokens when filters active, else normal tokens
   const isFiltered = activeFilterCount > 0;
@@ -1201,20 +1311,26 @@ const TradePage = ({ onSelectToken, onSweepModeChange }: { onSelectToken: (t: an
       </div>
 
       {/* Stats Bar */}
-      <div className="flex gap-2 mb-6 flex-wrap">
-        {[
-          { label: 'Floor', value: floorPrice > 0 ? `$${floorPrice.toFixed(2)}` : '—' },
-          { label: 'Items', value: '3,333' },
-          { label: 'Holders', value: collectionStats ? collectionStats.holders.toLocaleString() : '—' },
-          { label: 'Listed', value: listings.length > 0 ? listings.length.toString() : '0' },
-          { label: 'Transfers', value: collectionStats ? collectionStats.totalTransfers.toString() : '—' },
-        ].map(stat => (
-          <div key={stat.label} className="bg-white/[0.03] border border-white/[0.06] rounded-lg px-4 py-2 flex-1 min-w-[80px]">
-            <div className="text-[10px] font-mono text-white/50 uppercase tracking-[0.1em]">{stat.label}</div>
-            <div className="text-[15px] font-bold text-white mt-0.5">{stat.value}</div>
-          </div>
-        ))}
-      </div>
+      {!collectionStats ? (
+        <StatsSkeleton />
+      ) : (
+        <div className="flex gap-2 mb-6 flex-wrap">
+          {[
+            { label: 'Floor', value: floorPrice > 0 ? `$${floorPrice.toFixed(2)}` : '—' },
+            { label: 'Vol (24h)', value: collectionStats ? `$${collectionStats.volume24h.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—' },
+            { label: 'Total Vol', value: collectionStats ? `$${collectionStats.totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—' },
+            { label: 'Items', value: '3,333' },
+            { label: 'Holders', value: collectionStats ? collectionStats.holders.toLocaleString() : '—' },
+            { label: 'Listed', value: listings.length > 0 ? listings.length.toString() : '0' },
+            { label: 'Transfers', value: collectionStats ? collectionStats.totalTransfers.toString() : '—' },
+          ].map(stat => (
+            <div key={stat.label} className="bg-white/[0.03] border border-white/[0.06] rounded-lg px-4 py-2 flex-1 min-w-[80px]">
+              <div className="text-[10px] font-mono text-white/50 uppercase tracking-[0.1em]">{stat.label}</div>
+              <div className="text-[15px] font-bold text-white mt-0.5">{stat.value}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Filter & Sort Bar */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
@@ -1314,6 +1430,18 @@ const TradePage = ({ onSelectToken, onSweepModeChange }: { onSelectToken: (t: an
             className="w-full pl-9 pr-3 py-2 bg-white/[0.03] border border-white/[0.06] rounded-lg font-mono text-[11px] text-white placeholder:text-white/20 focus:border-dream-cyan/30 outline-none transition-all"
           />
         </div>
+
+        {/* <button
+          onClick={() => setShowActivity(!showActivity)}
+          className={`px-3 py-1.5 rounded-lg border flex items-center gap-2 font-mono text-[10px] uppercase font-bold tracking-widest transition-all cursor-pointer ${
+            showActivity 
+              ? 'bg-dream-cyan/20 border-dream-cyan text-dream-cyan shadow-[0_0_15px_-3px_rgba(34,211,238,0.3)]' 
+              : 'bg-white/[0.03] border-white/10 text-white/40 hover:bg-white/[0.06] hover:text-white/60'
+          }`}
+        >
+          <Activity className="w-3.5 h-3.5" />
+          Activity
+        </button> */}
       </div>
 
       {/* Active filter chips */}
@@ -1481,17 +1609,38 @@ const TradePage = ({ onSelectToken, onSweepModeChange }: { onSelectToken: (t: an
             </div>
           )}
 
-          {/* Infinite scroll sentinel */}
+          {/* Load More Button */}
           {(hasMoreFiltered || hasMoreUnfiltered) && !searchQuery && filter === 'all' && (
-            <>
-              {(loadingMore || loadingFiltered) && (
-                <div className="flex items-center justify-center gap-2 py-6">
-                  <Loader2 className="w-4 h-4 text-dream-cyan/50 animate-spin" />
-                  <span className="font-mono text-white/25 text-[10px] tracking-wider">Loading more...</span>
+            <div className="flex flex-col items-center justify-center py-12 gap-4">
+              {loadingMore || loadingFiltered ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-5 h-5 text-dream-cyan animate-spin" />
+                  <span className="font-mono text-white/40 text-xs tracking-widest uppercase">Fetching more whales...</span>
                 </div>
+              ) : (
+                <button
+                  onClick={async () => {
+                    setLoadingMore(true);
+                    try {
+                      if (activeFilterCount > 0) {
+                        await loadMoreFiltered();
+                      } else {
+                        if (sort === 'id_asc') {
+                          await loadBatchAsc(nextIdAsc, totalMinted);
+                        } else {
+                          await loadBatchDesc(nextIdDesc);
+                        }
+                      }
+                    } finally {
+                      setLoadingMore(false);
+                    }
+                  }}
+                  className="px-8 py-3 bg-white/[0.03] border border-white/[0.1] hover:border-dream-cyan/50 hover:bg-dream-cyan/5 text-white/60 hover:text-dream-cyan rounded-xl font-mono text-[11px] font-bold uppercase tracking-[0.2em] transition-all cursor-pointer shadow-xl"
+                >
+                  Load More
+                </button>
               )}
-              <div ref={sentinelRef} className="w-full h-[100px] absolute bottom-10 pointer-events-none" />
-            </>
+            </div>
           )}
 
           {/* Match count for filtered results */}
@@ -1503,6 +1652,12 @@ const TradePage = ({ onSelectToken, onSweepModeChange }: { onSelectToken: (t: an
             </div>
           )}
         </div>
+        
+        {/* Activity sidebar (parallel) */}
+        <ActivitySidebar 
+          isOpen={showActivity} 
+          onClose={() => setShowActivity(false)} 
+        />
       </div>
 
       {/* Sweep Bar */}
@@ -2195,6 +2350,19 @@ const HomePage = () => {
         ))}
       </div>
 
+      {/* Pirate Warning */}
+      <div className="flex justify-center mb-6">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.8 }}
+          className="rounded-full border border-dream-purple/30 bg-dream-purple/5 backdrop-blur-md font-mono font-bold tracking-[0.2em] text-dream-purple/70 uppercase flex items-center gap-2"
+          style={{ fontSize: 'clamp(8px, 0.75vw, 10px)', padding: 'clamp(4px, 0.6vh, 6px) clamp(16px, 2vw, 24px)' }}
+        >
+          <span className="hidden sm:inline">💀</span> don't swim out to deep waters - pirates are approaching.
+        </motion.div>
+      </div>
+
       {/* X / Twitter */}
       <div className="flex justify-center" style={{ marginTop: 'clamp(0.8rem, 1.5vh, 1.1rem)' }}>
         <a
@@ -2217,6 +2385,7 @@ const HomePage = () => {
 export default function App() {
   const [modalToken, setModalToken] = useState<ModalTokenProps | null>(null);
   const [sweepModeActive, setSweepModeActive] = useState(false);
+  const [showActivity, setShowActivity] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { isConnected, address } = useAccount();
@@ -2269,7 +2438,7 @@ export default function App() {
             <Routes location={location}>
               <Route path="/" element={<HomePage />} />
               <Route path="/staking" element={<StakingPage />} />
-              <Route path="/trade" element={<TradePage onSelectToken={setModalToken} onSweepModeChange={setSweepModeActive} />} />
+              <Route path="/trade" element={<TradePage onSelectToken={setModalToken} onSweepModeChange={setSweepModeActive} showActivity={showActivity} setShowActivity={setShowActivity} />} />
               <Route path="/mint" element={<MintPage onMintSuccess={setModalToken} />} />
               <Route path="/profile" element={<ProfilePage onSelectToken={setModalToken} />} />
               <Route path="/profile/:address" element={<ProfilePage onSelectToken={setModalToken} />} />

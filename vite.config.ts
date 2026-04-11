@@ -25,16 +25,14 @@ function apiMiddleware() {
       };
 
       server.middlewares.use(async (req: any, res: any, next: any) => {
-        if (!req.url?.startsWith('/api/')) return next();
-
-        const db = await getPool();
-
-        res.setHeader('Content-Type', 'application/json');
+        if (!req.url || !req.url.startsWith('/api/')) return next();
 
         try {
+          const db = await getPool();
           // --- /api/collection/stats ---
           if (req.url === '/api/collection/stats') {
-            const [holdersResult, mintedResult, transfersResult] = await Promise.all([
+            res.setHeader('Content-Type', 'application/json');
+            const [holdersResult, mintedResult, transfersResult, volResult] = await Promise.all([
               db.query(`
                 SELECT COUNT(DISTINCT owner) as holders FROM (
                   SELECT DISTINCT ON (token_id) "to" as owner
@@ -45,17 +43,62 @@ function apiMiddleware() {
               `),
               db.query(`SELECT COUNT(*) as minted FROM transfers WHERE "from" = '0x0000000000000000000000000000000000000000'`),
               db.query(`SELECT COUNT(*) as total FROM transfers WHERE "from" != '0x0000000000000000000000000000000000000000'`),
+              db.query(`
+                SELECT 
+                  SUM(price::numeric) as total_vol,
+                  SUM(CASE WHEN timestamp::bigint > $1 THEN price::numeric ELSE 0 END) as vol_24h
+                FROM sales
+              `, [Math.floor(Date.now() / 1000) - 86400]),
             ]);
             res.end(JSON.stringify({
               holders: Number(holdersResult.rows[0].holders),
               totalMinted: Number(mintedResult.rows[0].minted),
               totalTransfers: Number(transfersResult.rows[0].total),
+              totalVolume: Number(volResult.rows[0].total_vol || 0) / 1e6,
+              volume24h: Number(volResult.rows[0].vol_24h || 0) / 1e6,
             }));
+            return;
+          }
+
+          // --- /api/collection/listings ---
+          if (req.url === '/api/collection/listings') {
+            res.setHeader('Content-Type', 'application/json');
+            const result = await db.query(`
+              SELECT 
+                l.listing_id, 
+                l.seller, 
+                l.nft_contract, 
+                l.token_id::int as token_id, 
+                l.price::numeric as price, 
+                l.expires_at::numeric as expires_at,
+                l.transaction_hash,
+                l.timestamp::bigint as timestamp,
+                t.metadata
+              FROM listed l
+              LEFT JOIN tokens t ON l.token_id::numeric = t.token_id::numeric
+              WHERE l.listing_id NOT IN (SELECT listing_id FROM sales)
+                AND l.listing_id NOT IN (SELECT listing_id FROM canceled)
+              ORDER BY l.price ASC
+            `);
+            res.end(JSON.stringify(result.rows));
+            return;
+          }
+
+          // --- /api/collection/metadata ---
+          const metadataMatch = req.url.match(/^\/api\/collection\/metadata\?ids=(.*)$/);
+          if (metadataMatch) {
+            res.setHeader('Content-Type', 'application/json');
+            const ids = metadataMatch[1].split(',').map((id: string) => parseInt(id)).filter((id: number) => !isNaN(id));
+            const result = await db.query('SELECT token_id, metadata FROM tokens WHERE token_id = ANY($1)', [ids]);
+            const map: Record<number, any> = {};
+            result.rows.forEach((r: any) => { map[r.token_id] = r.metadata; });
+            res.end(JSON.stringify(map));
             return;
           }
 
           // --- /api/owners ---
           if (req.url === '/api/owners') {
+            res.setHeader('Content-Type', 'application/json');
             const result = await db.query(`
               SELECT token_id::int as token_id, "to" as owner
               FROM (
@@ -76,6 +119,7 @@ function apiMiddleware() {
           // --- /api/profile/:address ---
           const profileMatch = req.url.match(/^\/api\/profile\/([a-fA-F0-9x]+)$/);
           if (profileMatch) {
+            res.setHeader('Content-Type', 'application/json');
             const address = profileMatch[1].toLowerCase();
             const result = await db.query(`
               SELECT token_id::int as token_id
@@ -108,6 +152,7 @@ function apiMiddleware() {
           // --- /api/token/:tokenId/history ---
           const tokenMatch = req.url.match(/^\/api\/token\/(\d+)\/history$/);
           if (tokenMatch) {
+            res.setHeader('Content-Type', 'application/json');
             const tokenId = parseInt(tokenMatch[1]);
             const result = await db.query(`
               SELECT "from", "to", transaction_hash, timestamp::bigint as timestamp, block_number::bigint as block_number
@@ -121,21 +166,55 @@ function apiMiddleware() {
 
           // --- /api/activity ---
           if (req.url === '/api/activity') {
+            res.setHeader('Content-Type', 'application/json');
             const result = await db.query(`
-              SELECT token_id::int as token_id, "from", "to", transaction_hash, timestamp::bigint as timestamp, block_number::bigint as block_number
-              FROM transfers
-              ORDER BY block_number DESC
+              SELECT 'transfer' as type, token_id::int as token_id, "from", "to", NULL as price, transaction_hash, timestamp::bigint as timestamp, block_number::bigint as block_number FROM transfers WHERE "from" != '0x0000000000000000000000000000000000000000'
+              UNION ALL
+              SELECT 'mint' as type, token_id::int as token_id, "from", "to", NULL as price, transaction_hash, timestamp::bigint as timestamp, block_number::bigint as block_number FROM transfers WHERE "from" = '0x0000000000000000000000000000000000000000'
+              UNION ALL
+              SELECT 'sale' as type, token_id::int as token_id, seller as "from", buyer as "to", price::numeric as price, transaction_hash, timestamp::bigint as timestamp, block_number::bigint as block_number FROM sales
+              UNION ALL
+              SELECT 'list' as type, token_id::int as token_id, seller as "from", NULL as "to", price::numeric as price, transaction_hash, timestamp::bigint as timestamp, block_number::bigint as block_number FROM listed
+              UNION ALL
+              SELECT 'cancel' as type, token_id::int as token_id, seller as "from", NULL as "to", NULL as price, transaction_hash, timestamp::bigint as timestamp, block_number::bigint as block_number FROM canceled
+              ORDER BY timestamp DESC
               LIMIT 50
             `);
             res.end(JSON.stringify(result.rows));
             return;
           }
 
+          // --- /api/debug_db ---
+          if (req.url === '/api/debug_db') {
+            res.setHeader('Content-Type', 'application/json');
+            const [tokenCount, listedCount, tokensSample, listingsSample] = await Promise.all([
+              db.query('SELECT COUNT(*) as count FROM tokens'),
+              db.query('SELECT COUNT(*) as count FROM listed'),
+              db.query('SELECT * FROM tokens LIMIT 3'),
+              db.query('SELECT * FROM listed LIMIT 3')
+            ]);
+            res.end(JSON.stringify({
+              summary: {
+                tokensInDb: Number(tokenCount.rows[0].count),
+                listingsInDb: Number(listedCount.rows[0].count)
+              },
+              tokensSample: tokensSample.rows,
+              listingsSample: listingsSample.rows,
+              schemaCheck: {
+                tokens: (await db.query(`SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'tokens'`)).rows,
+                listed: (await db.query(`SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'listed'`)).rows
+              }
+            }));
+            return;
+          }
+
           res.statusCode = 404;
+          res.setHeader('Content-Type', 'application/json');
           res.end(JSON.stringify({ error: 'Not found' }));
         } catch (err: any) {
           console.error('API error:', err);
           res.statusCode = 500;
+          try { res.setHeader('Content-Type', 'application/json'); } catch(e) {}
           res.end(JSON.stringify({ error: err.message }));
         }
       });
