@@ -1,0 +1,46 @@
+{
+  "name": " #2020",
+  "description": "Welcome To Whale Town",
+  "image": "ipfs://YOUR_CID/2020.png",
+  "edition": 2020,
+  "attributes": [
+    {
+      "trait_type": "Animal Type",
+      "value": "SeaLions"
+    },
+    {
+      "trait_type": "Backgrounds",
+      "value": "Yachty"
+    },
+    {
+      "trait_type": "Base",
+      "value": "Dark-Blue"
+    },
+    {
+      "trait_type": "Clothing",
+      "value": "None"
+    },
+    {
+      "trait_type": "Item",
+      "value": "None"
+    },
+    {
+      "trait_type": "HeadAccessories",
+      "value": "None"
+    },
+    {
+      "trait_type": "Eyes",
+      "value": "Squinting"
+    },
+    {
+      "trait_type": "Mouth",
+      "value": "Pouting"
+    },
+    {
+      "trait_type": "Trait Count",
+      "value": 8,
+      "display_type": "number"
+    }
+  ],
+  "dna": "2-12-1-3-5-2-5-4"
+}

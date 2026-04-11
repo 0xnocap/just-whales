@@ -1,0 +1,46 @@
+{
+  "name": " #1305",
+  "description": "Welcome To Whale Town",
+  "image": "ipfs://YOUR_CID/1305.png",
+  "edition": 1305,
+  "attributes": [
+    {
+      "trait_type": "Animal Type",
+      "value": "Whales"
+    },
+    {
+      "trait_type": "Backgrounds",
+      "value": "Sand Dollars"
+    },
+    {
+      "trait_type": "Base",
+      "value": "Purple"
+    },
+    {
+      "trait_type": "BodyAccessories",
+      "value": "None"
+    },
+    {
+      "trait_type": "ItemOrMisc",
+      "value": "Briefcase"
+    },
+    {
+      "trait_type": "HeadAccessories",
+      "value": "FancyHaircut"
+    },
+    {
+      "trait_type": "Eyes",
+      "value": "ReallySmallEyes"
+    },
+    {
+      "trait_type": "Mouth",
+      "value": "Smile"
+    },
+    {
+      "trait_type": "Trait Count",
+      "value": 8,
+      "display_type": "number"
+    }
+  ],
+  "dna": "1-8-5-4-0-3-5-6"
+}

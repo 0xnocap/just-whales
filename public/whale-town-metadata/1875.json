@@ -1,0 +1,46 @@
+{
+  "name": " #1875",
+  "description": "Welcome To Whale Town",
+  "image": "ipfs://YOUR_CID/1875.png",
+  "edition": 1875,
+  "attributes": [
+    {
+      "trait_type": "Animal Type",
+      "value": "SeaLions"
+    },
+    {
+      "trait_type": "Backgrounds",
+      "value": "Sand Dollars"
+    },
+    {
+      "trait_type": "Base",
+      "value": "Brown"
+    },
+    {
+      "trait_type": "Clothing",
+      "value": "BlueHawaiianShirt"
+    },
+    {
+      "trait_type": "Item",
+      "value": "FishingRod"
+    },
+    {
+      "trait_type": "HeadAccessories",
+      "value": "SpinnerCap"
+    },
+    {
+      "trait_type": "Eyes",
+      "value": "Squinting"
+    },
+    {
+      "trait_type": "Mouth",
+      "value": "CoolSmile"
+    },
+    {
+      "trait_type": "Trait Count",
+      "value": 8,
+      "display_type": "number"
+    }
+  ],
+  "dna": "2-8-0-1-2-5-5-2"
+}

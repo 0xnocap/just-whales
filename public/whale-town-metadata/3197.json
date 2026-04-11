@@ -1,0 +1,46 @@
+{
+  "name": " #3197",
+  "description": "Welcome To Whale Town",
+  "image": "ipfs://YOUR_CID/3197.png",
+  "edition": 3197,
+  "attributes": [
+    {
+      "trait_type": "Animal Type",
+      "value": "SeaLions"
+    },
+    {
+      "trait_type": "Backgrounds",
+      "value": "Clear Sky"
+    },
+    {
+      "trait_type": "Base",
+      "value": "Green"
+    },
+    {
+      "trait_type": "Clothing",
+      "value": "None"
+    },
+    {
+      "trait_type": "Item",
+      "value": "GoldenPriceTag"
+    },
+    {
+      "trait_type": "HeadAccessories",
+      "value": "None"
+    },
+    {
+      "trait_type": "Eyes",
+      "value": "Cucumbers"
+    },
+    {
+      "trait_type": "Mouth",
+      "value": "Grinning"
+    },
+    {
+      "trait_type": "Trait Count",
+      "value": 8,
+      "display_type": "number"
+    }
+  ],
+  "dna": "2-2-3-3-4-2-1-3"
+}

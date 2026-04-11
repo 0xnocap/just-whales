@@ -1,0 +1,46 @@
+{
+  "name": " #2605",
+  "description": "Welcome To Whale Town",
+  "image": "ipfs://YOUR_CID/2605.png",
+  "edition": 2605,
+  "attributes": [
+    {
+      "trait_type": "Animal Type",
+      "value": "Whales"
+    },
+    {
+      "trait_type": "Backgrounds",
+      "value": "Yachty"
+    },
+    {
+      "trait_type": "Base",
+      "value": "Blue"
+    },
+    {
+      "trait_type": "BodyAccessories",
+      "value": "RedSwimmingTrunks"
+    },
+    {
+      "trait_type": "ItemOrMisc",
+      "value": "Martini"
+    },
+    {
+      "trait_type": "HeadAccessories",
+      "value": "None"
+    },
+    {
+      "trait_type": "Eyes",
+      "value": "GoldCoin"
+    },
+    {
+      "trait_type": "Mouth",
+      "value": "CreepyTeeth"
+    },
+    {
+      "trait_type": "Trait Count",
+      "value": 8,
+      "display_type": "number"
+    }
+  ],
+  "dna": "1-12-1-5-3-4-2-1"
+}

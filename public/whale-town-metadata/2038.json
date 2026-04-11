@@ -1,0 +1,46 @@
+{
+  "name": " #2038",
+  "description": "Welcome To Whale Town",
+  "image": "ipfs://YOUR_CID/2038.png",
+  "edition": 2038,
+  "attributes": [
+    {
+      "trait_type": "Animal Type",
+      "value": "Sharks"
+    },
+    {
+      "trait_type": "Backgrounds",
+      "value": "Rainbow Road"
+    },
+    {
+      "trait_type": "Base",
+      "value": "Blue"
+    },
+    {
+      "trait_type": "Clothing",
+      "value": "BrownStringer"
+    },
+    {
+      "trait_type": "Misc",
+      "value": "GoldNoseRing"
+    },
+    {
+      "trait_type": "HeadAccessories",
+      "value": "None"
+    },
+    {
+      "trait_type": "Eyes",
+      "value": "AnnoyedEyes"
+    },
+    {
+      "trait_type": "Mouth",
+      "value": "OpenMouth"
+    },
+    {
+      "trait_type": "Trait Count",
+      "value": 8,
+      "display_type": "number"
+    }
+  ],
+  "dna": "0-7-0-1-4-3-1-4"
+}

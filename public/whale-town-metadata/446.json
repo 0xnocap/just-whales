@@ -1,0 +1,46 @@
+{
+  "name": " #446",
+  "description": "Welcome To Whale Town",
+  "image": "ipfs://YOUR_CID/446.png",
+  "edition": 446,
+  "attributes": [
+    {
+      "trait_type": "Animal Type",
+      "value": "Sharks"
+    },
+    {
+      "trait_type": "Backgrounds",
+      "value": "The Palms"
+    },
+    {
+      "trait_type": "Base",
+      "value": "Blue"
+    },
+    {
+      "trait_type": "Clothing",
+      "value": "PurpleHoodie"
+    },
+    {
+      "trait_type": "Misc",
+      "value": "GoldNoseRing"
+    },
+    {
+      "trait_type": "HeadAccessories",
+      "value": "None"
+    },
+    {
+      "trait_type": "Eyes",
+      "value": "ManiacEyes"
+    },
+    {
+      "trait_type": "Mouth",
+      "value": "Grinning"
+    },
+    {
+      "trait_type": "Trait Count",
+      "value": 8,
+      "display_type": "number"
+    }
+  ],
+  "dna": "0-10-0-6-4-3-3-3"
+}

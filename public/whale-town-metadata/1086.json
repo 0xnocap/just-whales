@@ -1,0 +1,46 @@
+{
+  "name": " #1086",
+  "description": "Welcome To Whale Town",
+  "image": "ipfs://YOUR_CID/1086.png",
+  "edition": 1086,
+  "attributes": [
+    {
+      "trait_type": "Animal Type",
+      "value": "SeaLions"
+    },
+    {
+      "trait_type": "Backgrounds",
+      "value": "Yachty"
+    },
+    {
+      "trait_type": "Base",
+      "value": "Green"
+    },
+    {
+      "trait_type": "Clothing",
+      "value": "None"
+    },
+    {
+      "trait_type": "Item",
+      "value": "DiamondEarring"
+    },
+    {
+      "trait_type": "HeadAccessories",
+      "value": "PinkMohawk"
+    },
+    {
+      "trait_type": "Eyes",
+      "value": "Squinting"
+    },
+    {
+      "trait_type": "Mouth",
+      "value": "CoolSmile"
+    },
+    {
+      "trait_type": "Trait Count",
+      "value": 8,
+      "display_type": "number"
+    }
+  ],
+  "dna": "2-12-3-3-1-4-5-2"
+}

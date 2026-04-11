@@ -1,0 +1,46 @@
+{
+  "name": " #1978",
+  "description": "Welcome To Whale Town",
+  "image": "ipfs://YOUR_CID/1978.png",
+  "edition": 1978,
+  "attributes": [
+    {
+      "trait_type": "Animal Type",
+      "value": "SeaLions"
+    },
+    {
+      "trait_type": "Backgrounds",
+      "value": "The Palms"
+    },
+    {
+      "trait_type": "Base",
+      "value": "Dark-Purple"
+    },
+    {
+      "trait_type": "Clothing",
+      "value": "AquaHoodie"
+    },
+    {
+      "trait_type": "Item",
+      "value": "None"
+    },
+    {
+      "trait_type": "HeadAccessories",
+      "value": "None"
+    },
+    {
+      "trait_type": "Eyes",
+      "value": "ClosedEyes"
+    },
+    {
+      "trait_type": "Mouth",
+      "value": "CoolSmile"
+    },
+    {
+      "trait_type": "Trait Count",
+      "value": 8,
+      "display_type": "number"
+    }
+  ],
+  "dna": "2-10-2-0-5-2-0-2"
+}

@@ -1,0 +1,46 @@
+{
+  "name": " #2078",
+  "description": "Welcome To Whale Town",
+  "image": "ipfs://YOUR_CID/2078.png",
+  "edition": 2078,
+  "attributes": [
+    {
+      "trait_type": "Animal Type",
+      "value": "Whales"
+    },
+    {
+      "trait_type": "Backgrounds",
+      "value": "Mountain Greens"
+    },
+    {
+      "trait_type": "Base",
+      "value": "Blue"
+    },
+    {
+      "trait_type": "BodyAccessories",
+      "value": "BlueSwimmingTrunks"
+    },
+    {
+      "trait_type": "ItemOrMisc",
+      "value": "Briefcase"
+    },
+    {
+      "trait_type": "HeadAccessories",
+      "value": "None"
+    },
+    {
+      "trait_type": "Eyes",
+      "value": "Monocle"
+    },
+    {
+      "trait_type": "Mouth",
+      "value": "Smile"
+    },
+    {
+      "trait_type": "Trait Count",
+      "value": 8,
+      "display_type": "number"
+    }
+  ],
+  "dna": "1-5-1-1-0-4-4-6"
+}

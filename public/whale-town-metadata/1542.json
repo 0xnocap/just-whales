@@ -1,0 +1,46 @@
+{
+  "name": " #1542",
+  "description": "Welcome To Whale Town",
+  "image": "ipfs://YOUR_CID/1542.png",
+  "edition": 1542,
+  "attributes": [
+    {
+      "trait_type": "Animal Type",
+      "value": "Sharks"
+    },
+    {
+      "trait_type": "Backgrounds",
+      "value": "Clear Sky"
+    },
+    {
+      "trait_type": "Base",
+      "value": "Blue"
+    },
+    {
+      "trait_type": "Clothing",
+      "value": "PlainWhiteShirt"
+    },
+    {
+      "trait_type": "Misc",
+      "value": "BattleScar"
+    },
+    {
+      "trait_type": "HeadAccessories",
+      "value": "None"
+    },
+    {
+      "trait_type": "Eyes",
+      "value": "ReallySmolEyes"
+    },
+    {
+      "trait_type": "Mouth",
+      "value": "ThiccLipstick"
+    },
+    {
+      "trait_type": "Trait Count",
+      "value": 8,
+      "display_type": "number"
+    }
+  ],
+  "dna": "0-2-0-5-0-3-4-5"
+}

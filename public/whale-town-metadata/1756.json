@@ -1,0 +1,46 @@
+{
+  "name": " #1756",
+  "description": "Welcome To Whale Town",
+  "image": "ipfs://YOUR_CID/1756.png",
+  "edition": 1756,
+  "attributes": [
+    {
+      "trait_type": "Animal Type",
+      "value": "SeaLions"
+    },
+    {
+      "trait_type": "Backgrounds",
+      "value": "Sunrise"
+    },
+    {
+      "trait_type": "Base",
+      "value": "Dark-Purple"
+    },
+    {
+      "trait_type": "Clothing",
+      "value": "None"
+    },
+    {
+      "trait_type": "Item",
+      "value": "FishingRod"
+    },
+    {
+      "trait_type": "HeadAccessories",
+      "value": "NekoHeadBand"
+    },
+    {
+      "trait_type": "Eyes",
+      "value": "Squinting"
+    },
+    {
+      "trait_type": "Mouth",
+      "value": "Pouting"
+    },
+    {
+      "trait_type": "Trait Count",
+      "value": 8,
+      "display_type": "number"
+    }
+  ],
+  "dna": "2-9-2-3-2-1-5-4"
+}

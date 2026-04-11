@@ -1,0 +1,46 @@
+{
+  "name": " #1968",
+  "description": "Welcome To Whale Town",
+  "image": "ipfs://YOUR_CID/1968.png",
+  "edition": 1968,
+  "attributes": [
+    {
+      "trait_type": "Animal Type",
+      "value": "Whales"
+    },
+    {
+      "trait_type": "Backgrounds",
+      "value": "Bikini Town"
+    },
+    {
+      "trait_type": "Base",
+      "value": "Blue"
+    },
+    {
+      "trait_type": "BodyAccessories",
+      "value": "WhiteSuit"
+    },
+    {
+      "trait_type": "ItemOrMisc",
+      "value": "None"
+    },
+    {
+      "trait_type": "HeadAccessories",
+      "value": "None"
+    },
+    {
+      "trait_type": "Eyes",
+      "value": "BushyBrows"
+    },
+    {
+      "trait_type": "Mouth",
+      "value": "Smile"
+    },
+    {
+      "trait_type": "Trait Count",
+      "value": 8,
+      "display_type": "number"
+    }
+  ],
+  "dna": "1-1-1-6-5-4-0-6"
+}
