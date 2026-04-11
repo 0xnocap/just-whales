@@ -676,11 +676,12 @@ const NFTCard = ({ token, isListed, listing, isOwner, isSeller, tokenOwner, rari
   }, [hasBeenSeen, isTimerDone]);
 
   // Rasterize in background for scroll-back cache (non-blocking)
+  // ONLY start this after the card has been seen, otherwise the initial load
+  // gets locked up parsing 200+ SVG data URIs simultaneously.
   useEffect(() => {
-    if (rasterSrc) return;
-    if (!token.image_data) return;
+    if (!hasBeenSeen || rasterSrc || !token.image_data) return;
     rasterizeImage(token.image_data, token.id).then(setRasterSrc);
-  }, [token.image_data, token.id, rasterSrc]);
+  }, [hasBeenSeen, token.image_data, token.id, rasterSrc]);
 
   // Show card when timer is done — use cached raster if available, otherwise original data URI
   const isReady = isTimerDone && !!token.image_data;
