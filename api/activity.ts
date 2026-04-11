@@ -57,6 +57,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         block_number::bigint as block_number
       FROM listed
 
+      UNION ALL
+
+      SELECT 
+        'cancel' as type,
+        token_id::int as token_id, 
+        seller as "from", 
+        NULL as "to", 
+        NULL as price,
+        transaction_hash, 
+        timestamp::bigint as timestamp, 
+        block_number::bigint as block_number
+      FROM canceled
+
       ORDER BY block_number DESC
       LIMIT 100
     `);
