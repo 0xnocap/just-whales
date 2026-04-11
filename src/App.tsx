@@ -151,7 +151,6 @@ const TokenModal = ({ token, onClose }: { token: ModalTokenProps | null; onClose
       await waitForTransaction(hash);
       setStatus('success');
       if (token.onBuySuccess) token.onBuySuccess();
-      if (token.refetch) token.refetch();
       setTimeout(onClose, 2000);
     } catch (err: any) {
       console.error(err);
@@ -185,7 +184,6 @@ const TokenModal = ({ token, onClose }: { token: ModalTokenProps | null; onClose
       } as any);
       await waitForTransaction(hash);
       setStatus('success');
-      if (token.refetch) token.refetch();
       setTimeout(onClose, 2000);
     } catch (err: any) {
       console.error(err);
@@ -207,7 +205,6 @@ const TokenModal = ({ token, onClose }: { token: ModalTokenProps | null; onClose
       } as any);
       await waitForTransaction(hash);
       setStatus('success');
-      if (token.refetch) token.refetch();
       setTimeout(onClose, 2000);
     } catch (err: any) {
       console.error(err);
