@@ -1280,13 +1280,43 @@ const { writeContractAsync } = useWriteContract();
   }, []);
 
   // Watch marketplace contract events and re-sync listings when anything changes.
-  // 3s delay gives the Goldsky indexer time to write the event to the DB.
-  useWatchContractEvent({ address: marketplaceAddress as `0x${string}`, abi: marketplaceAbi, eventName: 'Listed',    onLogs: () => setTimeout(refreshListings, 3000) });
-  useWatchContractEvent({ address: marketplaceAddress as `0x${string}`, abi: marketplaceAbi, eventName: 'Sale',      onLogs: () => setTimeout(refreshListings, 3000) });
-  useWatchContractEvent({ address: marketplaceAddress as `0x${string}`, abi: marketplaceAbi, eventName: 'Cancelled', onLogs: () => setTimeout(refreshListings, 3000) });
+  // Sale/Cancelled: remove from state immediately using listingId from the event log.
+  // No DB wait needed — we have everything required to update the UI right now.
+  // Background DB sync runs with no delay to keep things consistent.
+  useWatchContractEvent({
+    address: marketplaceAddress as `0x${string}`,
+    abi: marketplaceAbi,
+    eventName: 'Sale',
+    onLogs: (logs) => {
+      logs.forEach(log => {
+        const listingId = (log as any).args?.listingId;
+        if (listingId != null) setListings(prev => prev.filter(l => String(l.id) !== String(listingId)));
+      });
+      refreshListings();
+    },
+  });
+  useWatchContractEvent({
+    address: marketplaceAddress as `0x${string}`,
+    abi: marketplaceAbi,
+    eventName: 'Cancelled',
+    onLogs: (logs) => {
+      logs.forEach(log => {
+        const listingId = (log as any).args?.listingId;
+        if (listingId != null) setListings(prev => prev.filter(l => String(l.id) !== String(listingId)));
+      });
+      refreshListings();
+    },
+  });
 
-  // Optimistically remove a purchased listing from the UI immediately.
-  // The Sale event watcher above handles the DB re-sync once the indexer catches up.
+  // Listed: new listing needs metadata from the DB, so we still wait — but 1s is enough for Goldsky.
+  useWatchContractEvent({
+    address: marketplaceAddress as `0x${string}`,
+    abi: marketplaceAbi,
+    eventName: 'Listed',
+    onLogs: () => setTimeout(refreshListings, 1000),
+  });
+
+  // Optimistically remove a purchased listing from the UI immediately (before Sale event arrives).
   const handleBuySuccess = useCallback((listingId: bigint | string) => {
     setListings(prev => prev.filter(l => String(l.id) !== String(listingId)));
   }, []);
