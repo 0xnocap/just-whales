@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Home, Coins, Search, Sparkles, Minus, Plus, Loader2, X, ArrowLeftRight, ChevronLeft, ExternalLink, Copy, Check, User, Clock, Tag, ArrowUpRight, ArrowDownLeft, Grid3X3, List, Filter, ChevronDown, ChevronUp, Star, Zap, ShoppingCart, Trash2, Activity, ArrowRight } from 'lucide-react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useWatchContractEvent } from 'wagmi';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useWatchContractEvent, useSwitchChain } from 'wagmi';
 import {
   readTotalSupply, readMaxSupply, readMintPrice,
   readIsPublicMintActive, readMaxPerAddress,
@@ -15,6 +15,7 @@ import {
   type TokenMetadata,
 } from './contract';
 import { formatEther, parseEther, formatUnits, parseUnits } from 'viem';
+import { tempoMainnet } from './wagmi';
 import { Routes, Route, useNavigate, useLocation, Link, useParams } from 'react-router-dom';
 // --- Helpers ---
 const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
@@ -2366,6 +2367,7 @@ const StakingPage = () => {
 
 const MintPage = ({ onMintSuccess }: { onMintSuccess: (t: TokenMetadata & { id: number }) => void }) => {
   const { address: walletAddress, isConnected } = useAccount();
+  const { switchChain } = useSwitchChain();
   const { writeContract, data: txHash, isPending: isTxPending, error: txError, reset: resetTx } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
@@ -2431,7 +2433,7 @@ const MintPage = ({ onMintSuccess }: { onMintSuccess: (t: TokenMetadata & { id: 
       <div className="flex justify-between items-center" style={{ marginBottom: 'clamp(1rem, 2vh, 1.5rem)' }}>
         <h2 className="font-bold text-dream-cyan font-sans tracking-tight uppercase" style={{ fontSize: 'clamp(0.8rem, 1.2vw, 1.1rem)' }}>MINT</h2>
         <ConnectButton.Custom>
-          {({ account, chain, openConnectModal, openAccountModal, openChainModal, mounted }) => {
+          {({ account, chain, openConnectModal, openAccountModal, mounted }) => {
             if (!mounted) return null;
             if (!account) return (
               <button onClick={openConnectModal} className="font-mono font-bold tracking-[0.1em] text-dream-cyan border border-dream-cyan/30 bg-dream-cyan/5 hover:bg-dream-cyan/10 transition-colors cursor-pointer" style={{ fontSize: 'clamp(9px, 0.75vw, 11px)', padding: 'clamp(4px, 0.4vh, 6px) clamp(10px, 1vw, 14px)', borderRadius: 'clamp(0.3rem, 0.5vw, 0.5rem)' }}>
@@ -2439,7 +2441,7 @@ const MintPage = ({ onMintSuccess }: { onMintSuccess: (t: TokenMetadata & { id: 
               </button>
             );
             if (chain?.unsupported) return (
-              <button onClick={openChainModal} className="font-mono font-bold tracking-[0.1em] text-red-400 border border-red-400/30 bg-red-400/5 cursor-pointer" style={{ fontSize: 'clamp(9px, 0.75vw, 11px)', padding: 'clamp(4px, 0.4vh, 6px) clamp(10px, 1vw, 14px)', borderRadius: 'clamp(0.3rem, 0.5vw, 0.5rem)' }}>
+              <button onClick={() => switchChain({ chainId: tempoMainnet.id })} className="font-mono font-bold tracking-[0.1em] text-red-400 border border-red-400/30 bg-red-400/5 cursor-pointer" style={{ fontSize: 'clamp(9px, 0.75vw, 11px)', padding: 'clamp(4px, 0.4vh, 6px) clamp(10px, 1vw, 14px)', borderRadius: 'clamp(0.3rem, 0.5vw, 0.5rem)' }}>
                 WRONG NETWORK
               </button>
             );
