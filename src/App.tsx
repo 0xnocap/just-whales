@@ -236,7 +236,7 @@ const TokenModal = ({ token, onClose }: { token: ModalTokenProps | null; onClose
         exit={{ scale: 0.95, opacity: 0, y: 20 }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
         onClick={e => e.stopPropagation()}
-        className="relative z-10 bg-[#18181b] border border-white/[0.08] w-full md:w-[64rem] flex flex-col md:flex-row shadow-2xl shadow-black/50 overflow-hidden"
+        className="relative z-10 bg-[#18181b] border border-white/[0.08] w-full md:w-[64rem] flex flex-col md:flex-row shadow-2xl shadow-black/50 overflow-y-auto md:overflow-hidden"
         style={{ maxWidth: '95vw', maxHeight: '90vh', borderRadius: '1.25rem' }}
       >
         {/* Close Button - positioned absolutely over the whole modal, but to the right so it is outside the image on desktop */}
@@ -390,7 +390,7 @@ const TokenModal = ({ token, onClose }: { token: ModalTokenProps | null; onClose
           </div>
 
           {/* --- BOTTOM: accordion sections in scroll zone --- */}
-          <div className="flex-1 overflow-y-auto flex flex-col px-6 md:pr-8 md:pl-2 pb-8 divide-y divide-white/[0.04]">
+          <div className="flex-1 overflow-visible md:overflow-y-auto flex flex-col px-6 md:pr-8 md:pl-2 pb-8 divide-y divide-white/[0.04]">
 
             {/* Traits accordion */}
             {traits.length > 0 && (
