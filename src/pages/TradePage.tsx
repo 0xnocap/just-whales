@@ -55,6 +55,7 @@ const TradePage: React.FC<TradePageProps> = ({
   const [isSweeping, setIsSweeping] = useState(false);
   const [sweepResult, setSweepResult] = useState<{ succeeded: number; failed: number } | null>(null);
   const [sweepError, setSweepError] = useState('');
+  const [activityRefreshKey, setActivityRefreshKey] = useState(0);
 
   const [openTraitSections, setOpenTraitSections] = useState<Record<string, boolean>>({});
   const [showFilters, setShowFilters] = useState(false);
@@ -127,7 +128,7 @@ const TradePage: React.FC<TradePageProps> = ({
   });
 
   // Has more to load?
-  const hasMoreFiltered = isFiltered && (displayTokens.length < filteredMatchIds.length);
+  const hasMoreFiltered = isFiltered && (filteredTokens.length < filteredMatchIds.length);
   const hasMoreUnfiltered = !isFiltered && (nextIdDesc >= 0 || nextIdAsc < totalMinted);
 
   // Floor price from listings
@@ -443,7 +444,7 @@ const TradePage: React.FC<TradePageProps> = ({
       </div>
 
       {activeTradeTab === 'activity' ? (
-        <ActivityFeed externalFilter={activityFilter} />
+        <ActivityFeed externalFilter={activityFilter} refreshKey={activityRefreshKey} />
       ) : (
       <>
       {sweepMode && listings.length > 0 && (
@@ -579,27 +580,32 @@ const TradePage: React.FC<TradePageProps> = ({
                 const rarityRank = collectionData?.rarityRanks?.[String(token.id)];
                 const isSweepSelected = sweepMode && isListed && sweepSelected.some(s => String(s.id) === String(listing?.id));
 
+                const handleSweepToggle = () => {
+                  setSweepResult(null);
+                  if (isSweepSelected) {
+                    setSweepSelected(prev => prev.filter(s => String(s.id) !== String(listing.id)));
+                  } else {
+                    setSweepSelected(prev => [...prev, listing]);
+                  }
+                };
+
                 return (
-                  <div key={isListed ? `listing-${listing.id}` : `gallery-${token.id}`} className="relative" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 300px' }}>
+                  <div
+                    key={isListed ? `listing-${listing.id}` : `gallery-${token.id}`}
+                    className={`relative ${sweepMode && isListed && !isSeller ? 'cursor-pointer' : ''}`}
+                    style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 300px' }}
+                    onClick={sweepMode && isListed && !isSeller ? handleSweepToggle : undefined}
+                  >
                     {sweepMode && isListed && !isSeller && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSweepResult(null);
-                          if (isSweepSelected) {
-                            setSweepSelected(prev => prev.filter(s => String(s.id) !== String(listing.id)));
-                          } else {
-                            setSweepSelected(prev => [...prev, listing]);
-                          }
-                        }}
-                        className={`absolute top-2 left-2 z-30 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all cursor-pointer ${
+                      <div
+                        className={`absolute top-2 left-2 z-30 w-5 h-5 rounded-md border-2 flex items-center justify-center pointer-events-none ${
                           isSweepSelected
                             ? 'bg-dream-cyan border-dream-cyan shadow-[0_0_8px_rgba(34,211,238,0.5)]'
-                            : 'bg-black/60 border-white/30 hover:border-dream-cyan/60 backdrop-blur-sm'
+                            : 'bg-black/60 border-white/30 backdrop-blur-sm'
                         }`}
                       >
                         {isSweepSelected && <Check className="w-3 h-3 text-[#0a0a0c]" strokeWidth={3} />}
-                      </button>
+                      </div>
                     )}
                     {sweepMode && !isListed && (
                       <div className="absolute inset-0 z-20 rounded-xl bg-black/50 pointer-events-none" />
@@ -693,6 +699,7 @@ const TradePage: React.FC<TradePageProps> = ({
                 setSweepResult({ succeeded: sweepSelected.length, failed: 0 });
                 setSweepSelected([]);
                 fetchData();
+                setActivityRefreshKey(k => k + 1);
               } catch (err: any) {
                 setSweepError(err.shortMessage || err.message || 'Sweep failed');
                 console.error(err);

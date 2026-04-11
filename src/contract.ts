@@ -1,11 +1,16 @@
-import { createPublicClient, http } from 'viem';
+import { createPublicClient, http, fallback } from 'viem';
 // @ts-ignore
 import { TEMPO_MAINNET, WHALE_TOWN_ADDRESS, WHALE_TOWN_ABI, WHALE_TOWN_MARKETPLACE_ADDRESS, WHALE_TOWN_MARKETPLACE_ABI, PATH_USD_ADDRESS, PATH_USD_ABI } from '@/contract.js';
 import { tempoMainnet } from './wagmi';
 
+const alchemyRpc: string = process.env.ALCHEMY_TEMPO_RPC || '';
+const publicRpc: string = TEMPO_MAINNET.rpcUrls.default.http[0];
+
 const publicClient = createPublicClient({
   chain: tempoMainnet,
-  transport: http(TEMPO_MAINNET.rpcUrls.default.http[0]),
+  transport: alchemyRpc
+    ? fallback([http(alchemyRpc), http(publicRpc)])
+    : http(publicRpc),
 });
 
 export const contractAddress = WHALE_TOWN_ADDRESS as `0x${string}`;

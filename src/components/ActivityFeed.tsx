@@ -8,10 +8,11 @@ interface ActivityFeedProps {
   compact?: boolean;
   externalFilter?: ActivityFilterKey;
   onFilterChange?: (f: ActivityFilterKey) => void;
+  refreshKey?: number;
 }
 
-const ActivityFeed: React.FC<ActivityFeedProps> = ({ compact = false, externalFilter, onFilterChange }) => {
-  const { filtered, loading, filter, setFilter } = useActivityFeed(externalFilter, onFilterChange);
+const ActivityFeed: React.FC<ActivityFeedProps> = ({ compact = false, externalFilter, onFilterChange, refreshKey }) => {
+  const { filtered, loading, filter, setFilter } = useActivityFeed(externalFilter, onFilterChange, refreshKey);
 
   return (
     <div className={compact ? 'flex flex-col h-full' : ''}>

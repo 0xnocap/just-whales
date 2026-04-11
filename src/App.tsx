@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Home, Coins, User, ArrowLeftRight, ChevronLeft } from 'lucide-react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount } from 'wagmi';
-import { Routes, Route, useNavigate, useLocation, Link } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation, Link, Navigate } from 'react-router-dom';
 
 import type { ModalTokenProps } from './types';
 import DreamwaveOcean from './components/DreamwaveOcean';
@@ -13,7 +13,6 @@ import TokenModal from './components/TokenModal';
 import HomePage from './pages/HomePage';
 import StakingPage from './pages/StakingPage';
 import TradePage from './pages/TradePage';
-import MintPage from './pages/MintPage';
 import ProfilePage from './pages/ProfilePage';
 
 export default function App() {
@@ -73,9 +72,9 @@ export default function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/staking" element={<StakingPage />} />
               <Route path="/trade" element={<TradePage onSelectToken={setModalToken} onSweepModeChange={setSweepModeActive} showActivity={showActivity} setShowActivity={setShowActivity} />} />
-              <Route path="/mint" element={<MintPage onMintSuccess={setModalToken} />} />
               <Route path="/profile" element={<ProfilePage onSelectToken={setModalToken} />} />
               <Route path="/profile/:address" element={<ProfilePage onSelectToken={setModalToken} />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </motion.div>
         </AnimatePresence>
