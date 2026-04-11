@@ -160,5 +160,22 @@ export default defineConfig(({mode}) => {
       // Do not modify—file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('@metamask') || id.includes('metamask-sdk')) return 'metamask';
+              if (id.includes('@rainbow-me') || id.includes('wagmi') || id.includes('viem')) return 'web3';
+              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) return 'react';
+              if (id.includes('lucide-react') || id.includes('motion')) return 'ui';
+              if (id.includes('@tanstack')) return 'query';
+              return 'vendor';
+            }
+          }
+        }
+      },
+      chunkSizeWarningLimit: 1000
+    }
   };
 });
