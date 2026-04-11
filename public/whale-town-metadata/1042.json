@@ -1,0 +1,46 @@
+{
+  "name": " #1042",
+  "description": "Welcome To Whale Town",
+  "image": "ipfs://YOUR_CID/1042.png",
+  "edition": 1042,
+  "attributes": [
+    {
+      "trait_type": "Animal Type",
+      "value": "SeaLions"
+    },
+    {
+      "trait_type": "Backgrounds",
+      "value": "The Palms"
+    },
+    {
+      "trait_type": "Base",
+      "value": "Green"
+    },
+    {
+      "trait_type": "Clothing",
+      "value": "GoldChain"
+    },
+    {
+      "trait_type": "Item",
+      "value": "FishingRod"
+    },
+    {
+      "trait_type": "HeadAccessories",
+      "value": "OrangeBeanie"
+    },
+    {
+      "trait_type": "Eyes",
+      "value": "TradingGoggles"
+    },
+    {
+      "trait_type": "Mouth",
+      "value": "Grinning"
+    },
+    {
+      "trait_type": "Trait Count",
+      "value": 8,
+      "display_type": "number"
+    }
+  ],
+  "dna": "2-10-3-2-2-3-6-3"
+}

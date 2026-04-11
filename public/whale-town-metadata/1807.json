@@ -1,0 +1,46 @@
+{
+  "name": " #1807",
+  "description": "Welcome To Whale Town",
+  "image": "ipfs://YOUR_CID/1807.png",
+  "edition": 1807,
+  "attributes": [
+    {
+      "trait_type": "Animal Type",
+      "value": "Sharks"
+    },
+    {
+      "trait_type": "Backgrounds",
+      "value": "Bikini Town"
+    },
+    {
+      "trait_type": "Base",
+      "value": "Blue"
+    },
+    {
+      "trait_type": "Clothing",
+      "value": "BrownStringer"
+    },
+    {
+      "trait_type": "Misc",
+      "value": "FinBandAid"
+    },
+    {
+      "trait_type": "HeadAccessories",
+      "value": "BlueMohawk"
+    },
+    {
+      "trait_type": "Eyes",
+      "value": "AnnoyedEyes"
+    },
+    {
+      "trait_type": "Mouth",
+      "value": "oooOOOooo"
+    },
+    {
+      "trait_type": "Trait Count",
+      "value": 8,
+      "display_type": "number"
+    }
+  ],
+  "dna": "0-1-0-1-2-1-1-6"
+}

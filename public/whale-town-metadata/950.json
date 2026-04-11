@@ -1,0 +1,46 @@
+{
+  "name": " #950",
+  "description": "Welcome To Whale Town",
+  "image": "ipfs://YOUR_CID/950.png",
+  "edition": 950,
+  "attributes": [
+    {
+      "trait_type": "Animal Type",
+      "value": "Whales"
+    },
+    {
+      "trait_type": "Backgrounds",
+      "value": "Sand Dollars"
+    },
+    {
+      "trait_type": "Base",
+      "value": "Purple"
+    },
+    {
+      "trait_type": "BodyAccessories",
+      "value": "BlackSuit"
+    },
+    {
+      "trait_type": "ItemOrMisc",
+      "value": "Injured"
+    },
+    {
+      "trait_type": "HeadAccessories",
+      "value": "None"
+    },
+    {
+      "trait_type": "Eyes",
+      "value": "SnobbyEyes"
+    },
+    {
+      "trait_type": "Mouth",
+      "value": "Smile"
+    },
+    {
+      "trait_type": "Trait Count",
+      "value": 8,
+      "display_type": "number"
+    }
+  ],
+  "dna": "1-8-5-0-2-4-6-6"
+}

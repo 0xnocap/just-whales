@@ -1,0 +1,46 @@
+{
+  "name": " #511",
+  "description": "Welcome To Whale Town",
+  "image": "ipfs://YOUR_CID/511.png",
+  "edition": 511,
+  "attributes": [
+    {
+      "trait_type": "Animal Type",
+      "value": "Sharks"
+    },
+    {
+      "trait_type": "Backgrounds",
+      "value": "Island Breeze"
+    },
+    {
+      "trait_type": "Base",
+      "value": "Red"
+    },
+    {
+      "trait_type": "Clothing",
+      "value": "None"
+    },
+    {
+      "trait_type": "Misc",
+      "value": "None"
+    },
+    {
+      "trait_type": "HeadAccessories",
+      "value": "BlueMohawk"
+    },
+    {
+      "trait_type": "Eyes",
+      "value": "ManiacEyes"
+    },
+    {
+      "trait_type": "Mouth",
+      "value": "OpenMouth"
+    },
+    {
+      "trait_type": "Trait Count",
+      "value": 8,
+      "display_type": "number"
+    }
+  ],
+  "dna": "0-3-5-3-6-1-3-4"
+}

@@ -1,0 +1,46 @@
+{
+  "name": " #912",
+  "description": "Welcome To Whale Town",
+  "image": "ipfs://YOUR_CID/912.png",
+  "edition": 912,
+  "attributes": [
+    {
+      "trait_type": "Animal Type",
+      "value": "Sharks"
+    },
+    {
+      "trait_type": "Backgrounds",
+      "value": "Mountain Greens"
+    },
+    {
+      "trait_type": "Base",
+      "value": "Purple"
+    },
+    {
+      "trait_type": "Clothing",
+      "value": "None"
+    },
+    {
+      "trait_type": "Misc",
+      "value": "None"
+    },
+    {
+      "trait_type": "HeadAccessories",
+      "value": "RedBaseballCap"
+    },
+    {
+      "trait_type": "Eyes",
+      "value": "ManiacEyes"
+    },
+    {
+      "trait_type": "Mouth",
+      "value": "OpenMouth"
+    },
+    {
+      "trait_type": "Trait Count",
+      "value": 8,
+      "display_type": "number"
+    }
+  ],
+  "dna": "0-5-4-3-6-5-3-4"
+}

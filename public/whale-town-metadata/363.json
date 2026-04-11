@@ -1,0 +1,46 @@
+{
+  "name": " #363",
+  "description": "Welcome To Whale Town",
+  "image": "ipfs://YOUR_CID/363.png",
+  "edition": 363,
+  "attributes": [
+    {
+      "trait_type": "Animal Type",
+      "value": "Whales"
+    },
+    {
+      "trait_type": "Backgrounds",
+      "value": "Yachty"
+    },
+    {
+      "trait_type": "Base",
+      "value": "Aqua"
+    },
+    {
+      "trait_type": "BodyAccessories",
+      "value": "BlackSuit"
+    },
+    {
+      "trait_type": "ItemOrMisc",
+      "value": "None"
+    },
+    {
+      "trait_type": "HeadAccessories",
+      "value": "WaterSpout"
+    },
+    {
+      "trait_type": "Eyes",
+      "value": "ClosedEyes"
+    },
+    {
+      "trait_type": "Mouth",
+      "value": "CreepyTeeth"
+    },
+    {
+      "trait_type": "Trait Count",
+      "value": 8,
+      "display_type": "number"
+    }
+  ],
+  "dna": "1-12-0-0-5-5-1-1"
+}

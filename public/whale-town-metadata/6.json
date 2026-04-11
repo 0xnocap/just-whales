@@ -1,0 +1,46 @@
+{
+  "name": " #6",
+  "description": "Welcome To Whale Town",
+  "image": "ipfs://YOUR_CID/6.png",
+  "edition": 6,
+  "attributes": [
+    {
+      "trait_type": "Animal Type",
+      "value": "Sharks"
+    },
+    {
+      "trait_type": "Backgrounds",
+      "value": "Clear Sky"
+    },
+    {
+      "trait_type": "Base",
+      "value": "Blue"
+    },
+    {
+      "trait_type": "Clothing",
+      "value": "None"
+    },
+    {
+      "trait_type": "Misc",
+      "value": "DiamondNoseRing"
+    },
+    {
+      "trait_type": "HeadAccessories",
+      "value": "RedBaseballCap"
+    },
+    {
+      "trait_type": "Eyes",
+      "value": "ReallySmolEyes"
+    },
+    {
+      "trait_type": "Mouth",
+      "value": "OpenMouth"
+    },
+    {
+      "trait_type": "Trait Count",
+      "value": 8,
+      "display_type": "number"
+    }
+  ],
+  "dna": "0-2-0-3-1-5-4-4"
+}

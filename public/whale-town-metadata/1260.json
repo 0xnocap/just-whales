@@ -1,0 +1,46 @@
+{
+  "name": " #1260",
+  "description": "Welcome To Whale Town",
+  "image": "ipfs://YOUR_CID/1260.png",
+  "edition": 1260,
+  "attributes": [
+    {
+      "trait_type": "Animal Type",
+      "value": "Whales"
+    },
+    {
+      "trait_type": "Backgrounds",
+      "value": "Night Sunset"
+    },
+    {
+      "trait_type": "Base",
+      "value": "Blue"
+    },
+    {
+      "trait_type": "BodyAccessories",
+      "value": "None"
+    },
+    {
+      "trait_type": "ItemOrMisc",
+      "value": "Wine"
+    },
+    {
+      "trait_type": "HeadAccessories",
+      "value": "DevilHorns"
+    },
+    {
+      "trait_type": "Eyes",
+      "value": "ReallySmallEyes"
+    },
+    {
+      "trait_type": "Mouth",
+      "value": "Grinning"
+    },
+    {
+      "trait_type": "Trait Count",
+      "value": 8,
+      "display_type": "number"
+    }
+  ],
+  "dna": "1-6-1-4-6-2-5-3"
+}
