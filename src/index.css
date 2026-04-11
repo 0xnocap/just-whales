@@ -14,11 +14,30 @@
   --color-pearl: #f1f5f9;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 html, body {
   background: #083344;
   color: #f1f5f9;
   font-family: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
   overflow-x: hidden;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.02);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(34,211,238,0.15);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(34,211,238,0.3);
 }
 
 @layer utilities {
@@ -34,3 +53,12 @@ html, body {
   }
 }
 
+/* Skeleton shimmer animation */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.skeleton-shimmer {
+  animation: shimmer 1.8s ease-in-out infinite;
+}

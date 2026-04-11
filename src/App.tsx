@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Home, Coins, Search, Sparkles, Minus, Plus, Loader2, X, ArrowLeftRight, ChevronLeft, ExternalLink, Copy, Check, User, Clock, Tag, ArrowUpRight, ArrowDownLeft, Grid3X3, List, Filter, ChevronDown, ChevronUp, Star } from 'lucide-react';
+import { Home, Coins, Search, Sparkles, Minus, Plus, Loader2, X, ArrowLeftRight, ChevronLeft, ExternalLink, Copy, Check, User, Clock, Tag, ArrowUpRight, ArrowDownLeft, Grid3X3, List, Filter, ChevronDown, ChevronUp, Star, Zap, ShoppingCart, Trash2 } from 'lucide-react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
 import {
   readTotalSupply, readMaxSupply, readMintPrice,
   readIsPublicMintActive, readMaxPerAddress,
@@ -98,6 +98,9 @@ const TokenModal = ({ token, onClose }: { token: ModalTokenProps | null; onClose
   const [errorMsg, setErrorMsg] = useState('');
   const [history, setHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [openSections, setOpenSections] = useState({ traits: true, details: true, activity: false });
+  const toggleSection = (key: 'traits' | 'details' | 'activity') =>
+    setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
 
   useEffect(() => {
     if (!token) return;
@@ -251,214 +254,274 @@ const TokenModal = ({ token, onClose }: { token: ModalTokenProps | null; onClose
           </div>
         </div>
 
-        {/* Right Side: Content */}
-        <div className="flex-1 flex flex-col pt-0 md:pt-8 pb-8 px-6 md:pr-8 md:pl-2 gap-6 overflow-y-auto bg-transparent">
+        {/* Right Side: Content — pinned top (actions) + scrollable bottom (traits/details/activity) */}
+        <div className="flex-1 flex flex-col min-h-0 bg-transparent">
 
-          {/* Name & type */}
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-bold font-mono uppercase tracking-[0.2em] px-2 py-0.5 rounded-full" style={{ color: tagColor, background: `${tagColor}15`, border: `1px solid ${tagColor}30` }}>
-                {animalType}
-              </span>
-            </div>
-            <h2 className="text-xl font-bold text-white tracking-tight">{token.name}</h2>
-          </div>
+          {/* --- TOP: always fully visible, never scrolls --- */}
+          <div className="flex flex-col gap-4 pt-4 md:pt-8 px-6 md:pr-8 md:pl-2 pb-4">
 
-          {/* Owner */}
-          {token.ownerAddress && (
-            <div className="flex items-center gap-2.5 bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5">
-              <BlockiesAvatar address={token.ownerAddress} size={20} />
-              <div className="flex flex-col flex-1">
-                <span className="text-[9px] font-mono text-white/30 uppercase tracking-[0.15em]">Owner</span>
-                <button onClick={() => { onClose(); navigate(`/profile/${token.ownerAddress}`); }} className="text-[13px] font-mono text-dream-cyan hover:text-white transition-colors cursor-pointer text-left">
-                  {truncateAddress(token.ownerAddress)}
-                </button>
-              </div>
-              <CopyButton text={token.ownerAddress} />
-            </div>
-          )}
-
-          {/* Price / Actions */}
-          <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl overflow-hidden">
-            {status === 'success' ? (
-              <div className="bg-emerald-500/10 p-4 text-center">
-                <span className="font-mono text-emerald-400 text-xs font-bold tracking-[0.2em]">✓ SUCCESS</span>
-              </div>
-            ) : status === 'approving' || status === 'confirming' ? (
-              <div className="bg-dream-cyan/5 p-4 flex items-center justify-center gap-2">
-                <Loader2 className="animate-spin w-4 h-4 text-dream-cyan" />
-                <span className="font-mono text-dream-cyan text-xs font-bold tracking-[0.2em]">
-                  {status === 'approving' ? 'APPROVE IN WALLET...' : 'CONFIRMING...'}
+            {/* Name & type */}
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-bold font-mono uppercase tracking-[0.2em] px-2 py-0.5 rounded-full" style={{ color: tagColor, background: `${tagColor}15`, border: `1px solid ${tagColor}30` }}>
+                  {animalType}
                 </span>
               </div>
-            ) : (
-              <>
-                {token.isListing ? (
-                  <div className="p-4">
-                    <div className="flex items-baseline justify-between mb-1">
-                      <span className="text-[10px] font-mono text-white/30 uppercase tracking-[0.15em]">Current Price</span>
-                      {token.listingData.expiresAt > 0n && (
-                        <span className="text-[10px] font-mono text-white/30 flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {timeUntil(Number(token.listingData.expiresAt))}
-                        </span>
+              <h2 className="text-xl font-bold text-white tracking-tight">{token.name}</h2>
+            </div>
+
+            {/* Owner */}
+            {token.ownerAddress && (
+              <div className="flex items-center gap-2.5 bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 py-2.5">
+                <BlockiesAvatar address={token.ownerAddress} size={20} />
+                <div className="flex flex-col flex-1">
+                  <span className="text-[9px] font-mono text-white/30 uppercase tracking-[0.15em]">Owner</span>
+                  <button onClick={() => { onClose(); navigate(`/profile/${token.ownerAddress}`); }} className="text-[13px] font-mono text-dream-cyan hover:text-white transition-colors cursor-pointer text-left">
+                    {truncateAddress(token.ownerAddress)}
+                  </button>
+                </div>
+                <CopyButton text={token.ownerAddress} />
+              </div>
+            )}
+
+            {/* Price / Actions — always fully rendered, no scroll clipping */}
+            <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl overflow-hidden">
+              {status === 'success' ? (
+                <div className="bg-emerald-500/10 p-4 text-center">
+                  <span className="font-mono text-emerald-400 text-xs font-bold tracking-[0.2em]">✓ SUCCESS</span>
+                </div>
+              ) : status === 'approving' || status === 'confirming' ? (
+                <div className="bg-dream-cyan/5 p-4 flex items-center justify-center gap-2">
+                  <Loader2 className="animate-spin w-4 h-4 text-dream-cyan" />
+                  <span className="font-mono text-dream-cyan text-xs font-bold tracking-[0.2em]">
+                    {status === 'approving' ? 'APPROVE IN WALLET...' : 'CONFIRMING...'}
+                  </span>
+                </div>
+              ) : (
+                <>
+                  {token.isListing ? (
+                    <div className="p-4">
+                      <div className="flex items-baseline justify-between mb-1">
+                        <span className="text-[10px] font-mono text-white/30 uppercase tracking-[0.15em]">Current Price</span>
+                        {token.listingData.expiresAt > 0n && (
+                          <span className="text-[10px] font-mono text-white/30 flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {timeUntil(Number(token.listingData.expiresAt))}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-3xl font-bold text-white mb-4">
+                        ${Number(formatUnits(token.listingData.price, 6)).toFixed(2)}
+                        <span className="text-sm text-white/30 ml-1.5 font-normal">USD</span>
+                      </div>
+                      {token.isSeller ? (
+                        <button onClick={handleCancel} className="w-full bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 font-bold font-mono text-xs py-3 rounded-xl tracking-[0.15em] transition-all cursor-pointer">
+                          CANCEL LISTING
+                        </button>
+                      ) : (
+                        <button onClick={handleBuy} disabled={!isConnected} className="w-full bg-dream-cyan hover:bg-dream-cyan/90 text-[#0a0a0c] font-bold font-mono text-sm py-3.5 rounded-xl tracking-[0.1em] transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-lg shadow-dream-cyan/20">
+                          {isConnected ? 'BUY NOW' : 'CONNECT WALLET TO BUY'}
+                        </button>
                       )}
                     </div>
-                    <div className="text-3xl font-bold text-white mb-4">
-                      ${Number(formatUnits(token.listingData.price, 6)).toFixed(2)}
-                      <span className="text-sm text-white/30 ml-1.5 font-normal">USD</span>
-                    </div>
-                    {token.isSeller ? (
-                      <button onClick={handleCancel} className="w-full bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 font-bold font-mono text-xs py-3 rounded-xl tracking-[0.15em] transition-all cursor-pointer">
-                        CANCEL LISTING
-                      </button>
-                    ) : (
-                      <button onClick={handleBuy} disabled={!isConnected} className="w-full bg-dream-cyan hover:bg-dream-cyan/90 text-[#0a0a0c] font-bold font-mono text-sm py-3.5 rounded-xl tracking-[0.1em] transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-lg shadow-dream-cyan/20">
-                        {isConnected ? 'BUY NOW' : 'CONNECT WALLET TO BUY'}
-                      </button>
-                    )}
-                  </div>
-                ) : token.isOwner ? (
-                  <div className="p-4">
-                    <span className="text-[10px] font-mono text-white/30 uppercase tracking-[0.15em] block mb-3">List for Sale</span>
-                    <div className="flex gap-2 mb-3">
-                      <div className="relative flex-1">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 font-mono text-sm">$</span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={listPrice}
-                          onChange={e => setListPrice(e.target.value)}
-                          placeholder="0.00"
-                          className="w-full pl-7 pr-3 py-2.5 bg-white/[0.03] border border-white/10 focus:border-dream-cyan/50 rounded-lg text-white font-mono text-sm outline-none transition-colors"
-                        />
-                      </div>
-                    </div>
-                    <div className="mb-3">
-                      <span className="text-[10px] font-mono text-white/30 uppercase tracking-[0.15em] block mb-2">
-                        <Clock className="w-3 h-3 inline mr-1" />Expiration
-                      </span>
-                      <div className="flex gap-1.5 flex-wrap">
-                        {[
-                          { label: '1D', value: 1 },
-                          { label: '3D', value: 3 },
-                          { label: '7D', value: 7 },
-                          { label: '30D', value: 30 },
-                          { label: '∞', value: 0 },
-                        ].map(opt => (
-                          <button
-                            key={opt.value}
-                            onClick={() => setExpirationDays(opt.value)}
-                            className={`px-3 py-1.5 rounded-lg font-mono text-[11px] font-bold transition-all cursor-pointer ${
-                              expirationDays === opt.value
-                                ? 'bg-dream-cyan/20 text-dream-cyan border border-dream-cyan/30'
-                                : 'bg-white/[0.03] text-white/40 border border-white/[0.06] hover:border-white/20'
-                            }`}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <button
-                      onClick={handleList}
-                      disabled={!isConnected || !listPrice || Number(listPrice) <= 0}
-                      className="w-full bg-dream-purple hover:bg-dream-purple/80 text-white font-bold font-mono text-xs py-3 rounded-xl tracking-[0.15em] transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                    >
-                      COMPLETE LISTING
-                    </button>
-                  </div>
-                ) : (
-                  <div className="p-4 text-center">
-                    <span className="font-mono text-white/20 text-[11px] tracking-[0.15em]">NOT LISTED FOR SALE</span>
-                  </div>
-                )}
-              </>
-            )}
-            {errorMsg && (
-              <div className="px-4 pb-3">
-                <p className="font-mono text-red-400/70 text-[10px] text-center tracking-wider">{errorMsg}</p>
-              </div>
-            )}
-          </div>
-
-          {/* Traits */}
-          {traits.length > 0 && (
-            <div>
-              <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-[0.2em] mb-2.5">Traits</h3>
-              <div className="grid grid-cols-2 gap-2">
-                {traits.map(attr => (
-                  <div key={attr.trait_type} className="bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-2.5 hover:border-dream-cyan/20 transition-colors">
-                    <div className="text-[9px] font-mono text-dream-cyan/60 uppercase tracking-[0.15em] mb-0.5">{attr.trait_type}</div>
-                    <div className="text-[13px] text-white font-medium">{attr.value}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Details */}
-          <div>
-            <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-[0.2em] mb-2.5">Details</h3>
-            <div className="bg-white/[0.04] border border-white/[0.06] rounded-lg divide-y divide-white/[0.04]">
-              <div className="flex justify-between px-3 py-2">
-                <span className="text-[11px] text-white/40 font-mono">Contract</span>
-                <span className="text-[11px] text-dream-cyan font-mono flex items-center gap-1">
-                  {truncateAddress(contractAddress)} <CopyButton text={contractAddress} />
-                </span>
-              </div>
-              <div className="flex justify-between px-3 py-2">
-                <span className="text-[11px] text-white/40 font-mono">Token ID</span>
-                <span className="text-[11px] text-white font-mono">{token.id}</span>
-              </div>
-              <div className="flex justify-between px-3 py-2">
-                <span className="text-[11px] text-white/40 font-mono">Standard</span>
-                <span className="text-[11px] text-white font-mono">ERC-721A</span>
-              </div>
-              <div className="flex justify-between px-3 py-2">
-                <span className="text-[11px] text-white/40 font-mono">Chain</span>
-                <span className="text-[11px] text-white font-mono">Tempo</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Transfer History */}
-          <div>
-            <h3 className="text-[10px] font-mono text-white/30 uppercase tracking-[0.2em] mb-2.5">Activity</h3>
-            {loadingHistory ? (
-              <div className="flex justify-center py-4"><Loader2 className="animate-spin text-white/20 w-4 h-4" /></div>
-            ) : history.length === 0 ? (
-              <div className="text-center py-4 text-white/15 font-mono text-[11px]">No activity</div>
-            ) : (
-              <div className="bg-white/[0.04] border border-white/[0.06] rounded-lg divide-y divide-white/[0.04] max-h-40 overflow-y-auto">
-                {history.map((h, i) => {
-                  const isMint = h.from === '0x0000000000000000000000000000000000000000';
-                  return (
-                    <div key={i} className="flex items-center justify-between px-3 py-2 gap-2">
-                      <div className="flex items-center gap-2">
-                        {isMint ? (
-                          <Sparkles className="w-3 h-3 text-emerald-400 flex-shrink-0" />
-                        ) : (
-                          <ArrowUpRight className="w-3 h-3 text-dream-cyan flex-shrink-0" />
-                        )}
-                        <div>
-                          <span className="text-[11px] font-mono text-white/60">
-                            {isMint ? 'Minted' : 'Transfer'}
-                          </span>
+                  ) : token.isOwner ? (
+                    <div className="p-4">
+                      <span className="text-[10px] font-mono text-white/30 uppercase tracking-[0.15em] block mb-3">List for Sale</span>
+                      <div className="flex gap-2 mb-3">
+                        <div className="relative flex-1">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 font-mono text-sm">$</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={listPrice}
+                            onChange={e => setListPrice(e.target.value)}
+                            placeholder="0.00"
+                            className="w-full pl-7 pr-3 py-2.5 bg-white/[0.03] border border-white/10 focus:border-dream-cyan/50 rounded-lg text-white font-mono text-sm outline-none transition-colors"
+                          />
                         </div>
                       </div>
-                      <div className="text-[11px] font-mono text-white/30 text-right">
-                        {isMint ? (
-                          <span>→ {truncateAddress(h.to)}</span>
-                        ) : (
-                          <span>{truncateAddress(h.from)} → {truncateAddress(h.to)}</span>
-                        )}
+                      <div className="mb-4">
+                        <span className="text-[10px] font-mono text-white/30 uppercase tracking-[0.15em] block mb-2">
+                          <Clock className="w-3 h-3 inline mr-1" />Expiration
+                        </span>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {[
+                            { label: '1D', value: 1 },
+                            { label: '3D', value: 3 },
+                            { label: '7D', value: 7 },
+                            { label: '30D', value: 30 },
+                            { label: '∞', value: 0 },
+                          ].map(opt => (
+                            <button
+                              key={opt.value}
+                              onClick={() => setExpirationDays(opt.value)}
+                              className={`px-3 py-1.5 rounded-lg font-mono text-[11px] font-bold transition-all cursor-pointer ${
+                                expirationDays === opt.value
+                                  ? 'bg-dream-cyan/20 text-dream-cyan border border-dream-cyan/30'
+                                  : 'bg-white/[0.03] text-white/40 border border-white/[0.06] hover:border-white/20'
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
+                      <button
+                        onClick={handleList}
+                        disabled={!isConnected || !listPrice || Number(listPrice) <= 0}
+                        className="w-full bg-dream-purple hover:bg-dream-purple/80 text-white font-bold font-mono text-xs py-3 rounded-xl tracking-[0.15em] transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        COMPLETE LISTING
+                      </button>
                     </div>
-                  );
-                })}
+                  ) : (
+                    <div className="p-4 text-center">
+                      <span className="font-mono text-white/20 text-[11px] tracking-[0.15em]">NOT LISTED FOR SALE</span>
+                    </div>
+                  )}
+                </>
+              )}
+              {errorMsg && (
+                <div className="px-4 pb-3">
+                  <p className="font-mono text-red-400/70 text-[10px] text-center tracking-wider">{errorMsg}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* --- BOTTOM: accordion sections in scroll zone --- */}
+          <div className="flex-1 overflow-y-auto flex flex-col px-6 md:pr-8 md:pl-2 pb-8 divide-y divide-white/[0.04]">
+
+            {/* Traits accordion */}
+            {traits.length > 0 && (
+              <div>
+                <button
+                  onClick={() => toggleSection('traits')}
+                  className="w-full flex items-center justify-between py-3 text-left cursor-pointer group"
+                >
+                  <span className="text-[10px] font-mono font-bold text-white/40 uppercase tracking-[0.2em] group-hover:text-white/60 transition-colors">Traits</span>
+                  <ChevronDown className={`w-3.5 h-3.5 text-white/25 transition-transform duration-200 ${openSections.traits ? 'rotate-180' : ''}`} />
+                </button>
+                <AnimatePresence initial={false}>
+                  {openSections.traits && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2, ease: 'easeInOut' }}
+                      className="overflow-hidden"
+                    >
+                      <div className="grid grid-cols-2 gap-2 pb-4">
+                        {traits.map(attr => (
+                          <div key={attr.trait_type} className="bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-2.5 hover:border-dream-cyan/20 transition-colors">
+                            <div className="text-[9px] font-mono text-dream-cyan/60 uppercase tracking-[0.15em] mb-0.5">{attr.trait_type}</div>
+                            <div className="text-[13px] text-white font-medium">{attr.value}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )}
+
+            {/* Details accordion */}
+            <div>
+              <button
+                onClick={() => toggleSection('details')}
+                className="w-full flex items-center justify-between py-3 text-left cursor-pointer group"
+              >
+                <span className="text-[10px] font-mono font-bold text-white/40 uppercase tracking-[0.2em] group-hover:text-white/60 transition-colors">Details</span>
+                <ChevronDown className={`w-3.5 h-3.5 text-white/25 transition-transform duration-200 ${openSections.details ? 'rotate-180' : ''}`} />
+              </button>
+              <AnimatePresence initial={false}>
+                {openSections.details && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: 'easeInOut' }}
+                    className="overflow-hidden"
+                  >
+                    <div className="bg-white/[0.04] border border-white/[0.06] rounded-lg divide-y divide-white/[0.04] mb-4">
+                      <div className="flex justify-between px-3 py-2">
+                        <span className="text-[11px] text-white/40 font-mono">Contract</span>
+                        <span className="text-[11px] text-dream-cyan font-mono flex items-center gap-1">
+                          {truncateAddress(contractAddress)} <CopyButton text={contractAddress} />
+                        </span>
+                      </div>
+                      <div className="flex justify-between px-3 py-2">
+                        <span className="text-[11px] text-white/40 font-mono">Token ID</span>
+                        <span className="text-[11px] text-white font-mono">{token.id}</span>
+                      </div>
+                      <div className="flex justify-between px-3 py-2">
+                        <span className="text-[11px] text-white/40 font-mono">Standard</span>
+                        <span className="text-[11px] text-white font-mono">ERC-721A</span>
+                      </div>
+                      <div className="flex justify-between px-3 py-2">
+                        <span className="text-[11px] text-white/40 font-mono">Chain</span>
+                        <span className="text-[11px] text-white font-mono">Tempo</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Activity accordion */}
+            <div>
+              <button
+                onClick={() => toggleSection('activity')}
+                className="w-full flex items-center justify-between py-3 text-left cursor-pointer group"
+              >
+                <span className="text-[10px] font-mono font-bold text-white/40 uppercase tracking-[0.2em] group-hover:text-white/60 transition-colors">Activity</span>
+                <ChevronDown className={`w-3.5 h-3.5 text-white/25 transition-transform duration-200 ${openSections.activity ? 'rotate-180' : ''}`} />
+              </button>
+              <AnimatePresence initial={false}>
+                {openSections.activity && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: 'easeInOut' }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pb-4">
+                      {loadingHistory ? (
+                        <div className="flex justify-center py-4"><Loader2 className="animate-spin text-white/20 w-4 h-4" /></div>
+                      ) : history.length === 0 ? (
+                        <div className="text-center py-4 text-white/15 font-mono text-[11px]">No activity</div>
+                      ) : (
+                        <div className="bg-white/[0.04] border border-white/[0.06] rounded-lg divide-y divide-white/[0.04]">
+                          {history.map((h, i) => {
+                            const isMint = h.from === '0x0000000000000000000000000000000000000000';
+                            return (
+                              <div key={i} className="flex items-center justify-between px-3 py-2 gap-2">
+                                <div className="flex items-center gap-2">
+                                  {isMint ? (
+                                    <Sparkles className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                                  ) : (
+                                    <ArrowUpRight className="w-3 h-3 text-dream-cyan flex-shrink-0" />
+                                  )}
+                                  <span className="text-[11px] font-mono text-white/60">{isMint ? 'Minted' : 'Transfer'}</span>
+                                </div>
+                                <div className="text-[11px] font-mono text-white/30 text-right">
+                                  {isMint ? (
+                                    <span>→ {truncateAddress(h.to)}</span>
+                                  ) : (
+                                    <span>{truncateAddress(h.from)} → {truncateAddress(h.to)}</span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </motion.div>
@@ -507,7 +570,7 @@ const DreamwaveOcean = () => {
 
 // --- Skeleton Card ---
 const SkeletonCard = () => (
-  <div className="rounded-xl overflow-hidden bg-white/[0.02] flex flex-col animate-pulse h-full">
+  <div className="rounded-xl overflow-hidden bg-[#111113] flex flex-col animate-pulse h-full">
     <div className="w-full pb-[100%] bg-white/[0.04] relative overflow-hidden flex-shrink-0">
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent skeleton-shimmer" />
     </div>
@@ -523,49 +586,34 @@ const SkeletonCard = () => (
 
 // --- NFT Card with image loading ---
 const NFTCard = ({ token, isListed, listing, isOwner, isSeller, tokenOwner, rarityRank, onSelect, fetchData }: any) => {
-  const [imgLoaded, setImgLoaded] = useState(false);
-
   return (
-    <motion.div
-      key={isListed ? `listing-${listing?.id}` : `gallery-${token.id}`}
+    <div
       className="group relative cursor-pointer h-full"
-      onClick={() => imgLoaded && onSelect({ ...token, isListing: isListed, listingData: listing, isOwner, isSeller, ownerAddress: tokenOwner, refetch: fetchData })}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      whileHover={{ y: -2 }}
+      onClick={() => onSelect({ ...token, isListing: isListed, listingData: listing, isOwner, isSeller, ownerAddress: tokenOwner, refetch: fetchData })}
     >
-      {/* Skeleton Layer - covers the card perfectly until image loads */}
-      <div className={`absolute inset-0 z-20 transition-opacity duration-500 pointer-events-none ${imgLoaded ? 'opacity-0' : 'opacity-100'}`}>
-        <SkeletonCard />
-      </div>
-
-      {/* Real Card Layer */}
-      <div className="flex flex-col h-full rounded-xl overflow-hidden bg-white/[0.02] hover:bg-white/[0.05] transition-colors duration-500">
+      <div className="flex flex-col h-full rounded-xl overflow-hidden bg-[#111113] hover:bg-[#1a1a1c] transition-colors duration-300">
         <div className="relative w-full pb-[100%] overflow-hidden flex-shrink-0">
           <img
             src={token.image_data}
             alt={token.name}
-            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-all duration-500 ease-out"
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
             style={{ imageRendering: 'pixelated' }}
-            loading="lazy"
-            onLoad={() => setImgLoaded(true)}
           />
           {/* Listed badge */}
           {isListed && (
-            <div className="absolute top-2 right-2 z-20 bg-dream-cyan/90 text-[#0a0a0c] px-1.5 py-0.5 rounded text-[9px] font-mono font-bold">
+            <div className="absolute top-2 right-2 z-10 bg-dream-cyan/90 text-[#0a0a0c] px-1.5 py-0.5 rounded text-[9px] font-mono font-bold">
               LISTED
             </div>
           )}
           {/* Owner badge */}
           {isOwner && !isListed && (
-            <div className="absolute top-2 right-2 z-20 bg-dream-purple/80 text-white px-1.5 py-0.5 rounded text-[9px] font-mono font-bold">
+            <div className="absolute top-2 right-2 z-10 bg-dream-purple/80 text-white px-1.5 py-0.5 rounded text-[9px] font-mono font-bold">
               OWNED
             </div>
           )}
           {/* Rarity rank badge */}
           {rarityRank && (
-            <div className="absolute bottom-2 left-2 z-20 bg-black/60 backdrop-blur-sm px-1.5 py-0.5 rounded flex items-center gap-0.5">
+            <div className="absolute bottom-2 left-2 z-10 bg-black/60 backdrop-blur-sm px-1.5 py-0.5 rounded flex items-center gap-0.5">
               <Star className="w-2.5 h-2.5 text-amber-400" />
               <span className="text-[9px] font-mono text-white/70 font-bold">#{rarityRank}</span>
             </div>
@@ -576,26 +624,163 @@ const NFTCard = ({ token, isListed, listing, isOwner, isSeller, tokenOwner, rari
           <div className="flex items-baseline justify-between mb-1.5">
             <h3 className="font-sans font-bold text-white/90 text-[13px] leading-none truncate">{token.name.split(' ')[0]}</h3>
             <span className="font-mono text-[11px] text-white/30 font-medium ml-1">{token.name.split(' ')[1] || ''}</span>
-        </div>
-        {isListed ? (
-          <div className="flex items-baseline justify-between">
-            <span className="font-bold text-white text-[14px] leading-none">
-              ${Number(formatUnits(listing.price, 6)).toFixed(2)}
-            </span>
-            {listing.expiresAt > 0n && (
-              <span className="text-[9px] font-mono text-white/20 flex items-center gap-0.5">
-                <Clock className="w-2.5 h-2.5" />{timeUntil(Number(listing.expiresAt))}
+          </div>
+          {isListed ? (
+            <div className="flex items-baseline justify-between">
+              <span className="font-bold text-white text-[14px] leading-none">
+                ${Number(formatUnits(listing.price, 6)).toFixed(2)}
               </span>
+              {listing.expiresAt > 0n && (
+                <span className="text-[9px] font-mono text-white/20 flex items-center gap-0.5">
+                  <Clock className="w-2.5 h-2.5" />{timeUntil(Number(listing.expiresAt))}
+                </span>
+              )}
+            </div>
+          ) : (
+            <div className="h-[17px]" />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+// --- Sweep Bar ---
+
+const SweepBar = ({
+  selectedListings,
+  onRemove,
+  onClearAll,
+  onSweep,
+  isSweeping,
+  sweepResult,
+}: {
+  selectedListings: any[];
+  onRemove: (id: bigint) => void;
+  onClearAll: () => void;
+  onSweep: () => void;
+  isSweeping: boolean;
+  sweepResult: { succeeded: number; failed: number } | null;
+}) => {
+  const totalCost = selectedListings.reduce((sum, l) => sum + Number(l.price), 0);
+  const totalUSD = (totalCost / 1e6).toFixed(2);
+
+  return (
+    <motion.div
+      initial={{ y: 100, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: 100, opacity: 0 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+      className="fixed left-1/2 -translate-x-1/2 z-[150] w-full max-w-2xl px-4"
+      style={{ bottom: 'clamp(0.75rem, 1.5vh, 1.25rem)' }}
+    >
+      <div
+        className="relative rounded-2xl border border-white/10 overflow-hidden"
+        style={{
+          background: 'rgba(10,10,14,0.92)',
+          backdropFilter: 'blur(24px)',
+          boxShadow: '0 0 60px rgba(34,211,238,0.12), 0 8px 40px rgba(0,0,0,0.6)',
+        }}
+      >
+        {/* Glow line */}
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-dream-cyan/60 to-transparent" />
+
+        <div className="px-5 py-4">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Zap className="w-3.5 h-3.5 text-dream-cyan" />
+              <span className="font-mono text-[11px] font-bold text-dream-cyan uppercase tracking-[0.2em]">
+                Floor Sweep
+              </span>
+              <span className="bg-dream-cyan/15 text-dream-cyan font-mono text-[10px] font-bold px-2 py-0.5 rounded-full">
+                {selectedListings.length} selected
+              </span>
+            </div>
+            <button
+              onClick={onClearAll}
+              className="text-white/30 hover:text-white/70 transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Token chips */}
+          {selectedListings.length > 0 && (
+            <div className="flex gap-1.5 mb-3 overflow-x-auto pb-1 scrollbar-hide">
+              {selectedListings.map((l) => (
+                <div
+                  key={String(l.id)}
+                  className="flex items-center gap-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-1 flex-shrink-0"
+                >
+                  <span className="font-mono text-white/70 text-[10px]">
+                    #{String(l.tokenId)}
+                  </span>
+                  <span className="font-mono text-dream-cyan text-[10px] font-bold">
+                    ${(Number(l.price) / 1e6).toFixed(2)}
+                  </span>
+                  <button
+                    onClick={() => onRemove(l.id)}
+                    className="text-white/20 hover:text-white/60 transition-colors cursor-pointer ml-0.5"
+                  >
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Footer: total + buy button */}
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="text-[9px] font-mono text-white/30 uppercase tracking-[0.15em] mb-0.5">Total</div>
+              <div className="text-2xl font-black text-white">
+                ${totalUSD}
+                <span className="text-sm font-normal text-white/30 ml-1">pathUSD</span>
+              </div>
+            </div>
+
+            {sweepResult ? (
+              <div className={`font-mono text-xs font-bold px-4 py-2 rounded-xl ${
+                sweepResult.failed === 0
+                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
+                  : 'bg-amber-500/15 text-amber-400 border border-amber-500/20'
+              }`}>
+                ✓ {sweepResult.succeeded} bought{sweepResult.failed > 0 ? `, ${sweepResult.failed} skipped` : ''}
+              </div>
+            ) : (
+              <button
+                onClick={onSweep}
+                disabled={isSweeping || selectedListings.length === 0}
+                className="flex items-center gap-2 bg-dream-cyan hover:bg-dream-cyan/90 text-[#0a0a0c] font-black font-mono text-sm px-6 py-3 rounded-xl tracking-[0.05em] transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-lg shadow-dream-cyan/20"
+              >
+                {isSweeping ? (
+                  <><Loader2 className="animate-spin w-4 h-4" /> SWEEPING...</>
+                ) : (
+                  <><ShoppingCart className="w-4 h-4" /> BUY {selectedListings.length}</>
+                )}
+              </button>
             )}
           </div>
-        ) : (
-          <div className="h-[17px]" />
-        )}
-      </div>
+        </div>
       </div>
     </motion.div>
   );
 };
+
+// --- Fishing Pole Icon ---
+const FishingPoleIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    {/* Pole */}
+    <path d="m2 22 17-17" />
+    {/* Reel */}
+    <circle cx="7" cy="17" r="2" />
+    <path d="m7 17 2-2" />
+    {/* Line + Hook */}
+    <path d="M19 5v8a3 3 0 0 1-6 0l1.5 2" />
+  </svg>
+);
+
+// --- Retro Button ---
 const RetroButton = ({ icon: Icon, label, to, disabled, tooltip }: { icon: any, label: string, to: string, disabled?: boolean, tooltip?: string }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -627,8 +812,9 @@ const RetroButton = ({ icon: Icon, label, to, disabled, tooltip }: { icon: any, 
 
 // --- Trade Page ---
 
-const TradePage = ({ onSelectToken }: { onSelectToken: (t: any) => void }) => {
+const TradePage = ({ onSelectToken, onSweepModeChange }: { onSelectToken: (t: any) => void; onSweepModeChange?: (active: boolean) => void }) => {
   const { isConnected, address } = useAccount();
+  const { writeContractAsync } = useWriteContract();
   const [searchQuery, setSearchQuery] = useState('');
   const [tokens, setTokens] = useState<any[]>([]);
   const [listings, setListings] = useState<any[]>([]);
@@ -636,13 +822,21 @@ const TradePage = ({ onSelectToken }: { onSelectToken: (t: any) => void }) => {
   const [totalMinted, setTotalMinted] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const loadingMoreRef = useRef(false);
   const [nextIdDesc, setNextIdDesc] = useState(-1);
   const [nextIdAsc, setNextIdAsc] = useState(0);
   const [filter, setFilter] = useState<'all' | 'listed' | 'unlisted'>('all');
-  const [sort, setSort] = useState<'id_desc' | 'id_asc' | 'price_asc' | 'price_desc' | 'rarity_asc' | 'rarity_desc'>('id_desc');
+  const [sort, setSort] = useState<'price_asc' | 'price_desc' | 'id_asc' | 'id_desc' | 'rarity_asc' | 'rarity_desc'>('price_asc');
   const [collectionStats, setCollectionStats] = useState<any>(null);
   const BATCH = 20;
   const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // --- Sweep state ---
+  const [sweepMode, setSweepMode] = useState(false);
+  const [sweepSelected, setSweepSelected] = useState<any[]>([]);
+  const [isSweeping, setIsSweeping] = useState(false);
+  const [sweepResult, setSweepResult] = useState<{ succeeded: number; failed: number } | null>(null);
+  const [sweepError, setSweepError] = useState('');
 
   // Trait filter state
   type CollectionData = {
@@ -862,14 +1056,16 @@ const TradePage = ({ onSelectToken }: { onSelectToken: (t: any) => void }) => {
   }, [filteredPage, filteredMatchIds, loadingFiltered, loadSpecificIds]);
 
   useEffect(() => {
-    if (!sentinelRef.current || loadingMore || loadingFiltered) return;
+    if (!sentinelRef.current) return;
     const observer = new IntersectionObserver(
       async ([entry]) => {
-        if (entry.isIntersecting) {
+        if (!entry.isIntersecting || loadingMoreRef.current) return;
+        loadingMoreRef.current = true;
+        setLoadingMore(true);
+        try {
           if (activeFilterCount > 0) {
             await loadMoreFiltered();
-          } else if (!loadingMore) {
-            setLoadingMore(true);
+          } else {
             if (sort === 'id_asc') {
               if (nextIdAsc < totalMinted) {
                 await loadBatchAsc(nextIdAsc, totalMinted);
@@ -879,15 +1075,17 @@ const TradePage = ({ onSelectToken }: { onSelectToken: (t: any) => void }) => {
                 await loadBatchDesc(nextIdDesc);
               }
             }
-            setLoadingMore(false);
           }
+        } finally {
+          setLoadingMore(false);
+          loadingMoreRef.current = false;
         }
       },
       { rootMargin: '200px' }
     );
     observer.observe(sentinelRef.current);
     return () => observer.disconnect();
-  }, [nextIdDesc, nextIdAsc, loadingMore, loadBatchDesc, loadBatchAsc, sort, totalMinted, activeFilterCount, loadMoreFiltered, loadingFiltered]);
+  }, [nextIdDesc, nextIdAsc, loadBatchDesc, loadBatchAsc, sort, totalMinted, activeFilterCount, loadMoreFiltered]);
 
   // Choose data source: filtered tokens when filters active, else normal tokens
   const isFiltered = activeFilterCount > 0;
@@ -915,18 +1113,24 @@ const TradePage = ({ onSelectToken }: { onSelectToken: (t: any) => void }) => {
     });
   }
 
-  // Sort
+  // Sort — listings always float above unlisted; within each group apply the chosen sort
   displayTokens = [...displayTokens].sort((a, b) => {
-    if (sort === 'price_asc') {
-      const aPrice = a.isListing ? Number(a.listingData.price) : Infinity;
-      const bPrice = b.isListing ? Number(b.listingData.price) : Infinity;
-      return aPrice - bPrice;
+    const aListed = !!a.isListing;
+    const bListed = !!b.isListing;
+
+    // Always: listed above unlisted
+    if (aListed && !bListed) return -1;
+    if (!aListed && bListed) return 1;
+
+    // Both listed: sort by price
+    if (aListed && bListed) {
+      const aPrice = Number(a.listingData.price);
+      const bPrice = Number(b.listingData.price);
+      if (sort === 'price_desc') return bPrice - aPrice;
+      return aPrice - bPrice; // price_asc is default for listings
     }
-    if (sort === 'price_desc') {
-      const aPrice = a.isListing ? Number(a.listingData.price) : 0;
-      const bPrice = b.isListing ? Number(b.listingData.price) : 0;
-      return bPrice - aPrice;
-    }
+
+    // Both unlisted: apply chosen secondary sort
     if (sort === 'rarity_asc' && collectionData) {
       const aRank = collectionData.rarityRanks[String(a.id)] || 9999;
       const bRank = collectionData.rarityRanks[String(b.id)] || 9999;
@@ -937,13 +1141,13 @@ const TradePage = ({ onSelectToken }: { onSelectToken: (t: any) => void }) => {
       const bRank = collectionData.rarityRanks[String(b.id)] || 0;
       return bRank - aRank;
     }
-    if (sort === 'id_asc') return a.id - b.id;
-    return b.id - a.id;
+    if (sort === 'id_desc') return b.id - a.id;
+    return a.id - b.id; // default: id asc
   });
 
   // Has more to load?
   const hasMoreFiltered = isFiltered && (filteredPage * BATCH) < filteredMatchIds.length;
-  const hasMoreUnfiltered = !isFiltered && ((sort !== 'id_asc' && nextIdDesc >= 0) || (sort === 'id_asc' && nextIdAsc < totalMinted));
+  const hasMoreUnfiltered = !isFiltered && (nextIdDesc >= 0 || nextIdAsc < totalMinted);
 
   // Floor price from listings
   const floorPrice = listings.length > 0
@@ -1027,6 +1231,47 @@ const TradePage = ({ onSelectToken }: { onSelectToken: (t: any) => void }) => {
           Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
         </button>
 
+        {/* Sweep mode toggle */}
+        {listings.length > 0 && (
+          <button
+            onClick={() => {
+              const next = !sweepMode;
+              setSweepMode(next);
+              onSweepModeChange?.(next);
+              if (!next) { setSweepSelected([]); setSweepResult(null); setSweepError(''); }
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-mono text-[10px] font-bold uppercase tracking-[0.1em] transition-all cursor-pointer border ${
+              sweepMode
+                ? 'bg-dream-cyan/20 text-dream-cyan border-dream-cyan/40 shadow-[0_0_12px_rgba(34,211,238,0.2)]'
+                : 'bg-white/[0.03] text-white/40 border-white/[0.06] hover:border-white/20'
+            }`}
+          >
+            <Zap className="w-3 h-3" />
+            Sweep{sweepMode && sweepSelected.length > 0 ? ` (${sweepSelected.length})` : ''}
+          </button>
+        )}
+
+        {/* Quick-add floor buttons (only in sweep mode) */}
+        {sweepMode && listings.length > 0 && (
+          <div className="flex gap-1 bg-white/[0.03] border border-white/[0.06] rounded-lg p-0.5">
+            {[3, 5, 10].map(n => (
+              <button
+                key={n}
+                onClick={() => {
+                  const floor = [...listings]
+                    .sort((a, b) => Number(a.price) - Number(b.price))
+                    .slice(0, n);
+                  setSweepSelected(floor);
+                  setSweepResult(null);
+                }}
+                className="px-3 py-1.5 rounded-md font-mono text-[10px] font-bold text-white/40 hover:text-dream-cyan hover:bg-dream-cyan/10 transition-all cursor-pointer tracking-[0.1em]"
+              >
+                Floor {n}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Status filter */}
         <div className="flex gap-1 bg-white/[0.03] border border-white/[0.06] rounded-lg p-0.5">
           {(['all', 'listed', 'unlisted'] as const).map(f => (
@@ -1050,12 +1295,12 @@ const TradePage = ({ onSelectToken }: { onSelectToken: (t: any) => void }) => {
           onChange={e => setSort(e.target.value as any)}
           className="bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-1.5 font-mono text-[10px] text-white/60 outline-none appearance-none cursor-pointer hover:border-white/20 transition-colors"
         >
-          <option value="id_desc">Token ID ↓</option>
-          <option value="id_asc">Token ID ↑</option>
-          <option value="rarity_asc">Rarity: Rare First</option>
-          <option value="rarity_desc">Rarity: Common First</option>
           <option value="price_asc">Price: Low → High</option>
           <option value="price_desc">Price: High → Low</option>
+          <option value="id_asc">Token ID ↑</option>
+          <option value="id_desc">Token ID ↓</option>
+          <option value="rarity_asc">Rarity: Rare First</option>
+          <option value="rarity_desc">Rarity: Common First</option>
         </select>
 
         {/* Search */}
@@ -1186,32 +1431,67 @@ const TradePage = ({ onSelectToken }: { onSelectToken: (t: any) => void }) => {
                 const isOwner = isConnected && address && tokenOwner?.toLowerCase() === address.toLowerCase();
                 const isSeller = isListed && isConnected && address && listing.seller.toLowerCase() === address.toLowerCase();
                 const rarityRank = collectionData?.rarityRanks?.[String(token.id)];
+                const isSweepSelected = sweepMode && isListed && sweepSelected.some(s => String(s.id) === String(listing?.id));
 
                 return (
-                  <NFTCard
-                    key={isListed ? `listing-${listing.id}` : `gallery-${token.id}`}
-                    token={token}
-                    isListed={isListed}
-                    listing={listing}
-                    isOwner={isOwner}
-                    isSeller={isSeller}
-                    tokenOwner={tokenOwner}
-                    rarityRank={rarityRank}
-                    onSelect={onSelectToken}
-                    fetchData={fetchData}
-                  />
+                  <div key={isListed ? `listing-${listing.id}` : `gallery-${token.id}`} className="relative">
+                    {/* Sweep mode checkbox overlay */}
+                    {sweepMode && isListed && !isSeller && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSweepResult(null);
+                          if (isSweepSelected) {
+                            setSweepSelected(prev => prev.filter(s => String(s.id) !== String(listing.id)));
+                          } else {
+                            setSweepSelected(prev => [...prev, listing]);
+                          }
+                        }}
+                        className={`absolute top-2 left-2 z-30 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all cursor-pointer ${
+                          isSweepSelected
+                            ? 'bg-dream-cyan border-dream-cyan shadow-[0_0_8px_rgba(34,211,238,0.5)]'
+                            : 'bg-black/60 border-white/30 hover:border-dream-cyan/60 backdrop-blur-sm'
+                        }`}
+                      >
+                        {isSweepSelected && <Check className="w-3 h-3 text-[#0a0a0c]" strokeWidth={3} />}
+                      </button>
+                    )}
+                    {/* Sweep mode dim overlay on non-listed cards */}
+                    {sweepMode && !isListed && (
+                      <div className="absolute inset-0 z-20 rounded-xl bg-black/50 pointer-events-none" />
+                    )}
+                    <NFTCard
+                      token={token}
+                      isListed={isListed}
+                      listing={listing}
+                      isOwner={isOwner}
+                      isSeller={isSeller}
+                      tokenOwner={tokenOwner}
+                      rarityRank={rarityRank}
+                      onSelect={sweepMode ? () => {} : onSelectToken}
+                      fetchData={fetchData}
+                    />
+                  </div>
                 );
               })}
-              {/* Skeleton cards for loading-more state */}
-              {(loadingMore || loadingFiltered) && Array.from({ length: Math.min(BATCH, isFiltered ? filteredMatchIds.length - filteredTokens.length : totalMinted - unifiedTokens.length) }).fill(0).map((_, i) => (
-                <SkeletonCard key={`skeleton-append-${i}`} />
+              {/* Skeleton placeholders while loading next batch */}
+              {loadingMore && Array.from({ length: BATCH }).map((_, i) => (
+                <SkeletonCard key={`skeleton-more-${i}`} />
               ))}
             </div>
           )}
 
           {/* Infinite scroll sentinel */}
           {(hasMoreFiltered || hasMoreUnfiltered) && !searchQuery && filter === 'all' && (
-            <div ref={sentinelRef} className="w-full h-[100px] absolute bottom-10 pointer-events-none" />
+            <>
+              {(loadingMore || loadingFiltered) && (
+                <div className="flex items-center justify-center gap-2 py-6">
+                  <Loader2 className="w-4 h-4 text-dream-cyan/50 animate-spin" />
+                  <span className="font-mono text-white/25 text-[10px] tracking-wider">Loading more...</span>
+                </div>
+              )}
+              <div ref={sentinelRef} className="w-full h-[100px] absolute bottom-10 pointer-events-none" />
+            </>
           )}
 
           {/* Match count for filtered results */}
@@ -1224,6 +1504,53 @@ const TradePage = ({ onSelectToken }: { onSelectToken: (t: any) => void }) => {
           )}
         </div>
       </div>
+
+      {/* Sweep Bar */}
+      <AnimatePresence>
+        {sweepMode && (
+          <SweepBar
+            selectedListings={sweepSelected}
+            onRemove={(id) => setSweepSelected(prev => prev.filter(s => String(s.id) !== String(id)))}
+            onClearAll={() => { setSweepSelected([]); setSweepResult(null); }}
+            isSweeping={isSweeping}
+            sweepResult={sweepResult}
+            onSweep={async () => {
+              if (!isConnected || sweepSelected.length === 0) return;
+              setIsSweeping(true);
+              setSweepError('');
+              setSweepResult(null);
+              try {
+                const totalCost = sweepSelected.reduce((sum: bigint, l: any) => sum + BigInt(l.price), 0n);
+                const allowance = await readPathUSDAllowance(address!, marketplaceAddress);
+                if (allowance < totalCost) {
+                  const approveHash = await writeContractAsync({
+                    address: pathUSDAddress,
+                    abi: pathUSDAbi,
+                    functionName: 'approve',
+                    args: [marketplaceAddress, totalCost],
+                  } as any);
+                  await waitForTransaction(approveHash);
+                }
+                const listingIds = sweepSelected.map((l: any) => BigInt(l.id));
+                const hash = await writeContractAsync({
+                  address: marketplaceAddress,
+                  abi: marketplaceAbi,
+                  functionName: 'batchBuy',
+                  args: [listingIds],
+                } as any);
+                await waitForTransaction(hash);
+                setSweepResult({ succeeded: sweepSelected.length, failed: 0 });
+                setSweepSelected([]);
+                fetchData();
+              } catch (err: any) {
+                setSweepError(err.shortMessage || err.message || 'Sweep failed');
+              } finally {
+                setIsSweeping(false);
+              }
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
@@ -1237,10 +1564,32 @@ const ProfilePage = ({ onSelectToken }: { onSelectToken: (t: any) => void }) => 
   const isOwnProfile = isConnected && connectedAddress?.toLowerCase() === profileAddress.toLowerCase();
 
   const [tab, setTab] = useState<'collected' | 'listed' | 'activity'>('collected');
+  const [ownedTokenIds, setOwnedTokenIds] = useState<number[]>([]);
   const [ownedTokens, setOwnedTokens] = useState<any[]>([]);
   const [activity, setActivity] = useState<any[]>([]);
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Infinite scroll state
+  const BATCH = 20;
+  const [nextLoadIndex, setNextLoadIndex] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const loadingMoreRef = useRef(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Fetch true on-chain balance to check against indexer
+  const { data: onChainBalance } = useReadContract({
+    address: contractAddress as `0x${string}`,
+    abi: contractAbi,
+    functionName: 'balanceOf',
+    args: profileAddress ? [profileAddress as `0x${string}`] : undefined,
+    query: {
+      enabled: !!profileAddress,
+    }
+  });
+
+  const trueBalance = onChainBalance ? Number(onChainBalance) : ownedTokenIds.length;
+  const isSyncing = trueBalance > ownedTokenIds.length;
 
   useEffect(() => {
     if (!profileAddress) return;
@@ -1252,17 +1601,33 @@ const ProfilePage = ({ onSelectToken }: { onSelectToken: (t: any) => void }) => 
         const res = await fetch(`/api/profile/${profileAddress}`);
         const data = await res.json();
         setActivity(data.activity || []);
+        
+        const ids = data.ownedTokenIds || [];
+        setOwnedTokenIds(ids);
 
-        // Fetch metadata for owned tokens (batch)
-        const tokenDetails = await Promise.all(
-          (data.ownedTokenIds || []).slice(0, 100).map(async (id: number) => {
-            try {
-              const uri = await readTokenURI(BigInt(id));
-              return { ...decodeTokenURI(uri), id };
-            } catch { return null; }
-          })
-        );
+        // Fetch metadata for first batch ONLY
+        const initialIds = ids.slice(0, BATCH);
+        const tokenDetails = [];
+        const chunkSize = 10;
+        
+        for (let i = 0; i < initialIds.length; i += chunkSize) {
+          const chunk = initialIds.slice(i, i + chunkSize);
+          const chunkResults = await Promise.all(
+            chunk.map(async (id: number) => {
+              try {
+                const uri = await readTokenURI(BigInt(id));
+                return { ...decodeTokenURI(uri), id };
+              } catch (e) {
+                console.error(`Failed to fetch URI for token ${id}:`, e);
+                return null;
+              }
+            })
+          );
+          tokenDetails.push(...chunkResults);
+        }
+        
         setOwnedTokens(tokenDetails.filter(Boolean));
+        setNextLoadIndex(BATCH);
 
         // Fetch active listings by this address
         try {
@@ -1289,6 +1654,53 @@ const ProfilePage = ({ onSelectToken }: { onSelectToken: (t: any) => void }) => 
     fetchProfile();
   }, [profileAddress]);
 
+  // Infinite scroll observer for collected tab
+  useEffect(() => {
+    if (tab !== 'collected' || nextLoadIndex >= ownedTokenIds.length) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && !loadingMoreRef.current) {
+        loadingMoreRef.current = true;
+        setLoadingMore(true);
+
+        const idsToFetch = ownedTokenIds.slice(nextLoadIndex, nextLoadIndex + BATCH);
+        if (idsToFetch.length === 0) {
+          setLoadingMore(false);
+          loadingMoreRef.current = false;
+          return;
+        }
+
+        const fetchMore = async () => {
+          const chunkDetails = [];
+          const chunkSize = 10;
+          for (let i = 0; i < idsToFetch.length; i += chunkSize) {
+            const chunk = idsToFetch.slice(i, i + chunkSize);
+            const chunkResults = await Promise.all(
+              chunk.map(async (id: number) => {
+                try {
+                  const uri = await readTokenURI(BigInt(id));
+                  return { ...decodeTokenURI(uri), id };
+                } catch { return null; }
+              })
+            );
+            chunkDetails.push(...chunkResults);
+          }
+          
+          setOwnedTokens(prev => [...prev, ...chunkDetails.filter(Boolean)]);
+          setNextLoadIndex(prev => prev + BATCH);
+          setLoadingMore(false);
+          loadingMoreRef.current = false;
+        };
+        fetchMore();
+      }
+    }, { rootMargin: '400px' });
+
+    if (sentinelRef.current) {
+      observer.observe(sentinelRef.current);
+    }
+    return () => observer.disconnect();
+  }, [tab, nextLoadIndex, ownedTokenIds]);
+
   if (!profileAddress) {
     return (
       <div className="text-center py-20">
@@ -1312,7 +1724,9 @@ const ProfilePage = ({ onSelectToken }: { onSelectToken: (t: any) => void }) => 
             )}
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-xs font-mono text-white/40">{ownedTokens.length} items</span>
+            <span className="text-xs font-mono text-white/40">
+              {trueBalance} items {isSyncing && <span className="text-amber-400/60 text-[10px] ml-1">(indexer syncing...)</span>}
+            </span>
             {listings.length > 0 && (
               <span className="text-xs font-mono text-dream-purple/60">{listings.length} listed</span>
             )}
@@ -1323,7 +1737,7 @@ const ProfilePage = ({ onSelectToken }: { onSelectToken: (t: any) => void }) => 
       {/* Tabs */}
       <div className="flex gap-1 mb-5 bg-white/[0.03] border border-white/[0.06] rounded-lg p-0.5">
         {([
-          { key: 'collected', label: `Collected (${ownedTokens.length})` },
+          { key: 'collected', label: `Collected (${trueBalance})` },
           { key: 'listed', label: `Listed (${listings.length})` },
           { key: 'activity', label: 'Activity' },
         ] as const).map(t => (
@@ -1354,35 +1768,53 @@ const ProfilePage = ({ onSelectToken }: { onSelectToken: (t: any) => void }) => 
                 <p className="font-mono text-white/20 text-[11px] tracking-widest">NO ITEMS</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
-                {ownedTokens.map(token => {
-                  const isListed = listings.some(l => Number(l.tokenId) === token.id);
-                  const listing = listings.find(l => Number(l.tokenId) === token.id);
-                  return (
-                    <motion.div
-                      key={token.id}
-                      className="group cursor-pointer rounded-xl overflow-hidden bg-[#111113] border border-white/[0.04] hover:border-white/[0.12] transition-all duration-300"
-                      onClick={() => onSelectToken({ ...token, isListing: isListed, listingData: listing, isOwner: isOwnProfile, isSeller: isListed && isOwnProfile, ownerAddress: profileAddress })}
-                      whileHover={{ y: -2 }}
-                    >
-                      <div className="relative aspect-square bg-[#0a0a0c] overflow-hidden">
-                        <img src={token.image_data} alt={token.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" style={{ imageRendering: 'pixelated' }} loading="lazy" />
-                        {isListed && (
-                          <div className="absolute top-2 right-2 bg-dream-cyan/90 text-[#0a0a0c] px-1.5 py-0.5 rounded text-[9px] font-mono font-bold">LISTED</div>
-                        )}
-                      </div>
-                      <div className="px-3 py-2.5">
-                        <div className="flex items-baseline justify-between">
-                          <h3 className="font-sans font-bold text-white/90 text-[13px] truncate">{token.name.split(' ')[0]}</h3>
-                          <span className="font-mono text-[11px] text-white/30 ml-1">{token.name.split(' ')[1]}</span>
+              <div className="w-full">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
+                  {ownedTokens.map(token => {
+                    const isListed = listings.some(l => Number(l.tokenId) === token.id);
+                    const listing = listings.find(l => Number(l.tokenId) === token.id);
+                    return (
+                      <motion.div
+                        key={token.id}
+                        className="group cursor-pointer rounded-xl overflow-hidden bg-[#111113] border border-white/[0.04] hover:border-white/[0.12] transition-all duration-300"
+                        onClick={() => onSelectToken({ ...token, isListing: isListed, listingData: listing, isOwner: isOwnProfile, isSeller: isListed && isOwnProfile, ownerAddress: profileAddress })}
+                        whileHover={{ y: -2 }}
+                      >
+                        <div className="relative aspect-square bg-[#0a0a0c] overflow-hidden">
+                          <img src={token.image_data} alt={token.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" style={{ imageRendering: 'pixelated' }} loading="lazy" />
+                          {isListed && (
+                            <div className="absolute top-2 right-2 bg-dream-cyan/90 text-[#0a0a0c] px-1.5 py-0.5 rounded text-[9px] font-mono font-bold">LISTED</div>
+                          )}
                         </div>
-                        {isListed && listing && (
-                          <span className="font-bold text-white text-[13px]">${Number(formatUnits(listing.price, 6)).toFixed(2)}</span>
-                        )}
+                        <div className="px-3 py-2.5">
+                          <div className="flex items-baseline justify-between">
+                            <h3 className="font-sans font-bold text-white/90 text-[13px] truncate">{token.name.split(' ')[0]}</h3>
+                            <span className="font-mono text-[11px] text-white/30 ml-1">{token.name.split(' ')[1]}</span>
+                          </div>
+                          {isListed && listing && (
+                            <span className="font-bold text-white text-[13px]">${Number(formatUnits(listing.price, 6)).toFixed(2)}</span>
+                          )}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                  {loadingMore && Array.from({ length: Math.min(BATCH, ownedTokenIds.length - ownedTokens.length) }).map((_, i) => (
+                    <SkeletonCard key={`skeleton-more-${i}`} />
+                  ))}
+                </div>
+                
+                {/* Infinite scroll sentinel */}
+                {nextLoadIndex < ownedTokenIds.length && (
+                  <>
+                    {loadingMore && (
+                      <div className="flex items-center justify-center gap-2 py-6">
+                        <Loader2 className="w-4 h-4 text-dream-cyan/50 animate-spin" />
+                        <span className="font-mono text-white/25 text-[10px] tracking-wider">Loading more...</span>
                       </div>
-                    </motion.div>
-                  );
-                })}
+                    )}
+                    <div ref={sentinelRef} className="w-full h-[100px] pointer-events-none opacity-0" />
+                  </>
+                )}
               </div>
             )
           )}
@@ -1784,6 +2216,7 @@ const HomePage = () => {
 
 export default function App() {
   const [modalToken, setModalToken] = useState<ModalTokenProps | null>(null);
+  const [sweepModeActive, setSweepModeActive] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { isConnected, address } = useAccount();
@@ -1836,7 +2269,7 @@ export default function App() {
             <Routes location={location}>
               <Route path="/" element={<HomePage />} />
               <Route path="/staking" element={<StakingPage />} />
-              <Route path="/trade" element={<TradePage onSelectToken={setModalToken} />} />
+              <Route path="/trade" element={<TradePage onSelectToken={setModalToken} onSweepModeChange={setSweepModeActive} />} />
               <Route path="/mint" element={<MintPage onMintSuccess={setModalToken} />} />
               <Route path="/profile" element={<ProfilePage onSelectToken={setModalToken} />} />
               <Route path="/profile/:address" element={<ProfilePage onSelectToken={setModalToken} />} />
@@ -1845,14 +2278,25 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      {/* Navigation Buttons */}
-      <nav className="fixed z-50 left-1/2 -translate-x-1/2 flex justify-center items-center bg-[#072436]/40 backdrop-blur-[32px] border border-white/[0.08] shadow-[0_4px_12px_rgba(0,0,0,0.5)] saturate-[1.2]" style={{ bottom: 'clamp(0.75rem, 1.5vh, 1.25rem)', gap: 'clamp(0.25rem, 0.5vw, 0.5rem)', padding: 'clamp(0.3rem, 0.5vw, 0.5rem)', borderRadius: '1.25rem' }}>
-        <RetroButton icon={Home} label="Home" to="/" />
-        <RetroButton icon={Sparkles} label="Mint" to="/mint" />
-        <RetroButton icon={ArrowLeftRight} label="Trade" to="/trade" />
-        <RetroButton icon={Coins} label="Staking" to="/staking" />
-        <RetroButton icon={User} label="Profile" to={isConnected && address ? `/profile/${address}` : '/profile'} />
-      </nav>
+      {/* Navigation Buttons — hidden when sweep mode is active */}
+      <AnimatePresence>
+        {!sweepModeActive && (
+          <motion.nav
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            className="fixed z-50 left-1/2 -translate-x-1/2 flex justify-center items-center bg-[#072436]/40 backdrop-blur-[32px] border border-white/[0.08] shadow-[0_4px_12px_rgba(0,0,0,0.5)] saturate-[1.2]"
+            style={{ bottom: 'clamp(0.75rem, 1.5vh, 1.25rem)', gap: 'clamp(0.25rem, 0.5vw, 0.5rem)', padding: 'clamp(0.3rem, 0.5vw, 0.5rem)', borderRadius: '1.25rem' }}
+          >
+            <RetroButton icon={Home} label="Home" to="/" />
+            <RetroButton icon={ArrowLeftRight} label="Trade" to="/trade" />
+            <RetroButton icon={Coins} label="Stake" to="/staking" />
+            <RetroButton icon={FishingPoleIcon} label="Fish" to="#" disabled />
+            <RetroButton icon={User} label="Profile" to={isConnected && address ? `/profile/${address}` : '/profile'} />
+          </motion.nav>
+        )}
+      </AnimatePresence>
 
       {/* Token Detail Modal */}
       <AnimatePresence>

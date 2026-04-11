@@ -9,9 +9,10 @@ async function main() {
 
   const feeRecipient = deployer.address;
   const platformFeeBps = 100; // 1%
+  const pathUSD = "0x20c0000000000000000000000000000000000000";
 
   const Marketplace = await hre.ethers.getContractFactory("WhaleTownMarketplace");
-  const marketplace = await Marketplace.deploy(feeRecipient, platformFeeBps);
+  const marketplace = await Marketplace.deploy(pathUSD, feeRecipient, platformFeeBps);
   await marketplace.waitForDeployment();
 
   const address = await marketplace.getAddress();

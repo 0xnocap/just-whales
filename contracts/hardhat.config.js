@@ -2,7 +2,12 @@ require("dotenv").config();
 require("@nomicfoundation/hardhat-toolbox");
 
 module.exports = {
-  solidity: "0.8.28",
+  solidity: {
+    version: "0.8.28",
+    settings: {
+      evmVersion: "cancun",
+    },
+  },
   networks: {
     tempo_testnet: {
       url: process.env.TEMPO_TESTNET_RPC || "https://rpc.moderato.tempo.xyz",

@@ -14,8 +14,8 @@
 
 export const WHALE_TOWN_ADDRESS = "0x1065ef5996C86C8C90D97974F3c9E5234416839F";
 
-// NOTE: Update this after deploying marketplace to mainnet
-export const WHALE_TOWN_MARKETPLACE_ADDRESS = "0xD78C6a38452e7Ce9101Dbab7f14f6F13210A0308";
+// Deployed: 2026-04-11 | batchBuy + collection royalty overrides
+export const WHALE_TOWN_MARKETPLACE_ADDRESS = "0x26CC31587Faa3334e7bbfC9A2255E1c1434fDbBe";
 
 export const PATH_USD_ADDRESS = "0x20c0000000000000000000000000000000000000";
 
@@ -50,19 +50,35 @@ export const PATH_USD_ABI = [
 ];
 
 export const WHALE_TOWN_MARKETPLACE_ABI = [
+  // --- Write ---
   {
-    "inputs": [
-      { "internalType": "uint256", "name": "_listingId", "type": "uint256" }
-    ],
+    "inputs": [{ "internalType": "uint256", "name": "_listingId", "type": "uint256" }],
     "name": "buy",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
   {
+    "inputs": [{ "internalType": "uint256[]", "name": "_listingIds", "type": "uint256[]" }],
+    "name": "batchBuy",
+    "outputs": [{ "internalType": "bool[]", "name": "succeeded", "type": "bool[]" }],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [
-      { "internalType": "uint256", "name": "_listingId", "type": "uint256" }
+      { "internalType": "address", "name": "_nftContract", "type": "address" },
+      { "internalType": "uint256", "name": "_tokenId", "type": "uint256" },
+      { "internalType": "uint256", "name": "_price", "type": "uint256" },
+      { "internalType": "uint256", "name": "_expiresAt", "type": "uint256" }
     ],
+    "name": "list",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "_listingId", "type": "uint256" }],
     "name": "cancel",
     "outputs": [],
     "stateMutability": "nonpayable",
@@ -71,6 +87,38 @@ export const WHALE_TOWN_MARKETPLACE_ABI = [
   {
     "inputs": [],
     "name": "cancelAll",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_nftContract", "type": "address" },
+      { "internalType": "address", "name": "_recipient", "type": "address" },
+      { "internalType": "uint96", "name": "_bps", "type": "uint96" }
+    ],
+    "name": "setCollectionRoyalty",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "_nftContract", "type": "address" }],
+    "name": "clearCollectionRoyalty",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "_feeBps", "type": "uint256" }],
+    "name": "setPlatformFee",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "_recipient", "type": "address" }],
+    "name": "setFeeRecipient",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -99,10 +147,9 @@ export const WHALE_TOWN_MARKETPLACE_ABI = [
     "stateMutability": "nonpayable",
     "type": "function"
   },
+  // --- Read ---
   {
-    "inputs": [
-      { "internalType": "uint256", "name": "_listingId", "type": "uint256" }
-    ],
+    "inputs": [{ "internalType": "uint256", "name": "_listingId", "type": "uint256" }],
     "name": "getListing",
     "outputs": [
       {
@@ -123,41 +170,14 @@ export const WHALE_TOWN_MARKETPLACE_ABI = [
     "type": "function"
   },
   {
-    "inputs": [
-      { "internalType": "uint256", "name": "_listingId", "type": "uint256" }
-    ],
+    "inputs": [{ "internalType": "uint256", "name": "_listingId", "type": "uint256" }],
     "name": "isListingValid",
     "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
     "stateMutability": "view",
     "type": "function"
   },
   {
-    "inputs": [
-      { "internalType": "address", "name": "_nftContract", "type": "address" },
-      { "internalType": "uint256", "name": "_tokenId", "type": "uint256" },
-      { "internalType": "uint256", "name": "_price", "type": "uint256" },
-      { "internalType": "uint256", "name": "_expiresAt", "type": "uint256" }
-    ],
-    "name": "list",
-    "outputs": [
-      { "internalType": "uint256", "name": "", "type": "uint256" }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "nextListingId",
-    "outputs": [
-      { "internalType": "uint256", "name": "", "type": "uint256" }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "internalType": "uint256", "name": "", "type": "uint256" }
-    ],
+    "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
     "name": "listings",
     "outputs": [
       { "internalType": "address", "name": "seller", "type": "address" },
@@ -167,6 +187,38 @@ export const WHALE_TOWN_MARKETPLACE_ABI = [
       { "internalType": "uint256", "name": "expiresAt", "type": "uint256" },
       { "internalType": "bool", "name": "active", "type": "bool" }
     ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "name": "collectionRoyalties",
+    "outputs": [
+      { "internalType": "address", "name": "recipient", "type": "address" },
+      { "internalType": "uint96", "name": "bps", "type": "uint96" },
+      { "internalType": "bool", "name": "set", "type": "bool" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_nftContract", "type": "address" },
+      { "internalType": "uint256", "name": "_tokenId", "type": "uint256" },
+      { "internalType": "uint256", "name": "_price", "type": "uint256" }
+    ],
+    "name": "getRoyaltyInfo",
+    "outputs": [
+      { "internalType": "address", "name": "recipient", "type": "address" },
+      { "internalType": "uint256", "name": "amount", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "nextListingId",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
     "stateMutability": "view",
     "type": "function"
   },
@@ -190,6 +242,59 @@ export const WHALE_TOWN_MARKETPLACE_ABI = [
     "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
     "stateMutability": "view",
     "type": "function"
+  },
+  // --- Events ---
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "name": "listingId", "type": "uint256" },
+      { "indexed": true, "name": "seller", "type": "address" },
+      { "indexed": false, "name": "nftContract", "type": "address" },
+      { "indexed": false, "name": "tokenId", "type": "uint256" },
+      { "indexed": false, "name": "price", "type": "uint256" },
+      { "indexed": false, "name": "expiresAt", "type": "uint256" }
+    ],
+    "name": "Listed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "name": "listingId", "type": "uint256" },
+      { "indexed": true, "name": "buyer", "type": "address" },
+      { "indexed": true, "name": "seller", "type": "address" },
+      { "indexed": false, "name": "nftContract", "type": "address" },
+      { "indexed": false, "name": "tokenId", "type": "uint256" },
+      { "indexed": false, "name": "price", "type": "uint256" }
+    ],
+    "name": "Sale",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "name": "listingId", "type": "uint256" },
+      { "indexed": false, "name": "success", "type": "bool" },
+      { "indexed": false, "name": "reason", "type": "string" }
+    ],
+    "name": "BatchBuyResult",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [{ "indexed": true, "name": "listingId", "type": "uint256" }],
+    "name": "Cancelled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "name": "nftContract", "type": "address" },
+      { "indexed": false, "name": "recipient", "type": "address" },
+      { "indexed": false, "name": "bps", "type": "uint96" }
+    ],
+    "name": "CollectionRoyaltySet",
+    "type": "event"
   }
 ];
 
@@ -197,7 +302,7 @@ export const TEMPO_TESTNET = {
   id: 42431,
   name: "Tempo Testnet",
   network: "tempo_testnet",
-  nativeCurrency: { name: "TEMPO", symbol: "TEMPO", decimals: 18 },
+  nativeCurrency: { name: "pathUSD", symbol: "pathUSD", decimals: 6 },
   rpcUrls: {
     default: { http: ["https://rpc.moderato.tempo.xyz"] },
     public: { http: ["https://rpc.moderato.tempo.xyz"] },
@@ -208,7 +313,7 @@ export const TEMPO_MAINNET = {
   id: 4217,
   name: "Tempo",
   network: "tempo",
-  nativeCurrency: { name: "TEMPO", symbol: "TEMPO", decimals: 18 },
+  nativeCurrency: { name: "pathUSD", symbol: "pathUSD", decimals: 6 },
   rpcUrls: {
     default: { http: ["https://rpc.tempo.xyz"] },
     public: { http: ["https://rpc.tempo.xyz"] },
