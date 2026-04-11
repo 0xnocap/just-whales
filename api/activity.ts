@@ -59,16 +59,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       UNION ALL
 
-      SELECT 
+      SELECT
         'cancel' as type,
-        token_id::int as token_id, 
-        seller as "from", 
-        NULL as "to", 
+        l.token_id::int as token_id,
+        l.seller as "from",
+        NULL as "to",
         NULL as price,
-        transaction_hash, 
-        timestamp::bigint as timestamp, 
-        block_number::bigint as block_number
-      FROM canceled
+        c.transaction_hash,
+        c.timestamp::bigint as timestamp,
+        c.block_number::bigint as block_number
+      FROM canceled c
+      LEFT JOIN listed l ON c.listing_id::numeric = l.listing_id::numeric
 
       ORDER BY block_number DESC
       LIMIT 100

@@ -85,6 +85,7 @@ type ModalTokenProps = TokenMetadata & {
   isSeller?: boolean;
   ownerAddress?: string;
   refetch?: () => void;
+  onBuySuccess?: () => void;
 };
 
 const TokenModal = ({ token, onClose }: { token: ModalTokenProps | null; onClose: () => void }) => {
@@ -149,6 +150,7 @@ const TokenModal = ({ token, onClose }: { token: ModalTokenProps | null; onClose
       } as any);
       await waitForTransaction(hash);
       setStatus('success');
+      if (token.onBuySuccess) token.onBuySuccess();
       if (token.refetch) token.refetch();
       setTimeout(onClose, 2000);
     } catch (err: any) {
@@ -647,7 +649,7 @@ const rasterizeImage = (dataUri: string, tokenId: number): Promise<string> => {
 };
 
 // --- NFT Card with image loading ---
-const NFTCard = ({ token, isListed, listing, isOwner, isSeller, tokenOwner, rarityRank, onSelect, fetchData }: any) => {
+const NFTCard = ({ token, isListed, listing, isOwner, isSeller, tokenOwner, rarityRank, onSelect, fetchData, onBuySuccess }: any) => {
   const isCached = imageCache.has(String(token.id));
   const [rasterSrc, setRasterSrc] = useState<string | null>(isCached ? imageCache.get(String(token.id))! : null);
   const [isTimerDone, setIsTimerDone] = useState(isCached);
@@ -699,7 +701,7 @@ const NFTCard = ({ token, isListed, listing, isOwner, isSeller, tokenOwner, rari
     <div
       ref={cardRef}
       className="group relative cursor-pointer h-full"
-      onClick={() => onSelect({ ...token, isListing: isListed, listingData: listing, isOwner, isSeller, ownerAddress: tokenOwner, refetch: fetchData })}
+      onClick={() => onSelect({ ...token, isListing: isListed, listingData: listing, isOwner, isSeller, ownerAddress: tokenOwner, refetch: fetchData, onBuySuccess })}
     >
       <div className="flex flex-col h-full rounded-xl overflow-hidden bg-[#111113] hover:bg-[#1a1a1c] transition-colors duration-300">
         <div className="relative w-full pb-[100%] overflow-hidden flex-shrink-0 bg-white/[0.02]">
@@ -1249,6 +1251,68 @@ const { writeContractAsync } = useWriteContract();
 
   useEffect(() => { fetchData(); }, [isConnected, address]);
 
+  // Poll listings every 30s to stay fresh without full page reload
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetch('/api/collection/listings')
+        .then(r => r.json())
+        .then(data => {
+          if (!Array.isArray(data)) return;
+          const now = BigInt(Math.floor(Date.now() / 1000));
+          const active = data.map((l: any) => {
+            try {
+              if (l.expires_at === '0' || now <= BigInt(l.expires_at)) {
+                const metadata = l.metadata || { name: `Token #${l.token_id}`, attributes: [], image_data: '' };
+                return {
+                  ...l,
+                  tokenId: BigInt(Math.floor(Number(l.token_id))),
+                  price: BigInt(Math.floor(Number(l.price))),
+                  expiresAt: BigInt(Math.floor(Number(l.expires_at))),
+                  id: BigInt(Math.floor(Number(l.listing_id))),
+                  metadata,
+                };
+              }
+            } catch {}
+            return null;
+          }).filter(Boolean);
+          setListings(active);
+        })
+        .catch(() => {});
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Optimistically remove a purchased listing, then re-sync from DB after indexer catches up
+  const handleBuySuccess = useCallback((listingId: bigint | string) => {
+    setListings(prev => prev.filter(l => String(l.id) !== String(listingId)));
+    setTimeout(() => {
+      fetch('/api/collection/listings')
+        .then(r => r.json())
+        .then(data => {
+          if (!Array.isArray(data)) return;
+          const now = BigInt(Math.floor(Date.now() / 1000));
+          const active = data.map((l: any) => {
+            try {
+              if (l.expires_at === '0' || now <= BigInt(l.expires_at)) {
+                const metadata = l.metadata || { name: `Token #${l.token_id}`, attributes: [], image_data: '' };
+                return {
+                  ...l,
+                  tokenId: BigInt(Math.floor(Number(l.token_id))),
+                  price: BigInt(Math.floor(Number(l.price))),
+                  expiresAt: BigInt(Math.floor(Number(l.expires_at))),
+                  id: BigInt(Math.floor(Number(l.listing_id))),
+                  metadata,
+                };
+              }
+            } catch {}
+            return null;
+          }).filter(Boolean);
+          setListings(active);
+        })
+        .catch(() => {});
+    }, 5000);
+  }, []);
+
   // Load collection data (traits index + rarity)
   useEffect(() => {
     fetch('/collection-data.json')
@@ -1352,12 +1416,7 @@ const { writeContractAsync } = useWriteContract();
   // Base display tokens
   let displayTokens = isFiltered ? [...filteredTokens] : [...unifiedTokens];
 
-  // Apply status filter
-  if (filter === 'listed') displayTokens = displayTokens.filter(t => t.isListing);
-  if (filter === 'unlisted') displayTokens = displayTokens.filter(t => !t.isListing);
-  if (searchQuery) displayTokens = displayTokens.filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()) || String(t.id).includes(searchQuery));
-
-  // Enrich filtered tokens with listing data
+  // Enrich filtered tokens with listing data BEFORE filtering on status
   if (isFiltered) {
     displayTokens = displayTokens.map(t => {
       const listing = listings.find(l => Number(l.tokenId) === t.id);
@@ -1365,6 +1424,11 @@ const { writeContractAsync } = useWriteContract();
       return t;
     });
   }
+
+  // Apply status filter
+  if (filter === 'listed') displayTokens = displayTokens.filter(t => t.isListing);
+  if (filter === 'unlisted') displayTokens = displayTokens.filter(t => !t.isListing);
+  if (searchQuery) displayTokens = displayTokens.filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()) || String(t.id).includes(searchQuery));
 
   // Sort — listings always float above unlisted; within each group apply the chosen sort
   displayTokens = [...displayTokens].sort((a, b) => {
@@ -1741,6 +1805,7 @@ const { writeContractAsync } = useWriteContract();
                       rarityRank={rarityRank}
                       onSelect={sweepMode ? () => {} : onSelectToken}
                       fetchData={fetchData}
+                      onBuySuccess={isListed ? () => handleBuySuccess(listing.id) : undefined}
                     />
                   </div>
                 );
@@ -1911,24 +1976,27 @@ const ProfilePage = ({ onSelectToken }: { onSelectToken: (t: any) => void }) => 
         setOwnedTokens(tokenDetails.filter(Boolean));
         setNextLoadIndex(BATCH);
 
-        // Fetch active listings by this address
+        // Fetch active listings by this address from DB (fast, avoids O(n) RPC calls)
         try {
-          const nextMarketId = await readNextListingId();
-          const userListings = [];
-          for (let i = 0n; i < nextMarketId; i++) {
-            try {
-              const listing = await readListing(i);
-              if (listing.active && listing.seller.toLowerCase() === profileAddress.toLowerCase()) {
-                const now = BigInt(Math.floor(Date.now() / 1000));
-                if (listing.expiresAt === 0n || now <= listing.expiresAt) {
-                  const uri = await readTokenURI(listing.tokenId);
-                  const metadata = decodeTokenURI(uri);
-                  userListings.push({ ...listing, id: i, metadata });
-                }
-              }
-            } catch {}
+          const listingsRes = await fetch(`/api/collection/listings?seller=${profileAddress}`);
+          const listingsData = await listingsRes.json();
+          if (Array.isArray(listingsData)) {
+            const now = BigInt(Math.floor(Date.now() / 1000));
+            const userListings = listingsData.map((l: any) => {
+              try {
+                const metadata = l.metadata || { name: `Token #${l.token_id}`, attributes: [], image_data: '' };
+                return {
+                  ...l,
+                  tokenId: BigInt(Math.floor(Number(l.token_id))),
+                  price: BigInt(Math.floor(Number(l.price))),
+                  expiresAt: BigInt(Math.floor(Number(l.expires_at))),
+                  id: BigInt(Math.floor(Number(l.listing_id))),
+                  metadata,
+                };
+              } catch { return null; }
+            }).filter(Boolean);
+            setListings(userListings);
           }
-          setListings(userListings);
         } catch {}
       } catch (err) { console.error('Profile fetch error:', err); }
       setLoading(false);
