@@ -597,43 +597,113 @@ const StatsSkeleton = () => (
   </div>
 );
 
+// --- Image rasterization cache ---
+// Converts expensive SVG data URIs to cheap raster blob URLs on first load.
+// Scrolling back to already-seen cards uses cached raster images instantly.
+const imageCache = new Map<string, string>();
+
+const rasterizeImage = (dataUri: string, tokenId: number): Promise<string> => {
+  const cacheKey = String(tokenId);
+  if (imageCache.has(cacheKey)) return Promise.resolve(imageCache.get(cacheKey)!);
+  
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const size = 400; // thumbnail size
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          // pixelated rendering for pixel art
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(img, 0, 0, size, size);
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const url = URL.createObjectURL(blob);
+              imageCache.set(cacheKey, url);
+              resolve(url);
+            } else {
+              imageCache.set(cacheKey, dataUri);
+              resolve(dataUri);
+            }
+          }, 'image/png');
+        } else {
+          imageCache.set(cacheKey, dataUri);
+          resolve(dataUri);
+        }
+      } catch {
+        imageCache.set(cacheKey, dataUri);
+        resolve(dataUri);
+      }
+    };
+    img.onerror = () => {
+      imageCache.set(cacheKey, dataUri);
+      resolve(dataUri);
+    };
+    img.src = dataUri;
+  });
+};
+
 // --- NFT Card with image loading ---
 const NFTCard = ({ token, isListed, listing, isOwner, isSeller, tokenOwner, rarityRank, onSelect, fetchData }: any) => {
-  const [isImgLoaded, setIsImgLoaded] = useState(false);
-  const [isTimerDone, setIsTimerDone] = useState(false);
+  const isCached = imageCache.has(String(token.id));
+  const [rasterSrc, setRasterSrc] = useState<string | null>(isCached ? imageCache.get(String(token.id))! : null);
+  const [isTimerDone, setIsTimerDone] = useState(isCached);
+  const [hasBeenSeen, setHasBeenSeen] = useState(isCached);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Only start the 500ms timer once the card enters the viewport
+  useEffect(() => {
+    if (hasBeenSeen) return;
+    const el = cardRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setHasBeenSeen(true);
+        obs.disconnect();
+      }
+    }, { rootMargin: '200px' });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [hasBeenSeen]);
 
   useEffect(() => {
+    if (!hasBeenSeen || isTimerDone) return;
     const timer = setTimeout(() => setIsTimerDone(true), 500);
     return () => clearTimeout(timer);
-  }, []);
+  }, [hasBeenSeen, isTimerDone]);
 
-  const isReady = isImgLoaded && isTimerDone;
+  // Rasterize on first load, use cache on re-visit
+  useEffect(() => {
+    if (rasterSrc) return; // already cached
+    if (!token.image_data) return;
+    rasterizeImage(token.image_data, token.id).then(setRasterSrc);
+  }, [token.image_data, token.id, rasterSrc]);
 
-  // Use the exact same skeleton component for 100% visual parity during loading
+  const isReady = !!rasterSrc && isTimerDone;
+
   if (!isReady) {
     return (
-      <div className="h-full relative">
+      <div ref={cardRef} className="h-full relative">
         <SkeletonCard />
-        {/* Hidden img to trigger loading while skeleton is shown */}
-        <img 
-          src={token.image_data} 
-          onLoad={() => setIsImgLoaded(true)} 
-          className="hidden" 
-        />
       </div>
     );
   }
 
   return (
     <div
+      ref={cardRef}
       className="group relative cursor-pointer h-full"
       onClick={() => onSelect({ ...token, isListing: isListed, listingData: listing, isOwner, isSeller, ownerAddress: tokenOwner, refetch: fetchData })}
     >
       <div className="flex flex-col h-full rounded-xl overflow-hidden bg-[#111113] hover:bg-[#1a1a1c] transition-colors duration-300">
         <div className="relative w-full pb-[100%] overflow-hidden flex-shrink-0 bg-white/[0.02]">
           <img
-            src={token.image_data}
+            src={rasterSrc}
             alt={token.name}
+            loading="lazy"
             className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
             style={{ imageRendering: 'pixelated' }}
           />
@@ -965,6 +1035,48 @@ const ActivitySidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
       </div>
     </div>
   );
+};
+
+// --- Trade Page Infinite Scroll Sentinel ---
+const TradeScrollSentinel = ({
+  loadingMore, loadingFiltered, activeFilterCount, sort,
+  nextIdAsc, nextIdDesc, totalMinted,
+  loadBatchAsc, loadBatchDesc, loadMoreFiltered,
+  setLoadingMore, loadingMoreRef,
+}: any) => {
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !loadingMoreRef.current) {
+        loadingMoreRef.current = true;
+        setLoadingMore(true);
+        const doLoad = async () => {
+          try {
+            if (activeFilterCount > 0) {
+              await loadMoreFiltered();
+            } else {
+              if (sort === 'id_asc') {
+                await loadBatchAsc(nextIdAsc, totalMinted);
+              } else {
+                await loadBatchDesc(nextIdDesc);
+              }
+            }
+          } finally {
+            setLoadingMore(false);
+            loadingMoreRef.current = false;
+          }
+        };
+        doLoad();
+      }
+    }, { rootMargin: '600px' });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [loadingMore, loadingFiltered, activeFilterCount, sort, nextIdAsc, nextIdDesc, totalMinted]);
+
+  return <div ref={sentinelRef} className="h-1 w-full" />;
 };
 
 const TradePage = ({ 
@@ -1590,7 +1702,7 @@ const { writeContractAsync } = useWriteContract();
                 const isSweepSelected = sweepMode && isListed && sweepSelected.some(s => String(s.id) === String(listing?.id));
 
                 return (
-                  <div key={isListed ? `listing-${listing.id}` : `gallery-${token.id}`} className="relative">
+                  <div key={isListed ? `listing-${listing.id}` : `gallery-${token.id}`} className="relative" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 300px' }}>
                     {/* Sweep mode checkbox overlay */}
                     {sweepMode && isListed && !isSeller && (
                       <button
@@ -1630,45 +1742,29 @@ const { writeContractAsync } = useWriteContract();
                   </div>
                 );
               })}
-              {/* Skeleton placeholders while loading next batch */}
-              {(loadingMore || loadingFiltered) && Array.from({ length: BATCH }).map((_, i) => (
+              {/* Skeleton placeholders while loading next batch OR when more data exists */}
+              {(loadingMore || loadingFiltered || hasMoreFiltered || hasMoreUnfiltered) && Array.from({ length: BATCH }).map((_, i) => (
                 <SkeletonCard key={`skeleton-more-${i}`} />
               ))}
             </div>
           )}
 
-          {/* Load More Button */}
-          {(hasMoreFiltered || hasMoreUnfiltered) && !searchQuery && filter === 'all' && (
-            <div className="flex flex-col items-center justify-center py-12 gap-4">
-              {loadingMore || loadingFiltered ? (
-                <div className="flex items-center gap-2">
-                  <Loader2 className="w-5 h-5 text-dream-cyan animate-spin" />
-                  <span className="font-mono text-white/40 text-xs tracking-widest uppercase">Fetching more whales...</span>
-                </div>
-              ) : (
-                <button
-                  onClick={async () => {
-                    setLoadingMore(true);
-                    try {
-                      if (activeFilterCount > 0) {
-                        await loadMoreFiltered();
-                      } else {
-                        if (sort === 'id_asc') {
-                          await loadBatchAsc(nextIdAsc, totalMinted);
-                        } else {
-                          await loadBatchDesc(nextIdDesc);
-                        }
-                      }
-                    } finally {
-                      setLoadingMore(false);
-                    }
-                  }}
-                  className="px-8 py-3 bg-white/[0.03] border border-white/[0.1] hover:border-dream-cyan/50 hover:bg-dream-cyan/5 text-white/60 hover:text-dream-cyan rounded-xl font-mono text-[11px] font-bold uppercase tracking-[0.2em] transition-all cursor-pointer shadow-xl"
-                >
-                  Load More
-                </button>
-              )}
-            </div>
+          {/* Infinite scroll sentinel */}
+          {(hasMoreFiltered || hasMoreUnfiltered) && (
+            <TradeScrollSentinel
+              loadingMore={loadingMore}
+              loadingFiltered={loadingFiltered}
+              activeFilterCount={activeFilterCount}
+              sort={sort}
+              nextIdAsc={nextIdAsc}
+              nextIdDesc={nextIdDesc}
+              totalMinted={totalMinted}
+              loadBatchAsc={loadBatchAsc}
+              loadBatchDesc={loadBatchDesc}
+              loadMoreFiltered={loadMoreFiltered}
+              setLoadingMore={setLoadingMore}
+              loadingMoreRef={loadingMoreRef}
+            />
           )}
 
           {/* Match count for filtered results */}
