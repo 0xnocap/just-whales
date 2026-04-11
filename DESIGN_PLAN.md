@@ -1,85 +1,86 @@
-# TradePage Redesign — Variant F Implementation Plan
+# Mobile Design Plan — Variant C
 
-Approved direction from design lab (Variant F). This covers only the TradePage visual changes — no behavior changes, no new features.
-
----
-
-## What's Changing
-
-### 1. Banner
-
-**Current:** Banner has avatar + name centered vertically in the middle of the banner.
-
-**New:** Content pinned to the **bottom of the banner**.
-- Bottom-left: collection image (avatar) + "Whale Town" + verified badge + description
-- Bottom-right: Floor / Listed / Holders / Volume stats as plain text (no glow, no accent colors — all white)
-- Background: same ocean-deep gradient, no pixel grid overlay
-- Avatar box shadow stays (subtle glow on the image border only, not text)
-- Min height: ~240px so there's breathing room above the content
-
-**Key changes in App.tsx TradePage banner section:**
-- Change `flex items-center` to `absolute bottom-0 left-0 right-0 flex items-end justify-between`
-- Avatar moves into a `flex items-end gap-4` group with name/description
-- Stats move to a separate `flex items-end gap-5` block on the right
-- Remove any `textShadow` from stat values
-- Remove pixel grid `div` if present
+**Target:** `src/App.tsx` → `TradePage`
+**Scope:** Mobile-only responsive changes. Desktop layout is untouched.
+**Pattern:** Variant C — Full-width segmented control + contextual row + bottom sheet filter.
 
 ---
 
-### 2. Toolbar (sticky row below banner)
+## Step 1: Banner — Tab-adaptive layout (mobile only)
 
-**Current:** Tab switcher (Items/Activity) on its own line, then filter bar on another line below.
+Currently the banner always shows the same layout with only Floor + Listed stats.
 
-**New:** Single sticky toolbar row containing everything:
+**Mobile — Items tab:**
+- Left: avatar + name + badge + description (same structure as desktop)
+- Right: 2×2 stats grid — Floor, Listed, Volume, Holders
+
+**Mobile — Activity tab:**
+- Top row: smaller avatar + name + badge inline, "Live" pill on the right
+- Stat strip: Floor | Listed | Volume | Holders — 4 equal columns with hairline dividers
+
+**How:** Wrap the existing banner stats section in `hidden md:flex`. Add a `md:hidden` block that conditionally renders the Items or Activity layout based on `activeTradeTab`. The gradient background and identity elements are shared.
+
+---
+
+## Step 2: Toolbar — Two-row layout (mobile only)
+
+Currently all controls are in a single `flex` row at `sticky top-[52px]`. On mobile this overflows the viewport.
+
+**Mobile toolbar — Row 1:**
+Full-width segmented pill spanning the entire toolbar width:
 ```
-[Items | Activity]  |  [All / Listed / Unlisted]  [Filters]  [Sort ▾]  [Search — flex-1]  [Live]  [Sweep]
+[ ▦ Items         ◉ Activity ]
 ```
 
-- Items/Activity tabs: pill group on the far left
-- Divider
-- Status filter (All/Listed/Unlisted): pill group — only visible when Items tab active
-- Filters button: only when Items tab active
-- Sort dropdown: only when Items tab active, hidden on small screens
-- Search input: `flex-1`, grows to fill — only when Items tab active
-- Live toggle: toggles the activity sidebar card — only when Items tab active
-- Sweep button: dream-cyan CTA, always slightly glowing, far right — only when Items tab active
-- When Activity tab active: just the tabs + activity filter chips (All / Sales / Listed / Transfers)
+**Mobile toolbar — Row 2 (contextual):**
+- Items tab: `[ 🔍 Search ·············· ] [ Filter ] [ ⚡ Sweep ]`
+- Activity tab: `[ All ] [ Sales ] [ Listed ] [ Transfers ]` — horizontally scrollable chips
+
+**Desktop toolbar:** Completely unchanged — keep existing `flex items-center gap-4` row.
+
+**How:**
+- Wrap existing desktop content in `hidden md:flex items-center gap-4 w-full`
+- Add `flex md:hidden flex-col gap-2` wrapper for mobile rows
+- Both share the same state (activeTradeTab, filter, searchQuery, sweepMode, etc.)
 
 ---
 
-### 3. Activity Sidebar (Live card)
+## Step 3: Filter bottom sheet (mobile only)
 
-**Current:** Full panel that pushes content.
+Currently `showFilters` toggles an inline panel that expands above the grid. On mobile this displaces content awkwardly.
 
-**New:** Styled `w-72` card that appears to the right of the grid when "Live" is toggled.
-- Sticky (`sticky top-[53px]`)
-- Max height `calc(100vh - 80px)`, scrollable internally
-- Card header: "Live Activity" label + X close button
-- Filter chips inside the card: All / Sales / Listed / Transfers
-- Uses the same `ActivityItem` component / same data
+**Mobile:** Filter button opens a `fixed` bottom sheet that slides up from the bottom of the screen.
 
----
+Sheet contents (mirrors current desktop filter panel):
+- **Status:** All | Listed | Unlisted (row of chips)
+- **Sort:** Price ↑ | Price ↓ | Rarity | Token ID (2×2 grid)
+- **Traits:** One section per trait category, chips for each value
 
-### 4. Background
+**Desktop:** Existing `showFilters` inline panel — unchanged.
 
-No change needed — current `#083344` ocean-deep background is already correct.
-
----
-
-## Files to Edit
-
-| File | Change |
-|---|---|
-| `src/App.tsx` | Banner layout, toolbar collapse, sidebar card |
-
-No new files needed. All changes are within the existing TradePage section of App.tsx.
+**How:**
+- Add `showMobileFilterSheet` state (boolean)
+- Mobile Filter button sets `showMobileFilterSheet(true)` instead of `setShowFilters`
+- Render `fixed inset-0 z-50` overlay + `fixed bottom-0` sheet — both `md:hidden`
+- Sheet reuses the same `selectedTraits`, `filter`, `sort` state as the desktop panel
 
 ---
 
-## Implementation Order
+## Step 4: Stats data
 
-1. Banner — reposition content to bottom-left / bottom-right
-2. Toolbar — collapse two rows into one sticky row
-3. Sidebar — convert panel to a styled card alongside the grid
+The banner currently shows only Floor + Listed. Volume and Holders are already in `collectionData`. Verify the fields and surface them in the mobile banner.
 
-Each step is independent and testable on its own.
+Fields to confirm in `collectionData`:
+- `floor` — already used
+- `listed` — already used
+- `totalVolume` or equivalent — check API response shape
+- `holders` — check API response shape
+
+---
+
+## Notes
+
+- All mobile changes use `md:hidden` / `hidden md:flex` — zero risk to desktop.
+- `sweepMode` on mobile: the existing sweep bar (slides up from bottom, replaces nav) already works correctly on mobile. No changes needed there.
+- `showActivity` (live sidebar toggle) is desktop-only — hide the Live button on mobile toolbar since activity is its own full tab on mobile.
+- The floating pill nav is already correct and stays as-is.

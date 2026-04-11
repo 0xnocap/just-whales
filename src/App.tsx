@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Home, Coins, Search, Sparkles, Minus, Plus, Loader2, X, ArrowLeftRight, ChevronLeft, ExternalLink, Copy, Check, User, Clock, Tag, ArrowUpRight, ArrowDownLeft, Grid3X3, List, Filter, ChevronDown, ChevronUp, Star, Zap, ShoppingCart, Trash2, Activity, ArrowRight } from 'lucide-react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useWatchContractEvent } from 'wagmi';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useWatchContractEvent, useSwitchChain } from 'wagmi';
 import {
   readTotalSupply, readMaxSupply, readMintPrice,
   readIsPublicMintActive, readMaxPerAddress,
@@ -15,6 +15,7 @@ import {
   type TokenMetadata,
 } from './contract';
 import { formatEther, parseEther, formatUnits, parseUnits } from 'viem';
+import { tempoMainnet } from './wagmi';
 import { Routes, Route, useNavigate, useLocation, Link, useParams } from 'react-router-dom';
 // --- Helpers ---
 const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
@@ -923,7 +924,7 @@ const RetroButton = ({ icon: Icon, label, to, disabled, tooltip }: { icon: any, 
 
 // --- Global Activity Components ---
 
-const ActivityItem = ({ item }: { item: any }) => {
+const ActivityItem: React.FC<{ item: any }> = ({ item }) => {
   const config: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
     sale:     { icon: <Tag className="w-3 h-3" />,          label: 'Sale',       color: 'text-dream-cyan' },
     list:     { icon: <Sparkles className="w-3 h-3" />,     label: 'Listed',     color: 'text-dream-cyan' },
@@ -1160,6 +1161,7 @@ const { writeContractAsync } = useWriteContract();
   const [traitFilters, setTraitFilters] = useState<Record<string, string[]>>({});
   const [openTraitSections, setOpenTraitSections] = useState<Record<string, boolean>>({});
   const [showFilters, setShowFilters] = useState(false);
+  const [showMobileFilterSheet, setShowMobileFilterSheet] = useState(false);
   const [activeTradeTab, setActiveTradeTab] = useState<'items' | 'activity'>('items');
 
   // Filtered loading state
@@ -1499,182 +1501,333 @@ const { writeContractAsync } = useWriteContract();
   return (
     <div className="w-full" style={{ maxWidth: '100%' }}>
       {/* Collection Banner */}
-      <div className="relative rounded-2xl overflow-hidden mb-6 flex flex-col justify-end p-6" style={{ minHeight: '240px' }}>
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0c4a6e] via-[#083344] to-[#1e1b4b] -z-10" />
-        
-        {/* Decorative elements */}
-        <div className="absolute top-4 right-8 text-4xl opacity-20 -z-10">🐋</div>
-        <div className="absolute bottom-16 right-24 text-2xl opacity-15 -z-10">🦈</div>
-        <div className="absolute top-6 right-44 text-xl opacity-10 -z-10">🦭</div>
+      <div className="relative rounded-2xl overflow-hidden mb-6" style={{ minHeight: 'clamp(130px, 20vw, 240px)' }}>
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0c4a6e] via-[#083344] to-[#1e1b4b]" />
+        <div className="absolute top-4 right-8 text-4xl opacity-[0.07]">🐋</div>
+        <div className="absolute bottom-16 right-24 text-2xl opacity-[0.05] hidden md:block">🦈</div>
+        <div className="absolute top-6 right-44 text-xl opacity-[0.05] hidden md:block">🦭</div>
 
-        {/* Collection Info Content */}
-        <div className="flex flex-col md:flex-row items-end justify-between w-full gap-6">
-          <div className="flex items-end gap-4">
-            {/* Avatar */}
-            <div className="relative flex-shrink-0 w-24 h-24 rounded-2xl overflow-hidden shadow-[0_0_20px_rgba(0,0,0,0.5)] border border-white/10">
-              <img src="/collections/whale-town/collection_image.png" alt="Whale Town" className="w-full h-full object-cover" style={{ imageRendering: 'pixelated' }} />
-            </div>
-            
-            {/* Name & description */}
-            <div className="pb-1">
-              <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-3xl font-black text-white tracking-tight drop-shadow-md">Whale Town</h1>
-                <svg viewBox="0 0 22 22" className="w-5 h-5 flex-shrink-0 mt-1" fill="none">
-                  <path d="M11 0l2.8 3.2L17.5 2l.8 4.2L22 7.8l-2 3.6 2 3.6-3.7 1.6-.8 4.2-3.7-1.2L11 22l-2.8-2.2-3.7 1.2-.8-4.2L0 15.2l2-3.6L0 8l3.7-1.8.8-4.2 3.7 1.2L11 0z" fill="#f59e0b"/>
-                  <path d="M7 11l2.5 2.5L15 8.5" stroke="#0a0a0c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-                </svg>
+        {/* Content pinned to bottom */}
+        <div className="absolute bottom-0 left-0 right-0 px-4 md:px-6 pb-4 md:pb-6">
+
+          {/* ── DESKTOP layout ── */}
+          <div className="hidden md:flex items-end justify-between gap-6">
+            <div className="flex items-end gap-4">
+              <div className="w-24 h-24 rounded-2xl overflow-hidden shadow-[0_0_20px_rgba(0,0,0,0.5)] border border-white/10 flex-shrink-0">
+                <img src="/collections/whale-town/collection_image.png" alt="Whale Town" className="w-full h-full object-cover" style={{ imageRendering: 'pixelated' }} />
               </div>
-              <p className="text-white/50 text-[13px] font-mono max-w-md">Sealions, Sharks, and Whales, oh my! The first onchain collection on Tempo.</p>
+              <div className="pb-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <h1 className="text-3xl font-black text-white tracking-tight">Whale Town</h1>
+                  <svg viewBox="0 0 22 22" className="w-5 h-5 flex-shrink-0 mt-1" fill="none"><path d="M11 0l2.8 3.2L17.5 2l.8 4.2L22 7.8l-2 3.6 2 3.6-3.7 1.6-.8 4.2-3.7-1.2L11 22l-2.8-2.2-3.7 1.2-.8-4.2L0 15.2l2-3.6L0 8l3.7-1.8.8-4.2 3.7 1.2L11 0z" fill="#f59e0b"/><path d="M7 11l2.5 2.5L15 8.5" stroke="#0a0a0c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
+                </div>
+                <p className="text-white/50 text-[13px] font-mono max-w-md">Sealions, Sharks, and Whales, oh my! The first onchain collection on Tempo.</p>
+              </div>
+            </div>
+            <div className="flex items-end gap-5 pb-1">
+              {[
+                { label: 'Floor',   value: floorPrice > 0 ? `$${floorPrice.toFixed(2)}` : '—' },
+                { label: 'Listed',  value: listings.length.toString() },
+                { label: 'Holders', value: collectionStats?.holders?.toLocaleString() || '—' },
+                { label: 'Volume',  value: collectionStats ? `$${collectionStats.totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—' },
+              ].map(stat => (
+                <div key={stat.label} className="text-right">
+                  <div className="text-[10px] font-mono text-white/40 uppercase tracking-[0.1em]">{stat.label}</div>
+                  <div className="text-[15px] font-bold text-white leading-none mt-0.5">{stat.value}</div>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="flex items-end gap-5 pb-1">
-            {[
-              { label: 'Floor', value: floorPrice > 0 ? `$${floorPrice.toFixed(2)}` : '—' },
-              { label: 'Listed', value: listings.length.toString() },
-              { label: 'Holders', value: collectionStats?.holders?.toLocaleString() || '—' },
-              { label: 'Volume', value: collectionStats ? `$${collectionStats.totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—' },
-            ].map(stat => (
-              <div key={stat.label} className="text-right">
-                <div className="text-[10px] font-mono text-white/40 uppercase tracking-[0.1em]">{stat.label}</div>
-                <div className="text-[15px] font-bold text-white leading-none mt-0.5">{stat.value}</div>
+          {/* ── MOBILE — Items tab: identity left, 2×2 stats right ── */}
+          {activeTradeTab === 'items' && (
+            <div className="md:hidden flex items-end justify-between gap-3">
+              <div className="flex items-end gap-2.5 min-w-0">
+                <div className="w-11 h-11 rounded-xl overflow-hidden border border-white/10 flex-shrink-0">
+                  <img src="/collections/whale-town/collection_image.png" alt="Whale Town" className="w-full h-full object-cover" style={{ imageRendering: 'pixelated' }} />
+                </div>
+                <div className="min-w-0 pb-0.5">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="font-black text-[15px] text-white leading-none">Whale Town</span>
+                    <svg viewBox="0 0 22 22" className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none"><path d="M11 0l2.8 3.2L17.5 2l.8 4.2L22 7.8l-2 3.6 2 3.6-3.7 1.6-.8 4.2-3.7-1.2L11 22l-2.8-2.2-3.7 1.2-.8-4.2L0 15.2l2-3.6L0 8l3.7-1.8.8-4.2 3.7 1.2L11 0z" fill="#f59e0b"/><path d="M7 11l2.5 2.5L15 8.5" stroke="#0a0a0c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
+                  </div>
+                  <p className="text-[9px] font-mono text-white/40 truncate">Sealions, Sharks, and Whales, oh my! The first onchain collection on Tempo.</p>
+                </div>
               </div>
-            ))}
-          </div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 flex-shrink-0 pb-0.5">
+                {[
+                  { label: 'Floor',   value: floorPrice > 0 ? `$${floorPrice.toFixed(2)}` : '—' },
+                  { label: 'Listed',  value: listings.length.toString() },
+                  { label: 'Volume',  value: collectionStats ? `$${collectionStats.totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—' },
+                  { label: 'Holders', value: collectionStats?.holders?.toLocaleString() || '—' },
+                ].map(stat => (
+                  <div key={stat.label} className="text-right">
+                    <div className="text-[7px] font-mono uppercase tracking-widest text-white/30">{stat.label}</div>
+                    <div className="text-[13px] font-black text-white leading-none mt-0.5">{stat.value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── MOBILE — Activity tab: compact identity + live pill, then stat strip ── */}
+          {activeTradeTab === 'activity' && (
+            <div className="md:hidden flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg overflow-hidden border border-white/10 flex-shrink-0">
+                    <img src="/collections/whale-town/collection_image.png" alt="Whale Town" className="w-full h-full object-cover" style={{ imageRendering: 'pixelated' }} />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-black text-[13px] text-white leading-none">Whale Town</span>
+                    <svg viewBox="0 0 22 22" className="w-3 h-3 flex-shrink-0" fill="none"><path d="M11 0l2.8 3.2L17.5 2l.8 4.2L22 7.8l-2 3.6 2 3.6-3.7 1.6-.8 4.2-3.7-1.2L11 22l-2.8-2.2-3.7 1.2-.8-4.2L0 15.2l2-3.6L0 8l3.7-1.8.8-4.2 3.7 1.2L11 0z" fill="#f59e0b"/><path d="M7 11l2.5 2.5L15 8.5" stroke="#0a0a0c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg" style={{ background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.2)' }}>
+                  <div className="w-1.5 h-1.5 rounded-full bg-dream-cyan animate-pulse" />
+                  <span className="text-[9px] font-mono font-bold text-dream-cyan uppercase tracking-wider">Live</span>
+                </div>
+              </div>
+              <div className="flex border-t border-white/[0.06] pt-2">
+                {[
+                  { label: 'Floor',   value: floorPrice > 0 ? `$${floorPrice.toFixed(2)}` : '—' },
+                  { label: 'Listed',  value: listings.length.toString() },
+                  { label: 'Volume',  value: collectionStats ? `$${collectionStats.totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—' },
+                  { label: 'Holders', value: collectionStats?.holders?.toLocaleString() || '—' },
+                ].map((stat, i, arr) => (
+                  <div key={stat.label} className={`flex-1 text-center ${i < arr.length - 1 ? 'border-r border-white/[0.06]' : ''}`}>
+                    <div className="text-[7px] font-mono uppercase tracking-widest text-white/30">{stat.label}</div>
+                    <div className="text-[12px] font-black text-white leading-none mt-0.5">{stat.value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
 
       {/* Sticky Toolbar */}
-      <div className="sticky top-[52px] z-50 bg-[#083344]/95 backdrop-blur-md py-3 -mx-4 px-4 mb-4 border-b border-white/10 flex items-center gap-4">
-        {/* Tab Switcher */}
-        <div className="flex gap-1 bg-white/[0.03] border border-white/[0.06] rounded-xl p-1 shrink-0">
-          {(['items', 'activity'] as const).map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTradeTab(tab)}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg font-mono text-[10px] font-bold uppercase tracking-[0.12em] transition-all cursor-pointer ${
-                activeTradeTab === tab
-                  ? 'bg-dream-cyan/15 text-dream-cyan'
-                  : 'text-white/30 hover:text-white/60'
-              }`}
-            >
-              {tab === 'items' ? <Grid3X3 className="w-3 h-3" /> : <Activity className="w-3 h-3" />}
-              {tab === 'items' ? 'Items' : 'Activity'}
-            </button>
-          ))}
-        </div>
-
-        <div className="h-4 w-[1px] bg-white/10 shrink-0" />
-
-        {activeTradeTab === 'items' ? (
-          <>
-            {/* Status filter */}
-            <div className="hidden lg:flex gap-1 bg-white/[0.03] border border-white/[0.06] rounded-lg p-0.5 shrink-0">
-              {(['all', 'listed', 'unlisted'] as const).map(f => (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={`px-3 py-1.5 rounded-md font-mono text-[10px] font-bold uppercase tracking-[0.1em] transition-all cursor-pointer ${
-                    filter === f
-                      ? 'bg-dream-cyan/15 text-dream-cyan'
-                      : 'text-white/30 hover:text-white/60'
-                  }`}
-                >
-                  {f}
-                </button>
-              ))}
-            </div>
-
-            {/* Filters toggle */}
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-mono text-[10px] font-bold uppercase tracking-[0.1em] transition-all cursor-pointer border shrink-0 ${
-                showFilters || activeFilterCount > 0
-                  ? 'bg-dream-cyan/15 text-dream-cyan border-dream-cyan/30'
-                  : 'bg-white/[0.03] text-white/40 border-white/[0.06] hover:border-white/20'
-              }`}
-            >
-              <Filter className="w-3 h-3" />
-              <span className="hidden sm:inline">Filters</span>{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
-            </button>
-
-            {/* Sort */}
-            <select
-              value={sort}
-              onChange={e => setSort(e.target.value as any)}
-              className="hidden xl:block bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-1.5 font-mono text-[10px] text-white/60 outline-none appearance-none cursor-pointer hover:border-white/20 transition-colors shrink-0"
-            >
-              <option value="price_asc">Price: Low → High</option>
-              <option value="price_desc">Price: High → Low</option>
-              <option value="id_asc">Token ID ↑</option>
-              <option value="id_desc">Token ID ↓</option>
-              <option value="rarity_asc">Rarity: Rare First</option>
-              <option value="rarity_desc">Rarity: Common First</option>
-            </select>
-
-            {/* Search */}
-            <div className="relative flex-1 min-w-[120px]">
-              <Search className="absolute top-1/2 -translate-y-1/2 left-3 w-3.5 h-3.5 text-white/20" />
-              <input
-                type="text"
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-white/[0.03] border border-white/[0.06] rounded-lg font-mono text-[11px] text-white placeholder:text-white/20 focus:border-dream-cyan/30 outline-none transition-all"
-              />
-            </div>
-
-            <button
-              onClick={() => setShowActivity(!showActivity)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-mono text-[10px] font-bold uppercase tracking-[0.1em] transition-all cursor-pointer border shrink-0 ${
-                showActivity
-                  ? 'bg-dream-cyan/20 border-dream-cyan/40 text-dream-cyan'
-                  : 'bg-white/[0.03] text-white/40 border-white/[0.06] hover:border-white/20'
-              }`}
-            >
-              <Activity className="w-3 h-3" />
-              <span className="hidden sm:inline">Live</span>
-            </button>
-
-            {/* Sweep mode toggle */}
-            {listings.length > 0 && (
+      <div className="sticky top-[52px] z-50 py-3 -mx-4 px-4 mb-4 flex flex-col md:flex-row items-center gap-2 md:gap-4">
+        
+        {/* Desktop Toolbar - hidden on mobile */}
+        <div className="hidden md:flex items-center gap-4 w-full">
+          {/* Tab Switcher */}
+          <div className="flex gap-1 bg-white/[0.03] border border-white/[0.06] rounded-xl p-1 shrink-0">
+            {(['items', 'activity'] as const).map(tab => (
               <button
-                onClick={() => {
-                  const next = !sweepMode;
-                  setSweepMode(next);
-                  onSweepModeChange?.(next);
-                  if (!next) { setSweepSelected([]); setSweepResult(null); setSweepError(''); }
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-mono text-[10px] font-bold uppercase tracking-[0.1em] transition-all cursor-pointer border shrink-0 ${
-                  sweepMode
-                    ? 'bg-dream-cyan text-[#0a0a0c] border-dream-cyan shadow-[0_0_20px_rgba(34,211,238,0.4)]'
-                    : 'bg-dream-cyan/15 text-dream-cyan border-dream-cyan/30 shadow-[0_0_10px_rgba(34,211,238,0.1)] hover:bg-dream-cyan/25 hover:shadow-[0_0_15px_rgba(34,211,238,0.2)]'
+                key={tab}
+                onClick={() => setActiveTradeTab(tab)}
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg font-mono text-[10px] font-bold uppercase tracking-[0.12em] transition-all cursor-pointer ${
+                  activeTradeTab === tab
+                    ? 'bg-dream-cyan/15 text-dream-cyan'
+                    : 'text-white/30 hover:text-white/60'
                 }`}
               >
-                <Zap className="w-3 h-3" />
-                <span className="hidden sm:inline">Sweep</span>{sweepMode && sweepSelected.length > 0 ? ` (${sweepSelected.length})` : ''}
-              </button>
-            )}
-          </>
-        ) : (
-          /* Activity filter chips */
-          <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
-            {ACTIVITY_FILTERS.map(f => (
-              <button
-                key={f.key}
-                onClick={() => setActivityFilter(f.key)}
-                className={`px-3 py-1.5 rounded-lg font-mono text-[9px] font-bold uppercase tracking-[0.1em] transition-all cursor-pointer border whitespace-nowrap ${
-                  activityFilter === f.key
-                    ? 'bg-dream-cyan/15 text-dream-cyan border-dream-cyan/30'
-                    : 'bg-white/[0.03] text-white/30 border-white/[0.06] hover:text-white/60 hover:border-white/15'
-                }`}
-              >
-                {f.label}
+                {tab === 'items' ? <Grid3X3 className="w-3 h-3" /> : <Activity className="w-3 h-3" />}
+                {tab === 'items' ? 'Items' : 'Activity'}
               </button>
             ))}
           </div>
-        )}
+
+          <div className="h-4 w-[1px] bg-white/10 shrink-0" />
+
+          {activeTradeTab === 'items' ? (
+            <>
+              {/* Status filter */}
+              <div className="hidden lg:flex gap-1 bg-white/[0.03] border border-white/[0.06] rounded-lg p-0.5 shrink-0">
+                {(['all', 'listed', 'unlisted'] as const).map(f => (
+                  <button
+                    key={f}
+                    onClick={() => setFilter(f)}
+                    className={`px-3 py-1.5 rounded-md font-mono text-[10px] font-bold uppercase tracking-[0.1em] transition-all cursor-pointer ${
+                      filter === f
+                        ? 'bg-dream-cyan/15 text-dream-cyan'
+                        : 'text-white/30 hover:text-white/60'
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+
+              {/* Filters toggle */}
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-mono text-[10px] font-bold uppercase tracking-[0.1em] transition-all cursor-pointer border shrink-0 ${
+                  showFilters || activeFilterCount > 0
+                    ? 'bg-dream-cyan/15 text-dream-cyan border-dream-cyan/30'
+                    : 'bg-white/[0.03] text-white/40 border-white/[0.06] hover:border-white/20'
+                }`}
+              >
+                <Filter className="w-3 h-3" />
+                <span className="hidden sm:inline">Filters</span>{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+              </button>
+
+              {/* Sort */}
+              <select
+                value={sort}
+                onChange={e => setSort(e.target.value as any)}
+                className="hidden xl:block bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-1.5 font-mono text-[10px] text-white/60 outline-none appearance-none cursor-pointer hover:border-white/20 transition-colors shrink-0"
+              >
+                <option value="price_asc">Price: Low → High</option>
+                <option value="price_desc">Price: High → Low</option>
+                <option value="id_asc">Token ID ↑</option>
+                <option value="id_desc">Token ID ↓</option>
+                <option value="rarity_asc">Rarity: Rare First</option>
+                <option value="rarity_desc">Rarity: Common First</option>
+              </select>
+
+              {/* Search */}
+              <div className="relative flex-1 min-w-[120px]">
+                <Search className="absolute top-1/2 -translate-y-1/2 left-3 w-3.5 h-3.5 text-white/20" />
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-white/[0.03] border border-white/[0.06] rounded-lg font-mono text-[11px] text-white placeholder:text-white/20 focus:border-dream-cyan/30 outline-none transition-all"
+                />
+              </div>
+
+              <button
+                onClick={() => setShowActivity(!showActivity)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-mono text-[10px] font-bold uppercase tracking-[0.1em] transition-all cursor-pointer border shrink-0 ${
+                  showActivity
+                    ? 'bg-dream-cyan/20 border-dream-cyan/40 text-dream-cyan'
+                    : 'bg-white/[0.03] text-white/40 border-white/[0.06] hover:border-white/20'
+                }`}
+              >
+                <Activity className="w-3 h-3" />
+                <span className="hidden sm:inline">Live</span>
+              </button>
+
+              {/* Sweep mode toggle */}
+              {listings.length > 0 && (
+                <button
+                  onClick={() => {
+                    const next = !sweepMode;
+                    setSweepMode(next);
+                    onSweepModeChange?.(next);
+                    if (!next) { setSweepSelected([]); setSweepResult(null); setSweepError(''); }
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-mono text-[10px] font-bold uppercase tracking-[0.1em] transition-all cursor-pointer border shrink-0 ${
+                    sweepMode
+                      ? 'bg-dream-cyan text-[#0a0a0c] border-dream-cyan shadow-[0_0_20px_rgba(34,211,238,0.4)]'
+                      : 'bg-dream-cyan/15 text-dream-cyan border-dream-cyan/30 shadow-[0_0_10px_rgba(34,211,238,0.1)] hover:bg-dream-cyan/25 hover:shadow-[0_0_15px_rgba(34,211,238,0.2)]'
+                  }`}
+                >
+                  <Zap className="w-3 h-3" />
+                  <span className="hidden sm:inline">Sweep</span>{sweepMode && sweepSelected.length > 0 ? ` (${sweepSelected.length})` : ''}
+                </button>
+              )}
+            </>
+          ) : (
+            /* Activity filter chips (Desktop) */
+            <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
+              {ACTIVITY_FILTERS.map(f => (
+                <button
+                  key={f.key}
+                  onClick={() => setActivityFilter(f.key)}
+                  className={`px-3 py-1.5 rounded-lg font-mono text-[9px] font-bold uppercase tracking-[0.1em] transition-all cursor-pointer border whitespace-nowrap ${
+                    activityFilter === f.key
+                      ? 'bg-dream-cyan/15 text-dream-cyan border-dream-cyan/30'
+                      : 'bg-white/[0.03] text-white/30 border-white/[0.06] hover:text-white/60 hover:border-white/15'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Mobile Toolbar - hidden on desktop */}
+        <div className="flex md:hidden flex-col w-full gap-2">
+          {/* Row 1: Segmented tab switcher */}
+          <div className="flex w-full bg-white/[0.03] border border-white/[0.06] rounded-xl p-1">
+            {(['items', 'activity'] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTradeTab(tab)}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-mono text-[10px] font-bold uppercase tracking-[0.15em] transition-all cursor-pointer ${
+                  activeTradeTab === tab
+                    ? 'bg-dream-cyan/15 text-dream-cyan'
+                    : 'text-white/30 hover:text-white/60'
+                }`}
+              >
+                {tab === 'items' ? <Grid3X3 className="w-3.5 h-3.5" /> : <Activity className="w-3.5 h-3.5" />}
+                {tab === 'items' ? 'Items' : 'Activity'}
+              </button>
+            ))}
+          </div>
+
+          {/* Row 2: Contextual row */}
+          {activeTradeTab === 'items' ? (
+            <div className="flex items-center gap-2">
+              {/* Search */}
+              <div className="relative flex-1">
+                <Search className="absolute top-1/2 -translate-y-1/2 left-3 w-3.5 h-3.5 text-white/20" />
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-white/[0.03] border border-white/[0.06] rounded-lg font-mono text-[11px] text-white placeholder:text-white/20 focus:border-dream-cyan/30 outline-none transition-all"
+                />
+              </div>
+
+              {/* Mobile Filter Toggle */}
+              <button
+                onClick={() => setShowMobileFilterSheet(true)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg font-mono text-[10px] font-bold uppercase tracking-[0.1em] transition-all cursor-pointer border shrink-0 ${
+                  activeFilterCount > 0
+                    ? 'bg-dream-cyan/15 text-dream-cyan border-dream-cyan/30'
+                    : 'bg-white/[0.03] text-white/40 border-white/[0.06]'
+                }`}
+              >
+                <Filter className="w-3.5 h-3.5" />
+                {activeFilterCount > 0 ? `(${activeFilterCount})` : 'Filter'}
+              </button>
+
+              {/* Mobile Sweep mode toggle */}
+              {listings.length > 0 && (
+                <button
+                  onClick={() => {
+                    const next = !sweepMode;
+                    setSweepMode(next);
+                    onSweepModeChange?.(next);
+                    if (!next) { setSweepSelected([]); setSweepResult(null); setSweepError(''); }
+                  }}
+                  className={`flex items-center justify-center w-10 h-10 rounded-lg transition-all cursor-pointer border shrink-0 ${
+                    sweepMode
+                      ? 'bg-dream-cyan text-[#0a0a0c] border-dream-cyan shadow-[0_0_15px_rgba(34,211,238,0.4)]'
+                      : 'bg-dream-cyan/15 text-dream-cyan border-dream-cyan/30'
+                  }`}
+                >
+                  <Zap className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          ) : (
+            /* Row 2: Activity chips (Mobile) — each takes equal width, no scroll */
+            <div className="flex gap-1.5">
+              {ACTIVITY_FILTERS.map(f => (
+                <button
+                  key={f.key}
+                  onClick={() => setActivityFilter(f.key)}
+                  className={`flex-1 py-2 rounded-lg font-mono text-[9px] font-bold uppercase tracking-[0.15em] transition-all cursor-pointer border ${
+                    activityFilter === f.key
+                      ? 'bg-dream-cyan/15 text-dream-cyan border-dream-cyan/30'
+                      : 'bg-white/[0.03] text-white/30 border-white/[0.06]'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {activeTradeTab === 'activity' ? (
@@ -1947,6 +2100,161 @@ const { writeContractAsync } = useWriteContract();
               }
             }}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Mobile Filter Sheet */}
+      <AnimatePresence>
+        {showMobileFilterSheet && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowMobileFilterSheet(false)}
+              className="fixed inset-0 z-[160] bg-black/60 backdrop-blur-sm md:hidden"
+            />
+            {/* Sheet */}
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed inset-x-0 bottom-0 z-[170] bg-[#0a0a0c] border-t border-white/10 rounded-t-3xl max-h-[85vh] flex flex-col md:hidden"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-5 border-b border-white/5">
+                <div className="flex items-center gap-2">
+                  <Filter className="w-4 h-4 text-dream-cyan" />
+                  <h2 className="text-sm font-bold text-white font-mono uppercase tracking-widest">Filters</h2>
+                </div>
+                <button
+                  onClick={() => setShowMobileFilterSheet(false)}
+                  className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-full text-white/40 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto p-5 space-y-8 custom-scrollbar pb-32">
+                
+                {/* Status */}
+                <div>
+                  <span className="text-[10px] font-mono text-white/30 uppercase tracking-[0.2em] font-bold block mb-3">Status</span>
+                  <div className="flex gap-2">
+                    {(['all', 'listed', 'unlisted'] as const).map(f => (
+                      <button
+                        key={f}
+                        onClick={() => setFilter(f)}
+                        className={`flex-1 py-2.5 rounded-xl font-mono text-[11px] font-bold uppercase tracking-[0.1em] transition-all border ${
+                          filter === f
+                            ? 'bg-dream-cyan/15 text-dream-cyan border-dream-cyan/30'
+                            : 'bg-white/[0.03] text-white/40 border-white/[0.06]'
+                        }`}
+                      >
+                        {f}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Sort */}
+                <div>
+                  <span className="text-[10px] font-mono text-white/30 uppercase tracking-[0.2em] font-bold block mb-3">Sort By</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { label: 'Price ↑', value: 'price_asc' },
+                      { label: 'Price ↓', value: 'price_desc' },
+                      { label: 'Rarity', value: 'rarity_asc' },
+                      { label: 'Token ID', value: 'id_asc' },
+                    ].map(opt => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setSort(opt.value as any)}
+                        className={`py-3 rounded-xl font-mono text-[11px] font-bold uppercase tracking-[0.1em] transition-all border ${
+                          sort === opt.value
+                            ? 'bg-dream-cyan/15 text-dream-cyan border-dream-cyan/30'
+                            : 'bg-white/[0.03] text-white/40 border-white/[0.06]'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Traits */}
+                {collectionData && (
+                  <div>
+                    <span className="text-[10px] font-mono text-white/30 uppercase tracking-[0.2em] font-bold block mb-3">Traits</span>
+                    <div className="space-y-2">
+                      {Object.entries(collectionData.traitsIndex)
+                        .filter(([traitType]) => traitType !== 'Trait Count')
+                        .map(([traitType, values]) => {
+                          const isOpen = openTraitSections[traitType] || false;
+                          const selectedValues = traitFilters[traitType] || [];
+                          const sortedValues = Object.entries(values).sort((a, b) => b[1] - a[1]);
+                          return (
+                            <div key={traitType} className="bg-white/[0.02] border border-white/[0.05] rounded-xl overflow-hidden">
+                              <button
+                                onClick={() => setOpenTraitSections(prev => ({ ...prev, [traitType]: !isOpen }))}
+                                className="w-full flex items-center justify-between p-4 text-left cursor-pointer"
+                              >
+                                <span className="text-xs font-mono text-white/70">
+                                  {traitType}
+                                  {selectedValues.length > 0 && (
+                                    <span className="ml-2 text-dream-cyan">({selectedValues.length})</span>
+                                  )}
+                                </span>
+                                {isOpen ? <ChevronUp className="w-4 h-4 text-white/20" /> : <ChevronDown className="w-4 h-4 text-white/20" />}
+                              </button>
+                              {isOpen && (
+                                <div className="p-4 pt-0 flex flex-wrap gap-1.5">
+                                  {sortedValues.map(([value, count]) => {
+                                    const isSelected = selectedValues.includes(value);
+                                    return (
+                                      <button
+                                        key={value}
+                                        onClick={() => toggleTraitFilter(traitType, value)}
+                                        className={`px-3 py-1.5 rounded-lg font-mono text-[10px] transition-all border ${
+                                          isSelected
+                                            ? 'bg-dream-cyan/20 text-dream-cyan border-dream-cyan/40'
+                                            : 'bg-white/[0.04] text-white/40 border-white/[0.06]'
+                                        }`}
+                                      >
+                                        {value} <span className="opacity-30 ml-1">{count}</span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer Actions */}
+              <div className="p-5 border-t border-white/5 bg-[#0a0a0c] flex gap-3">
+                <button
+                  onClick={() => { clearAllFilters(); setShowMobileFilterSheet(false); }}
+                  className="flex-1 py-4 rounded-2xl font-mono text-xs font-bold text-white/40 hover:text-white transition-colors border border-white/5"
+                >
+                  CLEAR ALL
+                </button>
+                <button
+                  onClick={() => setShowMobileFilterSheet(false)}
+                  className="flex-[2] py-4 rounded-2xl font-mono text-xs font-bold bg-dream-cyan text-[#0a0a0c] shadow-lg shadow-dream-cyan/20"
+                >
+                  SHOW RESULTS
+                </button>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
       </>
@@ -2366,6 +2674,7 @@ const StakingPage = () => {
 
 const MintPage = ({ onMintSuccess }: { onMintSuccess: (t: TokenMetadata & { id: number }) => void }) => {
   const { address: walletAddress, isConnected } = useAccount();
+  const { switchChain } = useSwitchChain();
   const { writeContract, data: txHash, isPending: isTxPending, error: txError, reset: resetTx } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
@@ -2431,7 +2740,7 @@ const MintPage = ({ onMintSuccess }: { onMintSuccess: (t: TokenMetadata & { id: 
       <div className="flex justify-between items-center" style={{ marginBottom: 'clamp(1rem, 2vh, 1.5rem)' }}>
         <h2 className="font-bold text-dream-cyan font-sans tracking-tight uppercase" style={{ fontSize: 'clamp(0.8rem, 1.2vw, 1.1rem)' }}>MINT</h2>
         <ConnectButton.Custom>
-          {({ account, chain, openConnectModal, openAccountModal, openChainModal, mounted }) => {
+          {({ account, chain, openConnectModal, openAccountModal, mounted }) => {
             if (!mounted) return null;
             if (!account) return (
               <button onClick={openConnectModal} className="font-mono font-bold tracking-[0.1em] text-dream-cyan border border-dream-cyan/30 bg-dream-cyan/5 hover:bg-dream-cyan/10 transition-colors cursor-pointer" style={{ fontSize: 'clamp(9px, 0.75vw, 11px)', padding: 'clamp(4px, 0.4vh, 6px) clamp(10px, 1vw, 14px)', borderRadius: 'clamp(0.3rem, 0.5vw, 0.5rem)' }}>
@@ -2439,7 +2748,7 @@ const MintPage = ({ onMintSuccess }: { onMintSuccess: (t: TokenMetadata & { id: 
               </button>
             );
             if (chain?.unsupported) return (
-              <button onClick={openChainModal} className="font-mono font-bold tracking-[0.1em] text-red-400 border border-red-400/30 bg-red-400/5 cursor-pointer" style={{ fontSize: 'clamp(9px, 0.75vw, 11px)', padding: 'clamp(4px, 0.4vh, 6px) clamp(10px, 1vw, 14px)', borderRadius: 'clamp(0.3rem, 0.5vw, 0.5rem)' }}>
+              <button onClick={() => switchChain({ chainId: tempoMainnet.id })} className="font-mono font-bold tracking-[0.1em] text-red-400 border border-red-400/30 bg-red-400/5 cursor-pointer" style={{ fontSize: 'clamp(9px, 0.75vw, 11px)', padding: 'clamp(4px, 0.4vh, 6px) clamp(10px, 1vw, 14px)', borderRadius: 'clamp(0.3rem, 0.5vw, 0.5rem)' }}>
                 WRONG NETWORK
               </button>
             );
@@ -2690,7 +2999,6 @@ export default function App() {
               <Route path="/mint" element={<MintPage onMintSuccess={setModalToken} />} />
               <Route path="/profile" element={<ProfilePage onSelectToken={setModalToken} />} />
               <Route path="/profile/:address" element={<ProfilePage onSelectToken={setModalToken} />} />
-
             </Routes>
           </motion.div>
         </AnimatePresence>
