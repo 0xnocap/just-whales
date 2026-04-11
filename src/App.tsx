@@ -1608,7 +1608,7 @@ const { writeContractAsync } = useWriteContract();
       </div>
 
       {/* Sticky Toolbar */}
-      <div className="sticky top-[52px] z-50 bg-[#083344]/95 backdrop-blur-md py-3 -mx-4 px-4 mb-4 border-b border-white/10 flex flex-col md:flex-row items-center gap-2 md:gap-4">
+      <div className="sticky top-[52px] z-50 py-3 -mx-4 px-4 mb-4 flex flex-col md:flex-row items-center gap-2 md:gap-4">
         
         {/* Desktop Toolbar - hidden on mobile */}
         <div className="hidden md:flex items-center gap-4 w-full">
@@ -1810,13 +1810,13 @@ const { writeContractAsync } = useWriteContract();
               )}
             </div>
           ) : (
-            /* Row 2: Activity scrollable chips (Mobile) */
-            <div className="flex gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
+            /* Row 2: Activity chips (Mobile) — each takes equal width, no scroll */
+            <div className="flex gap-1.5">
               {ACTIVITY_FILTERS.map(f => (
                 <button
                   key={f.key}
                   onClick={() => setActivityFilter(f.key)}
-                  className={`px-4 py-2 rounded-lg font-mono text-[9px] font-bold uppercase tracking-[0.15em] transition-all cursor-pointer border whitespace-nowrap ${
+                  className={`flex-1 py-2 rounded-lg font-mono text-[9px] font-bold uppercase tracking-[0.15em] transition-all cursor-pointer border ${
                     activityFilter === f.key
                       ? 'bg-dream-cyan/15 text-dream-cyan border-dream-cyan/30'
                       : 'bg-white/[0.03] text-white/30 border-white/[0.06]'
