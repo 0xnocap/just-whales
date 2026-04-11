@@ -1863,7 +1863,7 @@ const { writeContractAsync } = useWriteContract();
           <SweepBar
             selectedListings={sweepSelected}
             onRemove={(id) => setSweepSelected(prev => prev.filter(s => String(s.id) !== String(id)))}
-            onClearAll={() => { setSweepSelected([]); setSweepResult(null); }}
+            onClearAll={() => { setSweepSelected([]); setSweepResult(null); setSweepMode(false); onSweepModeChange?.(false); }}
             isSweeping={isSweeping}
             sweepResult={sweepResult}
             onSweep={async () => {
