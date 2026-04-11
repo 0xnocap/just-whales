@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Home, Coins, Search, Sparkles, Minus, Plus, Loader2, X, ArrowLeftRight, ChevronLeft, ExternalLink, Copy, Check, User, Clock, Tag, ArrowUpRight, ArrowDownLeft, Grid3X3, List, Filter, ChevronDown, ChevronUp, Star, Zap, ShoppingCart, Trash2, Activity, ArrowRight } from 'lucide-react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useWatchContractEvent } from 'wagmi';
 import {
   readTotalSupply, readMaxSupply, readMintPrice,
   readIsPublicMintActive, readMaxPerAddress,
@@ -1251,66 +1251,44 @@ const { writeContractAsync } = useWriteContract();
 
   useEffect(() => { fetchData(); }, [isConnected, address]);
 
-  // Poll listings every 30s to stay fresh without full page reload
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetch('/api/collection/listings')
-        .then(r => r.json())
-        .then(data => {
-          if (!Array.isArray(data)) return;
-          const now = BigInt(Math.floor(Date.now() / 1000));
-          const active = data.map((l: any) => {
-            try {
-              if (l.expires_at === '0' || now <= BigInt(l.expires_at)) {
-                const metadata = l.metadata || { name: `Token #${l.token_id}`, attributes: [], image_data: '' };
-                return {
-                  ...l,
-                  tokenId: BigInt(Math.floor(Number(l.token_id))),
-                  price: BigInt(Math.floor(Number(l.price))),
-                  expiresAt: BigInt(Math.floor(Number(l.expires_at))),
-                  id: BigInt(Math.floor(Number(l.listing_id))),
-                  metadata,
-                };
-              }
-            } catch {}
-            return null;
-          }).filter(Boolean);
-          setListings(active);
-        })
-        .catch(() => {});
-    }, 30000);
-    return () => clearInterval(interval);
+  // Re-fetch listings from DB. Called by event watchers after a small delay for Goldsky indexer lag.
+  const refreshListings = useCallback(() => {
+    fetch('/api/collection/listings')
+      .then(r => r.json())
+      .then(data => {
+        if (!Array.isArray(data)) return;
+        const now = BigInt(Math.floor(Date.now() / 1000));
+        const active = data.map((l: any) => {
+          try {
+            if (l.expires_at === '0' || now <= BigInt(l.expires_at)) {
+              const metadata = l.metadata || { name: `Token #${l.token_id}`, attributes: [], image_data: '' };
+              return {
+                ...l,
+                tokenId: BigInt(Math.floor(Number(l.token_id))),
+                price: BigInt(Math.floor(Number(l.price))),
+                expiresAt: BigInt(Math.floor(Number(l.expires_at))),
+                id: BigInt(Math.floor(Number(l.listing_id))),
+                metadata,
+              };
+            }
+          } catch {}
+          return null;
+        }).filter(Boolean);
+        setListings(active);
+      })
+      .catch(() => {});
   }, []);
 
-  // Optimistically remove a purchased listing, then re-sync from DB after indexer catches up
+  // Watch marketplace contract events and re-sync listings when anything changes.
+  // 3s delay gives the Goldsky indexer time to write the event to the DB.
+  useWatchContractEvent({ address: marketplaceAddress as `0x${string}`, abi: marketplaceAbi, eventName: 'Listed',    onLogs: () => setTimeout(refreshListings, 3000) });
+  useWatchContractEvent({ address: marketplaceAddress as `0x${string}`, abi: marketplaceAbi, eventName: 'Sale',      onLogs: () => setTimeout(refreshListings, 3000) });
+  useWatchContractEvent({ address: marketplaceAddress as `0x${string}`, abi: marketplaceAbi, eventName: 'Cancelled', onLogs: () => setTimeout(refreshListings, 3000) });
+
+  // Optimistically remove a purchased listing from the UI immediately.
+  // The Sale event watcher above handles the DB re-sync once the indexer catches up.
   const handleBuySuccess = useCallback((listingId: bigint | string) => {
     setListings(prev => prev.filter(l => String(l.id) !== String(listingId)));
-    setTimeout(() => {
-      fetch('/api/collection/listings')
-        .then(r => r.json())
-        .then(data => {
-          if (!Array.isArray(data)) return;
-          const now = BigInt(Math.floor(Date.now() / 1000));
-          const active = data.map((l: any) => {
-            try {
-              if (l.expires_at === '0' || now <= BigInt(l.expires_at)) {
-                const metadata = l.metadata || { name: `Token #${l.token_id}`, attributes: [], image_data: '' };
-                return {
-                  ...l,
-                  tokenId: BigInt(Math.floor(Number(l.token_id))),
-                  price: BigInt(Math.floor(Number(l.price))),
-                  expiresAt: BigInt(Math.floor(Number(l.expires_at))),
-                  id: BigInt(Math.floor(Number(l.listing_id))),
-                  metadata,
-                };
-              }
-            } catch {}
-            return null;
-          }).filter(Boolean);
-          setListings(active);
-        })
-        .catch(() => {});
-    }, 5000);
   }, []);
 
   // Load collection data (traits index + rarity)
