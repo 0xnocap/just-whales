@@ -675,14 +675,16 @@ const NFTCard = ({ token, isListed, listing, isOwner, isSeller, tokenOwner, rari
     return () => clearTimeout(timer);
   }, [hasBeenSeen, isTimerDone]);
 
-  // Rasterize on first load, use cache on re-visit
+  // Rasterize in background for scroll-back cache (non-blocking)
   useEffect(() => {
-    if (rasterSrc) return; // already cached
+    if (rasterSrc) return;
     if (!token.image_data) return;
     rasterizeImage(token.image_data, token.id).then(setRasterSrc);
   }, [token.image_data, token.id, rasterSrc]);
 
-  const isReady = !!rasterSrc && isTimerDone;
+  // Show card when timer is done — use cached raster if available, otherwise original data URI
+  const isReady = isTimerDone && !!token.image_data;
+  const displaySrc = rasterSrc || token.image_data;
 
   if (!isReady) {
     return (
@@ -701,7 +703,7 @@ const NFTCard = ({ token, isListed, listing, isOwner, isSeller, tokenOwner, rari
       <div className="flex flex-col h-full rounded-xl overflow-hidden bg-[#111113] hover:bg-[#1a1a1c] transition-colors duration-300">
         <div className="relative w-full pb-[100%] overflow-hidden flex-shrink-0 bg-white/[0.02]">
           <img
-            src={rasterSrc}
+            src={displaySrc}
             alt={token.name}
             loading="lazy"
             className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
