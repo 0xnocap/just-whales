@@ -61,25 +61,29 @@ function apiMiddleware() {
           }
 
           // --- /api/collection/listings ---
-          if (req.url === '/api/collection/listings') {
+          if (req.url === '/api/collection/listings' || req.url.startsWith('/api/collection/listings?')) {
             res.setHeader('Content-Type', 'application/json');
+            const sellerParam = req.url.match(/[?&]seller=([^&]+)/)?.[1]?.toLowerCase() || null;
             const result = await db.query(`
-              SELECT 
-                l.listing_id, 
-                l.seller, 
-                l.nft_contract, 
-                l.token_id::int as token_id, 
-                l.price::numeric as price, 
-                l.expires_at::numeric as expires_at,
-                l.transaction_hash,
-                l.timestamp::bigint as timestamp,
-                t.metadata
-              FROM listed l
-              LEFT JOIN tokens t ON l.token_id::numeric = t.token_id::numeric
-              WHERE l.listing_id NOT IN (SELECT listing_id FROM sales)
-                AND l.listing_id NOT IN (SELECT listing_id FROM canceled)
-              ORDER BY l.price ASC
-            `);
+              WITH latest_listings AS (
+                SELECT DISTINCT ON (l.token_id)
+                  l.listing_id, l.seller, l.nft_contract,
+                  l.token_id::int as token_id,
+                  l.price::numeric as price,
+                  l.expires_at::numeric as expires_at,
+                  l.transaction_hash,
+                  l.timestamp::bigint as timestamp,
+                  t.metadata
+                FROM listed l
+                LEFT JOIN tokens t ON l.token_id::numeric = t.token_id::numeric
+                ORDER BY l.token_id, l.timestamp DESC
+              )
+              SELECT * FROM latest_listings
+              WHERE listing_id NOT IN (SELECT listing_id FROM sales)
+                AND listing_id NOT IN (SELECT listing_id FROM canceled)
+                ${sellerParam ? 'AND LOWER(seller) = $1' : ''}
+              ORDER BY price ASC
+            `, sellerParam ? [sellerParam] : []);
             res.end(JSON.stringify(result.rows));
             return;
           }
@@ -158,7 +162,7 @@ function apiMiddleware() {
               SELECT "from", "to", transaction_hash, timestamp::bigint as timestamp, block_number::bigint as block_number
               FROM transfers
               WHERE token_id = $1
-              ORDER BY block_number ASC
+              ORDER BY block_number DESC, vid DESC
             `, [tokenId]);
             res.end(JSON.stringify(result.rows));
             return;
@@ -168,17 +172,23 @@ function apiMiddleware() {
           if (req.url === '/api/activity') {
             res.setHeader('Content-Type', 'application/json');
             const result = await db.query(`
-              SELECT 'transfer' as type, token_id::int as token_id, "from", "to", NULL as price, transaction_hash, timestamp::bigint as timestamp, block_number::bigint as block_number FROM transfers WHERE "from" != '0x0000000000000000000000000000000000000000'
-              UNION ALL
-              SELECT 'mint' as type, token_id::int as token_id, "from", "to", NULL as price, transaction_hash, timestamp::bigint as timestamp, block_number::bigint as block_number FROM transfers WHERE "from" = '0x0000000000000000000000000000000000000000'
-              UNION ALL
-              SELECT 'sale' as type, token_id::int as token_id, seller as "from", buyer as "to", price::numeric as price, transaction_hash, timestamp::bigint as timestamp, block_number::bigint as block_number FROM sales
-              UNION ALL
-              SELECT 'list' as type, token_id::int as token_id, seller as "from", NULL as "to", price::numeric as price, transaction_hash, timestamp::bigint as timestamp, block_number::bigint as block_number FROM listed
-              UNION ALL
-              SELECT 'cancel' as type, token_id::int as token_id, seller as "from", NULL as "to", NULL as price, transaction_hash, timestamp::bigint as timestamp, block_number::bigint as block_number FROM canceled
-              ORDER BY timestamp DESC
-              LIMIT 50
+              SELECT a.*, tok.metadata->>'image_data' as image_data
+              FROM (
+                SELECT 'transfer' as type, token_id::int as token_id, "from"::text, "to"::text, NULL::numeric as price, transaction_hash::text, timestamp::bigint as timestamp, block_number::bigint as block_number
+                FROM transfers WHERE "from" != '0x0000000000000000000000000000000000000000'
+                UNION ALL
+                SELECT 'sale' as type, token_id::int as token_id, seller::text as "from", buyer::text as "to", price::numeric as price, transaction_hash::text, timestamp::bigint as timestamp, block_number::bigint as block_number
+                FROM sales
+                UNION ALL
+                SELECT 'list' as type, token_id::int as token_id, seller::text as "from", NULL::text as "to", price::numeric as price, transaction_hash::text, timestamp::bigint as timestamp, block_number::bigint as block_number
+                FROM listed
+                UNION ALL
+                SELECT 'cancel' as type, l.token_id::int as token_id, l.seller::text as "from", NULL::text as "to", NULL::numeric as price, c.transaction_hash::text, c.timestamp::bigint as timestamp, c.block_number::bigint as block_number
+                FROM canceled c LEFT JOIN listed l ON c.listing_id::numeric = l.listing_id::numeric
+                ORDER BY block_number DESC
+                LIMIT 100
+              ) a
+              LEFT JOIN tokens tok ON a.token_id = tok.token_id::int
             `);
             res.end(JSON.stringify(result.rows));
             return;
