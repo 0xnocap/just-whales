@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAccount, useWatchContractEvent } from 'wagmi';
 import { formatUnits } from 'viem';
 import {
@@ -12,7 +12,7 @@ import type { CollectionData, ActivityFilterKey } from '../types';
 export function useCollectionData() {
   const { isConnected, address } = useAccount();
   const [tokens, setTokens] = useState<any[]>([]);
-  const [listings, setListings] = useState<any[]>([]);
+  const [rawListings, setListings] = useState<any[]>([]);
   const [ownerMap, setOwnerMap] = useState<Record<string, string>>({});
   const [totalMinted, setTotalMinted] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -263,6 +263,17 @@ export function useCollectionData() {
     setFilteredPage(prev => prev + 1);
     setLoadingFiltered(false);
   }, [filteredPage, filteredMatchIds, loadingFiltered, loadSpecificIds]);
+
+  // Filter out stale listings where the seller no longer owns the NFT.
+  // ownerMap is populated from the DB (which tracks all Transfer events),
+  // so if a seller transferred their NFT after listing, ownerMap will reflect the new owner.
+  const listings = useMemo(() => {
+    if (Object.keys(ownerMap).length === 0) return rawListings;
+    return rawListings.filter(l => {
+      const currentOwner = ownerMap[Number(l.tokenId)];
+      return !currentOwner || currentOwner.toLowerCase() === l.seller.toLowerCase();
+    });
+  }, [rawListings, ownerMap]);
 
   return {
     tokens, listings, ownerMap, collectionStats, totalMinted, loading, fetchData,

@@ -8,7 +8,7 @@ import {
   contractAddress, contractAbi,
   marketplaceAddress, marketplaceAbi,
   pathUSDAddress, pathUSDAbi,
-  readPathUSDAllowance, readIsApprovedForAll,
+  readPathUSDAllowance, readIsApprovedForAll, readOwnerOf,
   waitForTransaction,
 } from '../contract';
 import type { ModalTokenProps } from '../types';
@@ -63,6 +63,14 @@ const TokenModal: React.FC<TokenModalProps> = ({ token, onClose }) => {
     setStatus('approving');
     setErrorMsg('');
     try {
+      // Pre-flight: verify the seller still owns the NFT before attempting buy
+      const currentOwner = await readOwnerOf(BigInt(token.id)).catch(() => null);
+      if (currentOwner && currentOwner.toLowerCase() !== token.listingData.seller.toLowerCase()) {
+        setErrorMsg('This listing is no longer available — the seller has transferred this NFT');
+        setStatus('idle');
+        return;
+      }
+
       const price = token.listingData.price;
       const allowance = await readPathUSDAllowance(address, marketplaceAddress);
       if (allowance < price) {
@@ -87,7 +95,13 @@ const TokenModal: React.FC<TokenModalProps> = ({ token, onClose }) => {
       setTimeout(onClose, 2000);
     } catch (err: any) {
       console.error(err);
-      setErrorMsg(err.shortMessage || err.message || 'Transaction failed');
+      // Translate chain-level gas errors into user-friendly messages
+      const msg: string = err.shortMessage || err.message || '';
+      if (msg.includes('gas limit too high') || msg.includes('gas limit')) {
+        setErrorMsg('This listing is no longer purchasable — it may have been sold or cancelled');
+      } else {
+        setErrorMsg(msg || 'Transaction failed');
+      }
       setStatus('idle');
     }
   };

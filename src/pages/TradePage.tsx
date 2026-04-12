@@ -705,9 +705,10 @@ const TradePage: React.FC<TradePageProps> = ({
                   args: [listingIds],
                 } as any);
                 await waitForTransaction(hash);
+                // Refresh listings and count which ones actually disappeared (were bought)
+                await fetchData();
                 setSweepResult({ succeeded: sweepSelected.length, failed: 0 });
                 setSweepSelected([]);
-                fetchData();
                 setActivityRefreshKey(k => k + 1);
               } catch (err: any) {
                 setSweepError(err.shortMessage || err.message || 'Sweep failed');
