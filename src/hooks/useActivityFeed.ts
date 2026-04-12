@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { api } from '../lib/api';
 import type { ActivityFilterKey } from '../types';
 
+const POLL_INTERVAL = 15_000; // 15 seconds
+
 export function useActivityFeed(externalFilter?: ActivityFilterKey, onFilterChange?: (f: ActivityFilterKey) => void, refreshKey?: number) {
   const [activity, setActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -11,16 +13,25 @@ export function useActivityFeed(externalFilter?: ActivityFilterKey, onFilterChan
   const setFilter = onFilterChange ?? setInternalFilter;
 
   const fetchActivity = useCallback(() => {
+    api.activity()
+      .then(data => setActivity(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, []);
+
+  // Initial fetch with loading state
+  useEffect(() => {
     setLoading(true);
     api.activity()
       .then(data => setActivity(Array.isArray(data) ? data : []))
-      .catch(() => setActivity([]))
+      .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [refreshKey]);
 
+  // Poll for new activity
   useEffect(() => {
-    fetchActivity();
-  }, [fetchActivity, refreshKey]);
+    const id = setInterval(fetchActivity, POLL_INTERVAL);
+    return () => clearInterval(id);
+  }, [fetchActivity]);
 
   const filtered = filter === 'all' ? activity : activity.filter(i => i.type === filter);
 
