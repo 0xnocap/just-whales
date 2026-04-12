@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useWatchContractEvent } from 'wagmi';
 import { api } from '../lib/api';
+import { marketplaceAddress, marketplaceAbi } from '../contract';
 import type { ActivityFilterKey } from '../types';
 
-const POLL_INTERVAL = 15_000; // 15 seconds
+const POLL_INTERVAL = 30_000; // 30s fallback poll
 
 export function useActivityFeed(externalFilter?: ActivityFilterKey, onFilterChange?: (f: ActivityFilterKey) => void, refreshKey?: number) {
   const [activity, setActivity] = useState<any[]>([]);
@@ -18,7 +20,7 @@ export function useActivityFeed(externalFilter?: ActivityFilterKey, onFilterChan
       .catch(() => {});
   }, []);
 
-  // Initial fetch with loading state
+  // Initial load
   useEffect(() => {
     setLoading(true);
     api.activity()
@@ -27,11 +29,55 @@ export function useActivityFeed(externalFilter?: ActivityFilterKey, onFilterChan
       .finally(() => setLoading(false));
   }, [refreshKey]);
 
-  // Poll for new activity
+  // Fallback poll — keeps cancelled/transfer events eventually consistent
   useEffect(() => {
     const id = setInterval(fetchActivity, POLL_INTERVAL);
     return () => clearInterval(id);
   }, [fetchActivity]);
+
+  // Real-time: prepend Sale events instantly
+  useWatchContractEvent({
+    address: marketplaceAddress,
+    abi: marketplaceAbi,
+    eventName: 'Sale',
+    onLogs: (logs) => {
+      const newItems = logs.map((log: any) => ({
+        type: 'sale',
+        token_id: Number(log.args?.tokenId ?? 0),
+        from: log.args?.seller ?? '',
+        to: log.args?.buyer ?? '',
+        price: log.args?.price != null ? Number(log.args.price) : null,
+        timestamp: Math.floor(Date.now() / 1000),
+        transaction_hash: log.transactionHash,
+        image_data: null,
+      }));
+      if (newItems.length > 0) {
+        setActivity(prev => [...newItems, ...prev]);
+      }
+    },
+  });
+
+  // Real-time: prepend Listed events instantly
+  useWatchContractEvent({
+    address: marketplaceAddress,
+    abi: marketplaceAbi,
+    eventName: 'Listed',
+    onLogs: (logs) => {
+      const newItems = logs.map((log: any) => ({
+        type: 'list',
+        token_id: Number(log.args?.tokenId ?? 0),
+        from: log.args?.seller ?? '',
+        to: null,
+        price: log.args?.price != null ? Number(log.args.price) : null,
+        timestamp: Math.floor(Date.now() / 1000),
+        transaction_hash: log.transactionHash,
+        image_data: null,
+      }));
+      if (newItems.length > 0) {
+        setActivity(prev => [...newItems, ...prev]);
+      }
+    },
+  });
 
   const filtered = filter === 'all' ? activity : activity.filter(i => i.type === filter);
 
