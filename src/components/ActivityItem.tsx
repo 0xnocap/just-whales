@@ -20,10 +20,11 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ item }) => {
     <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] transition-all">
       {/* Token image */}
       <div className="w-8 h-8 rounded-md bg-white/[0.04] flex-shrink-0 overflow-hidden border border-white/[0.08]" style={{ imageRendering: 'pixelated' }}>
-        {item.image_data
-          ? <img src={item.image_data} className="w-full h-full object-cover" style={{ imageRendering: 'pixelated' }} />
-          : <span className="w-full h-full flex items-center justify-center text-[8px] font-mono text-white/20">#{item.token_id}</span>
-        }
+        <img
+          src={item.image_data || '/collections/whale-town/collection_image.png'}
+          className="w-full h-full object-cover"
+          style={{ imageRendering: 'pixelated' }}
+        />
       </div>
       {/* Content */}
       <div className="flex-1 min-w-0">
