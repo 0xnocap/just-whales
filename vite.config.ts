@@ -238,6 +238,8 @@ export default defineConfig(({mode}) => {
     plugins: [react(), tailwindcss(), apiMiddleware()],
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+      'process.env.ALCHEMY_TEMPO_RPC': JSON.stringify(env.ALCHEMY_TEMPO_RPC || ''),
+      'process.env.ALCHEMY_TEMPO_WEBSOCKET': JSON.stringify(env.ALCHEMY__TEMPO_WEBSOCKET || ''),
     },
     resolve: {
       alias: {
