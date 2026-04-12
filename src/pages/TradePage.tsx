@@ -139,7 +139,7 @@ const TradePage: React.FC<TradePageProps> = ({
   return (
     <div className="w-full" style={{ maxWidth: '100%' }}>
       {/* Collection Banner */}
-      <div className="relative rounded-2xl overflow-hidden mb-3" style={{ minHeight: 'clamp(130px, 20vw, 240px)' }}>
+      <div className="relative rounded-2xl overflow-hidden mb-2" style={{ minHeight: 'clamp(130px, 20vw, 240px)' }}>
         <div className="absolute inset-0 bg-gradient-to-br from-[#0c4a6e] via-[#083344] to-[#1e1b4b]" />
         <div className="absolute top-4 right-8 text-4xl opacity-[0.07]">🐋</div>
         <div className="absolute bottom-16 right-24 text-2xl opacity-[0.05] hidden md:block">🦈</div>
@@ -249,7 +249,7 @@ const TradePage: React.FC<TradePageProps> = ({
       </div>
 
       {/* Sticky Toolbar */}
-      <div className="sticky top-[52px] z-50 pt-2 pb-0 -mx-4 px-4 mb-2 flex flex-col md:flex-row items-center gap-2 md:gap-4">
+      <div className="sticky top-[52px] z-50 py-0 -mx-4 px-4 mb-2 flex flex-col md:flex-row items-center gap-2 md:gap-4">
         <div className="hidden md:flex items-center gap-4 w-full">
           <div className="flex gap-1 bg-white/[0.03] border border-white/[0.06] rounded-xl p-1 shrink-0">
             {(['items', 'activity'] as const).map(tab => (
