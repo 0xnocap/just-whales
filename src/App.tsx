@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Home, Coins, User, ArrowLeftRight, ChevronLeft } from 'lucide-react';
+import { Home, Coins, User, ArrowLeftRight } from 'lucide-react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount } from 'wagmi';
-import { Routes, Route, useNavigate, useLocation, Link, Navigate } from 'react-router-dom';
+import { Routes, Route, useLocation, Link, Navigate } from 'react-router-dom';
 
 import type { ModalTokenProps } from './types';
 import DreamwaveOcean from './components/DreamwaveOcean';
@@ -20,7 +20,6 @@ export default function App() {
   const [sweepModeActive, setSweepModeActive] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
   const { isConnected, address } = useAccount();
 
   return (
@@ -56,18 +55,6 @@ export default function App() {
             className="w-full flex flex-col items-center"
             style={{ maxWidth: location.pathname === '/trade' || location.pathname.startsWith('/profile') ? 'clamp(32rem, 80vw, 72rem)' : 'clamp(28rem, 65vw, 52rem)' }}
           >
-            {/* Back button */}
-            {location.pathname !== '/' && !location.pathname.startsWith('/trade') && (
-              <div className="w-full flex" style={{ marginBottom: 'clamp(0.4rem, 0.8vh, 0.6rem)' }}>
-                <button
-                  onClick={() => navigate(-1)}
-                  className="flex items-center justify-center bg-white/5 border border-white/10 rounded-full text-dream-cyan hover:bg-white/10 transition-all cursor-pointer group backdrop-blur-xl"
-                  style={{ width: 'clamp(1.75rem, 2.5vw, 2.25rem)', height: 'clamp(1.75rem, 2.5vw, 2.25rem)' }}
-                >
-                  <ChevronLeft className="group-hover:-translate-x-0.5 transition-transform" style={{ width: 'clamp(0.7rem, 1vw, 0.9rem)', height: 'clamp(0.7rem, 1vw, 0.9rem)' }} />
-                </button>
-              </div>
-            )}
             <Routes location={location}>
               <Route path="/" element={<HomePage />} />
               <Route path="/staking" element={<StakingPage />} />
