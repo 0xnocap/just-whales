@@ -19,6 +19,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const ownerMap: Record<string, string> = {};
     result.rows.forEach((r: any) => { ownerMap[r.token_id] = r.owner; });
     
+    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120');
     res.status(200).json(ownerMap);
   } catch (err: any) {
     console.error('API error:', err);

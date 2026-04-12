@@ -23,6 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       `)
     ]);
 
+    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=180');
     res.status(200).json({
       holders: Number(holdersResult.rows[0].holders),
       totalMinted: Number(mintedResult.rows[0].minted),

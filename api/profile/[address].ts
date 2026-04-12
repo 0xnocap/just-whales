@@ -32,6 +32,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       LIMIT 50
     `, [cleanAddress]);
 
+    res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
     res.status(200).json({
       address: cleanAddress,
       ownedTokenIds: result.rows.map((r: any) => r.token_id),

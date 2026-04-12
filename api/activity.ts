@@ -23,6 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ) a
       LEFT JOIN tokens tok ON a.token_id = tok.token_id::int
     `);
+    res.setHeader('Cache-Control', 'public, s-maxage=15, stale-while-revalidate=30');
     res.status(200).json(result.rows);
   } catch (err: any) {
     console.error('API error:', err);

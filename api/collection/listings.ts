@@ -32,7 +32,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ORDER BY price ASC
     `, seller ? [seller] : []);
 
-    res.status(200).json(result.rows);
+    const rows = result.rows.map((r: any) => {
+      if (r.metadata) {
+        const { image_data, ...rest } = r.metadata;
+        return { ...r, metadata: rest };
+      }
+      return r;
+    });
+
+    res.setHeader('Cache-Control', 'public, s-maxage=20, stale-while-revalidate=60');
+    res.status(200).json(rows);
   } catch (err: any) {
     console.error('API error:', err);
     res.status(500).json({ error: err.message });

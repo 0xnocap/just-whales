@@ -105,10 +105,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSelectToken }) => {
 
         if (Array.isArray(listingsData)) {
           const now = BigInt(Math.floor(Date.now() / 1000));
-          const active = listingsData.map((l: any) => {
+          const active = (listingsData as any[]).map((l: any) => {
             try {
               if (l.expires_at === '0' || now <= BigInt(l.expires_at)) {
-                const metadata = l.metadata || { name: `Token #${l.token_id}`, attributes: [], image_data: '' };
+                const metadata = l.metadata || { name: `Token #${l.token_id}`, attributes: [] };
                 return {
                   ...l,
                   tokenId: BigInt(Math.floor(Number(l.token_id))),
@@ -121,6 +121,19 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSelectToken }) => {
             } catch { return null; }
             return null;
           }).filter(Boolean);
+
+          // Backfill image_data for listings
+          const listedIds = (active as any[]).map((l: any) => Number(l.token_id));
+          if (listedIds.length > 0) {
+            const metadataMap = await api.metadata(listedIds);
+            (active as any[]).forEach((l: any) => {
+              const meta = metadataMap[Number(l.token_id)];
+              if (meta?.image_data && l.metadata) {
+                l.metadata = { ...l.metadata, image_data: meta.image_data };
+              }
+            });
+          }
+
           setListings(active);
         }
       } catch (err) {

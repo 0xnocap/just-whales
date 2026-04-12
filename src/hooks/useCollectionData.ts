@@ -90,13 +90,13 @@ export function useCollectionData() {
     fetchOwners.then(data => setOwnerMap(data));
     fetchStats.then(data => setCollectionStats(data));
 
-    const listingsPromise = fetchListings.then(data => {
+    const listingsPromise = fetchListings.then(async (data) => {
       if (!Array.isArray(data)) return [];
+      const now = BigInt(Math.floor(Date.now() / 1000));
       const activeListings = data.map((l: any) => {
         try {
-           const now = BigInt(Math.floor(Date.now() / 1000));
            if (l.expires_at === '0' || now <= BigInt(l.expires_at)) {
-             const metadata = l.metadata || { name: `Token #${l.token_id}`, attributes: [], image_data: '' };
+             const metadata = l.metadata || { name: `Token #${l.token_id}`, attributes: [] };
              return { 
                ...l, 
                tokenId: BigInt(Math.floor(Number(l.token_id))), 
@@ -109,6 +109,20 @@ export function useCollectionData() {
         } catch {}
         return null;
       }).filter(Boolean);
+
+      // Backfill image_data from 24h-cached metadata endpoint BEFORE setting state.
+      // This avoids a flash of missing images on listed tokens.
+      const listedIds = activeListings.map((l: any) => Number(l.tokenId));
+      if (listedIds.length > 0) {
+        const metadataMap = await fetchMetadataBatched(listedIds);
+        activeListings.forEach((l: any) => {
+          const meta = metadataMap[Number(l.tokenId)];
+          if (meta?.image_data && l.metadata) {
+            l.metadata = { ...l.metadata, image_data: meta.image_data };
+          }
+        });
+      }
+
       setListings(activeListings);
       return activeListings;
     });
@@ -127,30 +141,42 @@ export function useCollectionData() {
 
   useEffect(() => { fetchData(); }, [isConnected, address]);
 
-  const refreshListings = useCallback(() => {
-    api.listings()
-      .then(data => {
-        if (!Array.isArray(data)) return;
-        const now = BigInt(Math.floor(Date.now() / 1000));
-        const active = data.map((l: any) => {
-          try {
-            if (l.expires_at === '0' || now <= BigInt(l.expires_at)) {
-              const metadata = l.metadata || { name: `Token #${l.token_id}`, attributes: [], image_data: '' };
-              return {
-                ...l,
-                tokenId: BigInt(Math.floor(Number(l.token_id))),
-                price: BigInt(Math.floor(Number(l.price))),
-                expiresAt: BigInt(Math.floor(Number(l.expires_at))),
-                id: BigInt(Math.floor(Number(l.listing_id))),
-                metadata,
-              };
-            }
-          } catch {}
-          return null;
-        }).filter(Boolean);
-        setListings(active);
-      })
-      .catch(() => {});
+  const refreshListings = useCallback(async () => {
+    try {
+      const data = await api.listings();
+      if (!Array.isArray(data)) return;
+      const now = BigInt(Math.floor(Date.now() / 1000));
+      const active = data.map((l: any) => {
+        try {
+          if (l.expires_at === '0' || now <= BigInt(l.expires_at)) {
+            const metadata = l.metadata || { name: `Token #${l.token_id}`, attributes: [] };
+            return {
+              ...l,
+              tokenId: BigInt(Math.floor(Number(l.token_id))),
+              price: BigInt(Math.floor(Number(l.price))),
+              expiresAt: BigInt(Math.floor(Number(l.expires_at))),
+              id: BigInt(Math.floor(Number(l.listing_id))),
+              metadata,
+            };
+          }
+        } catch {}
+        return null;
+      }).filter(Boolean);
+
+      // Backfill image_data before setting state
+      const listedIds = active.map((l: any) => Number(l.tokenId));
+      if (listedIds.length > 0) {
+        const metadataMap = await fetchMetadataBatched(listedIds);
+        active.forEach((l: any) => {
+          const meta = metadataMap[Number(l.tokenId)];
+          if (meta?.image_data && l.metadata) {
+            l.metadata = { ...l.metadata, image_data: meta.image_data };
+          }
+        });
+      }
+
+      setListings(active);
+    } catch {}
   }, []);
 
   useWatchContractEvent({
