@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Loader2, User, Sparkles, ArrowUpRight, ArrowDownLeft, Clock } from 'lucide-react';
+import { Loader2, User, Sparkles, ArrowUpRight, ArrowDownLeft, Clock, Search } from 'lucide-react';
 import { useAccount, useReadContract } from 'wagmi';
 import { useParams } from 'react-router-dom';
 import { formatUnits } from 'viem';
@@ -27,6 +27,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSelectToken }) => {
   const [activity, setActivity] = useState<any[]>([]);
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [profileSearch, setProfileSearch] = useState('');
+  const [profileSort, setProfileSort] = useState<'id_asc' | 'id_desc'>('id_asc');
 
   // Infinite scroll state
   const BATCH = 20;
@@ -163,6 +165,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSelectToken }) => {
     return () => observer.disconnect();
   }, [tab, nextLoadIndex, ownedTokenIds]);
 
+  const filteredOwned = ownedTokens
+    .filter(t => !profileSearch || t.name?.toLowerCase().includes(profileSearch.toLowerCase()) || String(t.id).includes(profileSearch))
+    .sort((a, b) => profileSort === 'id_asc' ? a.id - b.id : b.id - a.id);
+
+  const filteredListings = listings
+    .filter(l => !profileSearch || l.metadata?.name?.toLowerCase().includes(profileSearch.toLowerCase()) || String(Number(l.tokenId)).includes(profileSearch))
+    .sort((a, b) => profileSort === 'id_asc' ? Number(a.tokenId) - Number(b.tokenId) : Number(b.tokenId) - Number(a.tokenId));
+
   if (!profileAddress) {
     return (
       <div className="text-center py-20">
@@ -217,6 +227,40 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSelectToken }) => {
         ))}
       </div>
 
+      {/* Search + Sort toolbar — shown when collected or listed tab is active */}
+      {!loading && (tab === 'collected' || tab === 'listed') && (
+        <div className="flex items-center gap-2 mb-3">
+          <div className="relative flex-1">
+            <Search className="absolute top-1/2 -translate-y-1/2 left-3 w-3.5 h-3.5 text-white/20" />
+            <input
+              type="text"
+              placeholder="Search by name or ID..."
+              value={profileSearch}
+              onChange={e => setProfileSearch(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 bg-white/[0.03] border border-white/[0.06] rounded-lg font-mono text-[11px] text-white placeholder:text-white/20 focus:border-dream-cyan/30 outline-none transition-all"
+            />
+          </div>
+          <div className="flex gap-0.5 bg-white/[0.03] border border-white/[0.06] rounded-lg p-0.5 shrink-0">
+            {([
+              { value: 'id_asc', label: 'ID ↑' },
+              { value: 'id_desc', label: 'ID ↓' },
+            ] as const).map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => setProfileSort(opt.value)}
+                className={`px-3 py-1.5 rounded-md font-mono text-[10px] font-bold uppercase tracking-[0.1em] transition-all cursor-pointer ${
+                  profileSort === opt.value
+                    ? 'bg-dream-cyan/15 text-dream-cyan'
+                    : 'text-white/30 hover:text-white/60'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex justify-center py-20">
           <Loader2 className="animate-spin text-dream-cyan w-8 h-8" />
@@ -229,10 +273,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSelectToken }) => {
               <div className="text-center py-16 border border-dashed border-white/[0.06] rounded-2xl">
                 <p className="font-mono text-white/20 text-[11px] tracking-widest">NO ITEMS</p>
               </div>
+            ) : filteredOwned.length === 0 ? (
+              <div className="text-center py-16 border border-dashed border-white/[0.06] rounded-2xl">
+                <p className="font-mono text-white/20 text-[11px] tracking-widest">NO RESULTS</p>
+              </div>
             ) : (
               <div className="w-full">
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
-                  {ownedTokens.map(token => {
+                  {filteredOwned.map(token => {
                     const isListed = listings.some(l => Number(l.tokenId) === token.id);
                     const listing = listings.find(l => Number(l.tokenId) === token.id);
                     return (
@@ -287,9 +335,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSelectToken }) => {
               <div className="text-center py-16 border border-dashed border-white/[0.06] rounded-2xl">
                 <p className="font-mono text-white/20 text-[11px] tracking-widest">NO ACTIVE LISTINGS</p>
               </div>
+            ) : filteredListings.length === 0 ? (
+              <div className="text-center py-16 border border-dashed border-white/[0.06] rounded-2xl">
+                <p className="font-mono text-white/20 text-[11px] tracking-widest">NO RESULTS</p>
+              </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
-                {listings.map(listing => (
+                {filteredListings.map(listing => (
                   <motion.div
                     key={`l-${listing.id}`}
                     className="group cursor-pointer rounded-xl overflow-hidden bg-[#111113] border border-white/[0.04] hover:border-white/[0.12] transition-all duration-300"

@@ -139,7 +139,7 @@ const TradePage: React.FC<TradePageProps> = ({
   return (
     <div className="w-full" style={{ maxWidth: '100%' }}>
       {/* Collection Banner */}
-      <div className="relative rounded-2xl overflow-hidden mb-6" style={{ minHeight: 'clamp(130px, 20vw, 240px)' }}>
+      <div className="relative rounded-2xl overflow-hidden mb-3" style={{ minHeight: 'clamp(130px, 20vw, 240px)' }}>
         <div className="absolute inset-0 bg-gradient-to-br from-[#0c4a6e] via-[#083344] to-[#1e1b4b]" />
         <div className="absolute top-4 right-8 text-4xl opacity-[0.07]">🐋</div>
         <div className="absolute bottom-16 right-24 text-2xl opacity-[0.05] hidden md:block">🦈</div>
@@ -161,14 +161,17 @@ const TradePage: React.FC<TradePageProps> = ({
             </div>
             <div className="flex items-end gap-5 pb-1">
               {[
-                { label: 'Floor',   value: floorPrice > 0 ? `$${floorPrice.toFixed(2)}` : '—' },
-                { label: 'Listed',  value: listings.length.toString() },
-                { label: 'Holders', value: collectionStats?.holders?.toLocaleString() || '—' },
-                { label: 'Volume',  value: collectionStats ? `$${collectionStats.totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—' },
+                { label: 'Floor',   value: floorPrice > 0 ? `$${floorPrice.toFixed(2)}` : (loading ? null : '—') },
+                { label: 'Listed',  value: loading ? null : listings.length.toString() },
+                { label: 'Holders', value: collectionStats ? collectionStats.holders?.toLocaleString() : null },
+                { label: 'Volume',  value: collectionStats ? `$${collectionStats.totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : null },
               ].map(stat => (
                 <div key={stat.label} className="text-right">
                   <div className="text-[10px] font-mono text-white/40 uppercase tracking-[0.1em]">{stat.label}</div>
-                  <div className="text-[15px] font-bold text-white leading-none mt-0.5">{stat.value}</div>
+                  {stat.value != null
+                    ? <div className="text-[15px] font-bold text-white leading-none mt-0.5">{stat.value}</div>
+                    : <div className="w-12 h-4 bg-white/10 rounded animate-pulse mt-0.5" />
+                  }
                 </div>
               ))}
             </div>
@@ -190,14 +193,17 @@ const TradePage: React.FC<TradePageProps> = ({
               </div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 flex-shrink-0 pb-0.5">
                 {[
-                  { label: 'Floor',   value: floorPrice > 0 ? `$${floorPrice.toFixed(2)}` : '—' },
-                  { label: 'Listed',  value: listings.length.toString() },
-                  { label: 'Volume',  value: collectionStats ? `$${collectionStats.totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—' },
-                  { label: 'Holders', value: collectionStats?.holders?.toLocaleString() || '—' },
+                  { label: 'Floor',   value: floorPrice > 0 ? `$${floorPrice.toFixed(2)}` : (loading ? null : '—') },
+                  { label: 'Listed',  value: loading ? null : listings.length.toString() },
+                  { label: 'Volume',  value: collectionStats ? `$${collectionStats.totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : null },
+                  { label: 'Holders', value: collectionStats ? collectionStats.holders?.toLocaleString() : null },
                 ].map(stat => (
                   <div key={stat.label} className="text-right">
                     <div className="text-[7px] font-mono uppercase tracking-widest text-white/30">{stat.label}</div>
-                    <div className="text-[13px] font-black text-white leading-none mt-0.5">{stat.value}</div>
+                    {stat.value != null
+                      ? <div className="text-[13px] font-black text-white leading-none mt-0.5">{stat.value}</div>
+                      : <div className="w-8 h-3.5 bg-white/10 rounded animate-pulse mt-0.5 ml-auto" />
+                    }
                   </div>
                 ))}
               </div>
@@ -223,14 +229,17 @@ const TradePage: React.FC<TradePageProps> = ({
               </div>
               <div className="flex border-t border-white/[0.06] pt-2">
                 {[
-                  { label: 'Floor',   value: floorPrice > 0 ? `$${floorPrice.toFixed(2)}` : '—' },
-                  { label: 'Listed',  value: listings.length.toString() },
-                  { label: 'Volume',  value: collectionStats ? `$${collectionStats.totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—' },
-                  { label: 'Holders', value: collectionStats?.holders?.toLocaleString() || '—' },
+                  { label: 'Floor',   value: floorPrice > 0 ? `$${floorPrice.toFixed(2)}` : (loading ? null : '—') },
+                  { label: 'Listed',  value: loading ? null : listings.length.toString() },
+                  { label: 'Volume',  value: collectionStats ? `$${collectionStats.totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : null },
+                  { label: 'Holders', value: collectionStats ? collectionStats.holders?.toLocaleString() : null },
                 ].map((stat, i, arr) => (
                   <div key={stat.label} className={`flex-1 text-center ${i < arr.length - 1 ? 'border-r border-white/[0.06]' : ''}`}>
                     <div className="text-[7px] font-mono uppercase tracking-widest text-white/30">{stat.label}</div>
-                    <div className="text-[12px] font-black text-white leading-none mt-0.5">{stat.value}</div>
+                    {stat.value != null
+                      ? <div className="text-[12px] font-black text-white leading-none mt-0.5">{stat.value}</div>
+                      : <div className="w-8 h-3 bg-white/10 rounded animate-pulse mt-0.5 mx-auto" />
+                    }
                   </div>
                 ))}
               </div>
@@ -240,7 +249,7 @@ const TradePage: React.FC<TradePageProps> = ({
       </div>
 
       {/* Sticky Toolbar */}
-      <div className="sticky top-[52px] z-50 py-3 -mx-4 px-4 mb-4 flex flex-col md:flex-row items-center gap-2 md:gap-4">
+      <div className="sticky top-[52px] z-50 pt-2 pb-0 -mx-4 px-4 mb-2 flex flex-col md:flex-row items-center gap-2 md:gap-4">
         <div className="hidden md:flex items-center gap-4 w-full">
           <div className="flex gap-1 bg-white/[0.03] border border-white/[0.06] rounded-xl p-1 shrink-0">
             {(['items', 'activity'] as const).map(tab => (
@@ -448,7 +457,7 @@ const TradePage: React.FC<TradePageProps> = ({
       ) : (
       <>
       {sweepMode && listings.length > 0 && (
-        <div className="flex gap-1 mb-4 bg-white/[0.03] border border-white/[0.06] rounded-lg p-0.5 w-fit">
+        <div className="flex gap-1 mb-2 bg-white/[0.03] border border-white/[0.06] rounded-lg p-0.5 w-fit">
           {[3, 5, 10].map(n => (
             <button
               key={n}
@@ -468,7 +477,7 @@ const TradePage: React.FC<TradePageProps> = ({
       )}
 
       {activeFilterCount > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-4">
+        <div className="flex flex-wrap gap-1.5 mb-2">
           {(Object.entries(traitFilters) as [string, string[]][]).map(([traitType, values]) =>
             values.map(value => (
               <button
