@@ -143,7 +143,7 @@ export function useCollectionData() {
 
   const refreshListings = useCallback(async () => {
     try {
-      const data = await api.listings();
+      const data = await api.listings(undefined, true);
       if (!Array.isArray(data)) return;
       const now = BigInt(Math.floor(Date.now() / 1000));
       const active = data.map((l: any) => {

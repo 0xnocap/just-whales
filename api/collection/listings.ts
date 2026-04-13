@@ -6,12 +6,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const db = await getPool();
     const seller = typeof req.query.seller === 'string' ? req.query.seller.toLowerCase() : null;
 
-    // Select the latest status of every token_id
-    // Since Goldsky sinks raw events, we find listings that haven't been sold yet.
-    // We use DISTINCT ON to ensure only the latest listing for each token is returned.
+    // Filter sold/canceled listings before selecting the latest per token.
+    // This ensures that if the most recent listing is canceled/sold, we can 
+    // potentially pick up an older active listing (though unlikely in a clean state,
+    // it's more robust for indexing edge cases).
     const result = await db.query(`
-      WITH latest_listings AS (
-        SELECT DISTINCT ON (l.token_id)
+      WITH active_listings AS (
+        SELECT 
           l.listing_id,
           l.seller,
           l.nft_contract,
@@ -23,22 +24,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           t.metadata
         FROM listed l
         LEFT JOIN tokens t ON l.token_id::numeric = t.token_id::numeric
-        ORDER BY l.token_id, l.timestamp DESC
+        WHERE l.listing_id NOT IN (SELECT listing_id FROM sales)
+          AND l.listing_id NOT IN (SELECT listing_id FROM canceled)
       )
-      SELECT * FROM latest_listings
-      WHERE listing_id NOT IN (SELECT listing_id FROM sales)
-        AND listing_id NOT IN (SELECT listing_id FROM canceled)
-        ${seller ? 'AND LOWER(seller) = $1' : ''}
-      ORDER BY price ASC
+      SELECT DISTINCT ON (token_id) *
+      FROM active_listings
+      ${seller ? 'WHERE LOWER(seller) = $1' : ''}
+      ORDER BY token_id, timestamp DESC
     `, seller ? [seller] : []);
 
-    const rows = result.rows.map((r: any) => {
-      if (r.metadata) {
-        const { image_data, ...rest } = r.metadata;
-        return { ...r, metadata: rest };
-      }
-      return r;
-    });
+    // After DISTINCT ON, we need to sort by price for the marketplace grid
+    const rows = result.rows
+      .map((r: any) => {
+        if (r.metadata) {
+          const { image_data, ...rest } = r.metadata;
+          return { ...r, metadata: rest };
+        }
+        return r;
+      })
+      .sort((a, b) => Number(a.price) - Number(b.price));
 
     res.setHeader('Cache-Control', 'public, s-maxage=20, stale-while-revalidate=60');
     res.status(200).json(rows);

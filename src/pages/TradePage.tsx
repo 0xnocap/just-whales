@@ -704,6 +704,12 @@ const TradePage: React.FC<TradePageProps> = ({
                   functionName: 'batchBuy',
                   args: [listingIds],
                 } as any);
+
+                // Optimistic DB updates for every listing in the batch
+                sweepSelected.forEach((l: any) => {
+                  api.saleListing(l.id.toString(), address!, hash).catch(() => {});
+                });
+
                 await waitForTransaction(hash);
                 // Refresh listings and count which ones actually disappeared (were bought)
                 await fetchData();

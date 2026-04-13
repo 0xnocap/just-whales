@@ -89,6 +89,10 @@ const TokenModal: React.FC<TokenModalProps> = ({ token, onClose }) => {
         functionName: 'buy',
         args: [token.listingData.id],
       } as any);
+
+      // Optimistic DB update: bridges the 3-10s indexing gap
+      api.saleListing(token.listingData.id.toString(), address!, hash).catch(() => {});
+
       await waitForTransaction(hash);
       setStatus('success');
       if (token.onBuySuccess) token.onBuySuccess();
@@ -150,6 +154,10 @@ const TokenModal: React.FC<TokenModalProps> = ({ token, onClose }) => {
         functionName: 'cancel',
         args: [token.listingData.id],
       } as any);
+
+      // Optimistic DB update: bridges the 3-10s indexing gap
+      api.cancelListing(token.listingData.id.toString(), hash).catch(() => {});
+
       await waitForTransaction(hash);
       setStatus('success');
       setTimeout(onClose, 2000);

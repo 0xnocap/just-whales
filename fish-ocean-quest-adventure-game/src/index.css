@@ -1,0 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-dream-blue: #a5f3fc;
+  --color-dream-cyan: #22d3ee;
+  --color-dream-purple: #c084fc;
+  --color-dream-white: #f8fafc;
+  --color-ocean-deep: #083344;
+  --color-ocean-surface: #0e7490;
+  --color-pearl: #f1f5f9;
+}
+
+@layer base {
+  html, body {
+    @apply bg-ocean-deep text-pearl antialiased;
+    font-family: var(--font-sans);
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] shadow-[0_4px_12px_rgba(0,0,0,0.5)];
+  }
+  
+  .glass-hover {
+    @apply hover:bg-white/[0.06] hover:border-white/[0.15] transition-all duration-300;
+  }
+
+  .text-glow {
+    text-shadow: 0 0 20px rgba(34,211,238,0.4);
+  }
+
+  .pixelated {
+    image-rendering: pixelated;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.02);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(34,211,238,0.15);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(34,211,238,0.3);
+}

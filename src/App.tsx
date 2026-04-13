@@ -14,6 +14,7 @@ import HomePage from './pages/HomePage';
 import StakingPage from './pages/StakingPage';
 import TradePage from './pages/TradePage';
 import ProfilePage from './pages/ProfilePage';
+import FishPage from './pages/FishPage';
 
 export default function App() {
   const [modalToken, setModalToken] = useState<ModalTokenProps | null>(null);
@@ -53,7 +54,14 @@ export default function App() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25, ease: 'easeInOut' }}
             className="w-full flex flex-col items-center"
-            style={{ maxWidth: location.pathname === '/trade' || location.pathname.startsWith('/profile') ? 'clamp(32rem, 80vw, 72rem)' : 'clamp(28rem, 65vw, 52rem)' }}
+            style={{
+              maxWidth:
+                location.pathname === '/trade' || location.pathname.startsWith('/profile')
+                  ? 'clamp(32rem, 80vw, 72rem)'
+                  : location.pathname === '/fish'
+                  ? 'clamp(32rem, 80vw, 64rem)'
+                  : 'clamp(28rem, 65vw, 52rem)',
+            }}
           >
             <Routes location={location}>
               <Route path="/" element={<HomePage />} />
@@ -61,6 +69,7 @@ export default function App() {
               <Route path="/trade" element={<TradePage onSelectToken={setModalToken} onSweepModeChange={setSweepModeActive} showActivity={showActivity} setShowActivity={setShowActivity} />} />
               <Route path="/profile" element={<ProfilePage onSelectToken={setModalToken} />} />
               <Route path="/profile/:address" element={<ProfilePage onSelectToken={setModalToken} />} />
+              <Route path="/fish" element={<FishPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </motion.div>
@@ -81,7 +90,7 @@ export default function App() {
             <RetroButton icon={Home} label="Home" to="/" />
             <RetroButton icon={ArrowLeftRight} label="Trade" to="/trade" />
             <RetroButton icon={Coins} label="Stake" to="/staking" />
-            <RetroButton icon={FishingPoleIcon} label="Fish" to="#" disabled />
+            <RetroButton icon={FishingPoleIcon} label="Fish" to="/fish" disabled />
             <RetroButton icon={User} label="Profile" to={isConnected && address ? `/profile/${address}` : '/profile'} />
           </motion.nav>
         )}

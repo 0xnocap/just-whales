@@ -13,7 +13,10 @@ const RetroButton = ({ icon: Icon, label, to, disabled, tooltip }: RetroButtonPr
   const navigate = useNavigate();
   const location = useLocation();
   const active = location.pathname === to || (to === '/profile' && location.pathname.startsWith('/profile'));
-  const onClick = () => navigate(to);
+  const onClick = () => {
+    if (disabled) return;
+    navigate(to);
+  };
 
   return (
     <motion.button
