@@ -4,11 +4,16 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const db = await getPool();
+    const stakingAddr = (process.env.STAKING_CONTRACT || '').toLowerCase();
     const result = await db.query(`
       SELECT a.*, tok.metadata->>'image_data' as image_data
       FROM (
         SELECT 'transfer' as type, token_id::int as token_id, "from"::text, "to"::text, NULL::numeric as price, transaction_hash::text, timestamp::bigint as timestamp, block_number::bigint as block_number
-        FROM transfers WHERE "from" != '0x0000000000000000000000000000000000000000'
+        FROM transfers
+        WHERE "from" != '0x0000000000000000000000000000000000000000'
+          AND LOWER("to")   != $1
+          AND LOWER("from") != $1
+          AND transaction_hash NOT IN (SELECT transaction_hash FROM sales)
         UNION ALL
         SELECT 'sale' as type, token_id::int as token_id, seller::text as "from", buyer::text as "to", price::numeric as price, transaction_hash::text, timestamp::bigint as timestamp, block_number::bigint as block_number
         FROM sales
@@ -22,7 +27,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         LIMIT 100
       ) a
       LEFT JOIN tokens tok ON a.token_id = tok.token_id::int
-    `);
+    `, [stakingAddr]);
     res.setHeader('Cache-Control', 'public, s-maxage=15, stale-while-revalidate=30');
     res.status(200).json(result.rows);
   } catch (err: any) {

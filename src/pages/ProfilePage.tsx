@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, ArrowUpRight, ArrowDownLeft, Clock, Search, Filter, ChevronUp, ChevronDown, X } from 'lucide-react';
+import { Clock, Search, Filter, ChevronUp, ChevronDown, X } from 'lucide-react';
 import { useAccount, useReadContract } from 'wagmi';
 import { useParams } from 'react-router-dom';
 import { formatUnits } from 'viem';
 import { contractAddress, contractAbi } from '../contract';
 import { truncateAddress, timeAgo, timeUntil } from '../utils/format';
 import { api } from '../lib/api';
+import ActivityItem from '../components/ActivityItem';
 import CopyButton from '../components/CopyButton';
 import { createIcon } from '@iconoma-icons/core';
 import { pixel, palettes } from '@iconoma-icons/collection';
@@ -592,30 +593,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSelectToken }) => {
             <p className="font-mono text-white/20 text-[11px] tracking-widest">NO ACTIVITY</p>
           </div>
         ) : (
-          <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl divide-y divide-white/[0.04]">
-            {activity.map((item, i) => {
-              const isMint = item.from === '0x0000000000000000000000000000000000000000';
-              const isSent = item.from.toLowerCase() === profileAddress.toLowerCase();
-              return (
-                <div key={i} className="flex items-center justify-between px-4 py-3 hover:bg-white/[0.02] transition-colors">
-                  <div className="flex items-center gap-3">
-                    {isMint ? (
-                      <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center"><Sparkles className="w-3.5 h-3.5 text-emerald-400" /></div>
-                    ) : isSent ? (
-                      <div className="w-7 h-7 rounded-lg bg-red-500/10 flex items-center justify-center"><ArrowUpRight className="w-3.5 h-3.5 text-red-400" /></div>
-                    ) : (
-                      <div className="w-7 h-7 rounded-lg bg-dream-cyan/10 flex items-center justify-center"><ArrowDownLeft className="w-3.5 h-3.5 text-dream-cyan" /></div>
-                    )}
-                    <div>
-                      <span className="text-[12px] font-medium text-white">{isMint ? 'Minted' : isSent ? 'Sent' : 'Received'}</span>
-                      <span className="text-[12px] text-white/40 ml-1.5">Token #{item.token_id}</span>
-                      <div className="text-[10px] font-mono text-white/25">{isMint ? 'Mint' : `${truncateAddress(item.from)} → ${truncateAddress(item.to)}`}</div>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-mono text-white/20">{timeAgo(item.timestamp)}</span>
-                </div>
-              );
-            })}
+          <div className="flex flex-col gap-1.5">
+            {activity.map((item, i) => (
+              <ActivityItem key={`${item.transaction_hash}-${item.type}-${i}`} item={item} />
+            ))}
           </div>
         )
       )}

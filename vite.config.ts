@@ -125,6 +125,7 @@ function apiMiddleware() {
           if (profileMatch) {
             res.setHeader('Content-Type', 'application/json');
             const address = profileMatch[1].toLowerCase();
+            const stakingAddr = (process.env.STAKING_CONTRACT || '').toLowerCase();
             const result = await db.query(`
               SELECT token_id::int as token_id
               FROM (
@@ -136,14 +137,39 @@ function apiMiddleware() {
               ORDER BY token_id
             `, [address]);
             
-            // Activity for this address
+            // Activity for this address — all event types, staking/sale-dupes excluded
             const activity = await db.query(`
-              SELECT token_id::int as token_id, "from", "to", transaction_hash, timestamp::bigint as timestamp, block_number::bigint as block_number
-              FROM transfers
-              WHERE LOWER("from") = $1 OR LOWER("to") = $1
-              ORDER BY block_number DESC
-              LIMIT 50
-            `, [address]);
+              SELECT a.*, tok.metadata->>'image_data' as image_data
+              FROM (
+                SELECT 'mint' as type, token_id::int as token_id, "from"::text, "to"::text, NULL::numeric as price, transaction_hash::text, timestamp::bigint as timestamp, block_number::bigint as block_number
+                FROM transfers
+                WHERE "from" = '0x0000000000000000000000000000000000000000'
+                  AND LOWER("to") = $1
+                UNION ALL
+                SELECT 'transfer' as type, token_id::int as token_id, "from"::text, "to"::text, NULL::numeric as price, transaction_hash::text, timestamp::bigint as timestamp, block_number::bigint as block_number
+                FROM transfers
+                WHERE "from" != '0x0000000000000000000000000000000000000000'
+                  AND LOWER("to")   != $2
+                  AND LOWER("from") != $2
+                  AND transaction_hash NOT IN (SELECT transaction_hash FROM sales)
+                  AND (LOWER("from") = $1 OR LOWER("to") = $1)
+                UNION ALL
+                SELECT 'sale' as type, token_id::int, seller::text, buyer::text, price::numeric, transaction_hash::text, timestamp::bigint, block_number::bigint
+                FROM sales
+                WHERE LOWER(seller) = $1 OR LOWER(buyer) = $1
+                UNION ALL
+                SELECT 'list' as type, token_id::int, seller::text, NULL::text, price::numeric, transaction_hash::text, timestamp::bigint, block_number::bigint
+                FROM listed
+                WHERE LOWER(seller) = $1
+                UNION ALL
+                SELECT 'cancel' as type, l.token_id::int, l.seller::text, NULL::text, NULL::numeric, c.transaction_hash::text, c.timestamp::bigint, c.block_number::bigint
+                FROM canceled c LEFT JOIN listed l ON c.listing_id::numeric = l.listing_id::numeric
+                WHERE LOWER(l.seller) = $1
+                ORDER BY block_number DESC
+                LIMIT 50
+              ) a
+              LEFT JOIN tokens tok ON a.token_id = tok.token_id::int
+            `, [address, stakingAddr]);
 
             res.end(JSON.stringify({
               address,
@@ -171,11 +197,16 @@ function apiMiddleware() {
           // --- /api/activity ---
           if (req.url === '/api/activity') {
             res.setHeader('Content-Type', 'application/json');
+            const stakingAddr = (process.env.STAKING_CONTRACT || '').toLowerCase();
             const result = await db.query(`
               SELECT a.*, tok.metadata->>'image_data' as image_data
               FROM (
                 SELECT 'transfer' as type, token_id::int as token_id, "from"::text, "to"::text, NULL::numeric as price, transaction_hash::text, timestamp::bigint as timestamp, block_number::bigint as block_number
-                FROM transfers WHERE "from" != '0x0000000000000000000000000000000000000000'
+                FROM transfers
+                WHERE "from" != '0x0000000000000000000000000000000000000000'
+                  AND LOWER("to")   != $1
+                  AND LOWER("from") != $1
+                  AND transaction_hash NOT IN (SELECT transaction_hash FROM sales)
                 UNION ALL
                 SELECT 'sale' as type, token_id::int as token_id, seller::text as "from", buyer::text as "to", price::numeric as price, transaction_hash::text, timestamp::bigint as timestamp, block_number::bigint as block_number
                 FROM sales
@@ -189,7 +220,7 @@ function apiMiddleware() {
                 LIMIT 100
               ) a
               LEFT JOIN tokens tok ON a.token_id = tok.token_id::int
-            `);
+            `, [stakingAddr]);
             res.end(JSON.stringify(result.rows));
             return;
           }

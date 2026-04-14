@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tag, Sparkles, ArrowLeftRight, X, Activity, ArrowRight } from 'lucide-react';
+import { Tag, Sparkles, ArrowLeftRight, X, Activity, ArrowRight, Gem } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { truncateAddress, timeAgo } from '../utils/format';
 
@@ -9,10 +9,11 @@ interface ActivityItemProps {
 
 const ActivityItem: React.FC<ActivityItemProps> = ({ item }) => {
   const config: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
-    sale:     { icon: <Tag className="w-3 h-3" />,          label: 'Sale',       color: 'text-dream-cyan' },
-    list:     { icon: <Sparkles className="w-3 h-3" />,     label: 'Listed',     color: 'text-dream-cyan' },
-    transfer: { icon: <ArrowLeftRight className="w-3 h-3" />, label: 'Transfer', color: 'text-white/40' },
-    cancel:   { icon: <X className="w-3 h-3" />,            label: 'Cancelled',  color: 'text-white/30' },
+    sale:     { icon: <Tag className="w-3 h-3" />,            label: 'Sale',       color: 'text-dream-cyan' },
+    list:     { icon: <Sparkles className="w-3 h-3" />,       label: 'Listed',     color: 'text-dream-cyan' },
+    transfer: { icon: <ArrowLeftRight className="w-3 h-3" />, label: 'Transfer',   color: 'text-white/40' },
+    cancel:   { icon: <X className="w-3 h-3" />,              label: 'Cancelled',  color: 'text-white/30' },
+    mint:     { icon: <Gem className="w-3 h-3" />,            label: 'Mint',       color: 'text-emerald-400' },
   };
   const { icon, label, color } = config[item.type] ?? { icon: <Activity className="w-3 h-3" />, label: item.type, color: 'text-white/30' };
 
