@@ -1,14 +1,14 @@
 import { createPublicClient, http, fallback } from 'viem';
 // @ts-ignore
-import { TEMPO_MAINNET, WHALE_TOWN_ADDRESS, WHALE_TOWN_ABI, WHALE_TOWN_MARKETPLACE_ADDRESS, WHALE_TOWN_MARKETPLACE_ABI, PATH_USD_ADDRESS, PATH_USD_ABI, POINTS_CONTRACT_ADDRESS, STAKING_CONTRACT_ADDRESS } from '@/contract.js';
-import { tempoMainnet } from './wagmi';
+import { WHALE_TOWN_ADDRESS, WHALE_TOWN_ABI, WHALE_TOWN_MARKETPLACE_ADDRESS, WHALE_TOWN_MARKETPLACE_ABI, PATH_USD_ADDRESS, PATH_USD_ABI, POINTS_CONTRACT_ADDRESS, STAKING_CONTRACT_ADDRESS, POINTS_ABI, STAKING_ABI } from '@/contract.js';
+import { activeChain } from './wagmi';
 
-const customRpc: string = process.env.RPC_URL || process.env.ALCHEMY_TEMPO_RPC || '';
-const publicRpc: string = TEMPO_MAINNET.rpcUrls.default.http[0];
+const customRpc: string = process.env.ALCHEMY_TEMPO_RPC || process.env.RPC_URL || '';
+const publicRpc: string = activeChain.rpcUrls.default.http[0];
 
 const publicClient = createPublicClient({
-  chain: tempoMainnet,
-  transport: customRpc
+  chain: activeChain,
+  transport: customRpc && customRpc !== publicRpc
     ? fallback([http(customRpc), http(publicRpc)])
     : http(publicRpc),
 });
@@ -23,7 +23,9 @@ export const pathUSDAddress = PATH_USD_ADDRESS as `0x${string}`;
 export const pathUSDAbi = PATH_USD_ABI;
 
 export const pointsAddress = POINTS_CONTRACT_ADDRESS as `0x${string}`;
+export const pointsAbi = POINTS_ABI;
 export const stakingAddress = STAKING_CONTRACT_ADDRESS as `0x${string}`;
+export const stakingAbi = STAKING_ABI;
 
 function read(functionName: string, args?: any[]): Promise<any> {
   return publicClient.readContract({ address: contractAddress, abi: contractAbi, functionName, args } as any);
@@ -49,6 +51,20 @@ export function readTokenSVG(tokenId: bigint): Promise<string> { return read('to
 export function readBalanceOf(addr: string): Promise<bigint> { return read('balanceOf', [addr]); }
 export function readOwnerOf(tokenId: bigint): Promise<string> { return read('ownerOf', [tokenId]); }
 export function readIsApprovedForAll(owner: string, operator: string): Promise<boolean> { return read('isApprovedForAll', [owner, operator]); }
+
+// Batched ownerOf scan — used in dev/testnet where the indexer isn't watching this NFT contract.
+// Returns tokenIds owned by `addr` in the range [0, supply).
+export async function scanOwnedTokens(addr: string, concurrency = 25): Promise<number[]> {
+  const supply = Number(await readTotalSupply());
+  const target = addr.toLowerCase();
+  const owned: number[] = [];
+  for (let start = 0; start < supply; start += concurrency) {
+    const ids = Array.from({ length: Math.min(concurrency, supply - start) }, (_, k) => start + k);
+    const owners = await Promise.all(ids.map((id) => readOwnerOf(BigInt(id)).catch(() => null)));
+    owners.forEach((owner, i) => { if (owner && owner.toLowerCase() === target) owned.push(ids[i]); });
+  }
+  return owned;
+}
 
 // --- Marketplace Read helpers ---
 

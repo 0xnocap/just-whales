@@ -23,6 +23,37 @@ export const PATH_USD_ADDRESS = process.env.PATH_USD_CONTRACT || "0x20c000000000
 export const POINTS_CONTRACT_ADDRESS = process.env.POINTS_CONTRACT;
 export const STAKING_CONTRACT_ADDRESS = process.env.STAKING_CONTRACT;
 
+export const POINTS_ABI = [
+  { inputs: [{ internalType: "address", name: "account", type: "address" }], name: "balanceOf", outputs: [{ internalType: "uint256", name: "", type: "uint256" }], stateMutability: "view", type: "function" },
+  { inputs: [], name: "totalSupply", outputs: [{ internalType: "uint256", name: "", type: "uint256" }], stateMutability: "view", type: "function" },
+  { inputs: [], name: "decimals", outputs: [{ internalType: "uint8", name: "", type: "uint8" }], stateMutability: "view", type: "function" },
+  { inputs: [], name: "symbol", outputs: [{ internalType: "string", name: "", type: "string" }], stateMutability: "view", type: "function" },
+  { inputs: [], name: "name", outputs: [{ internalType: "string", name: "", type: "string" }], stateMutability: "view", type: "function" },
+  { inputs: [{ internalType: "bytes32", name: "role", type: "bytes32" }, { internalType: "address", name: "account", type: "address" }], name: "hasRole", outputs: [{ internalType: "bool", name: "", type: "bool" }], stateMutability: "view", type: "function" },
+  { inputs: [], name: "MINTER_ROLE", outputs: [{ internalType: "bytes32", name: "", type: "bytes32" }], stateMutability: "view", type: "function" },
+];
+
+export const STAKING_ABI = [
+  // Reads
+  { inputs: [{ internalType: "address", name: "staker", type: "address" }], name: "rewardsOf", outputs: [{ internalType: "uint256", name: "", type: "uint256" }], stateMutability: "view", type: "function" },
+  { inputs: [{ internalType: "address", name: "staker", type: "address" }], name: "stakedTokensOf", outputs: [{ internalType: "uint256[]", name: "", type: "uint256[]" }], stateMutability: "view", type: "function" },
+  { inputs: [{ internalType: "uint256", name: "", type: "uint256" }], name: "tokenRate", outputs: [{ internalType: "uint256", name: "", type: "uint256" }], stateMutability: "view", type: "function" },
+  { inputs: [{ internalType: "uint256", name: "", type: "uint256" }], name: "stakerOf", outputs: [{ internalType: "address", name: "", type: "address" }], stateMutability: "view", type: "function" },
+  { inputs: [{ internalType: "uint256", name: "", type: "uint256" }], name: "stakedAt", outputs: [{ internalType: "uint64", name: "", type: "uint64" }], stateMutability: "view", type: "function" },
+  { inputs: [{ internalType: "address", name: "", type: "address" }], name: "pendingRewards", outputs: [{ internalType: "uint256", name: "", type: "uint256" }], stateMutability: "view", type: "function" },
+  { inputs: [], name: "paused", outputs: [{ internalType: "bool", name: "", type: "bool" }], stateMutability: "view", type: "function" },
+  // Writes
+  { inputs: [{ internalType: "uint256[]", name: "tokenIds", type: "uint256[]" }], name: "stake", outputs: [], stateMutability: "nonpayable", type: "function" },
+  { inputs: [{ internalType: "uint256[]", name: "tokenIds", type: "uint256[]" }], name: "unstake", outputs: [], stateMutability: "nonpayable", type: "function" },
+  { inputs: [], name: "claim", outputs: [], stateMutability: "nonpayable", type: "function" },
+  { inputs: [{ internalType: "uint256", name: "tokenId", type: "uint256" }, { internalType: "uint256", name: "newRate", type: "uint256" }], name: "setTokenRate", outputs: [], stateMutability: "nonpayable", type: "function" },
+  { inputs: [{ internalType: "uint256[]", name: "tokenIds", type: "uint256[]" }, { internalType: "uint256[]", name: "rates", type: "uint256[]" }], name: "setTokenRatesBatch", outputs: [], stateMutability: "nonpayable", type: "function" },
+  // Events
+  { anonymous: false, inputs: [{ indexed: true, name: "staker", type: "address" }, { indexed: true, name: "tokenId", type: "uint256" }, { indexed: false, name: "rate", type: "uint256" }], name: "Staked", type: "event" },
+  { anonymous: false, inputs: [{ indexed: true, name: "staker", type: "address" }, { indexed: true, name: "tokenId", type: "uint256" }, { indexed: false, name: "accruedAtUnstake", type: "uint256" }], name: "Unstaked", type: "event" },
+  { anonymous: false, inputs: [{ indexed: true, name: "staker", type: "address" }, { indexed: false, name: "amount", type: "uint256" }], name: "Claimed", type: "event" },
+];
+
 export const PATH_USD_ABI = [
   {
     "inputs": [

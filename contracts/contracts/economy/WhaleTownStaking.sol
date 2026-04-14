@@ -11,6 +11,10 @@ interface IMintablePoints {
     function mintTo(address to, uint256 amount) external;
 }
 
+interface IWhaleTown is IERC721 {
+    function tokenDNA(uint256 tokenId) external view returns (uint32);
+}
+
 /**
  * @title  WhaleTownStaking
  * @notice ERC721 staking contract for Whale Town NFTs. Forks the functional
@@ -24,11 +28,15 @@ interface IMintablePoints {
  *         - Rewards accrue per second: amount = elapsed * rate / 1 days.
  *         - Claim mints WhaleTownPoints directly; this contract must hold
  *           MINTER_ROLE on the points token.
+ *
+ *         - OPTIMIZATION: Most tokens use a base rate derived from their DNA
+ *           (Shark=10, Whale=20, SeaLion=5). Only rare/bonus tokens require
+ *           on-chain custom mappings.
  */
 contract WhaleTownStaking is AccessControl, Pausable, ReentrancyGuard, IERC721Receiver {
     bytes32 public constant RATE_MANAGER_ROLE = keccak256("RATE_MANAGER_ROLE");
 
-    IERC721 public immutable nft;
+    IWhaleTown public immutable nft;
     IMintablePoints public immutable points;
 
     uint256 public constant SECONDS_PER_DAY = 1 days;
@@ -40,7 +48,12 @@ contract WhaleTownStaking is AccessControl, Pausable, ReentrancyGuard, IERC721Re
     mapping(uint256 => uint64) public stakedAt;
 
     /// tokenId => current points-per-day rate (18 decimals, i.e. 20e18 = 20/day)
-    mapping(uint256 => uint256) public tokenRate;
+    /// This is now used only for CUSTOM OVERRIDES (Goldens, Watches, etc.)
+    mapping(uint256 => uint256) public customTokenRate;
+
+    /// global base rates for Animal Types (extracted from DNA)
+    /// 0 = Shark, 1 = Whale, 2 = SeaLion
+    mapping(uint8 => uint256) public baseRates;
 
     /// wallet => accumulated rewards not yet claimed (buffered on rate change / unstake)
     mapping(address => uint256) public pendingRewards;
@@ -53,8 +66,9 @@ contract WhaleTownStaking is AccessControl, Pausable, ReentrancyGuard, IERC721Re
     event Unstaked(address indexed staker, uint256 indexed tokenId, uint256 accruedAtUnstake);
     event Claimed(address indexed staker, uint256 amount);
     event RateUpdated(uint256 indexed tokenId, uint256 oldRate, uint256 newRate);
+    event BaseRatesUpdated(uint256 shark, uint256 whale, uint256 seaLion);
 
-    constructor(address admin, IERC721 _nft, IMintablePoints _points) {
+    constructor(address admin, IWhaleTown _nft, IMintablePoints _points) {
         require(admin != address(0), "admin=0");
         require(address(_nft) != address(0), "nft=0");
         require(address(_points) != address(0), "points=0");
@@ -67,6 +81,18 @@ contract WhaleTownStaking is AccessControl, Pausable, ReentrancyGuard, IERC721Re
     // -------------------------------------------------------------------
     // Views
     // -------------------------------------------------------------------
+
+    /// @notice The daily rate for a token, resolving either from custom mapping
+    ///         or falling back to DNA-based base rate.
+    function tokenRate(uint256 tokenId) public view returns (uint256) {
+        uint256 custom = customTokenRate[tokenId];
+        if (custom > 0) return custom;
+
+        // Extract Animal Type from DNA (first 4 bits / highest nibble)
+        uint32 dna = nft.tokenDNA(tokenId);
+        uint8 animalType = uint8(dna >> 28);
+        return baseRates[animalType];
+    }
 
     /// @notice Rewards that would be minted if `staker` claimed right now.
     function rewardsOf(address staker) external view returns (uint256) {
@@ -87,7 +113,7 @@ contract WhaleTownStaking is AccessControl, Pausable, ReentrancyGuard, IERC721Re
         uint256 last = stakedAt[tokenId];
         if (last == 0) return 0;
         uint256 elapsed = block.timestamp - last;
-        return (elapsed * tokenRate[tokenId]) / SECONDS_PER_DAY;
+        return (elapsed * tokenRate(tokenId)) / SECONDS_PER_DAY;
     }
 
     // -------------------------------------------------------------------
@@ -105,7 +131,7 @@ contract WhaleTownStaking is AccessControl, Pausable, ReentrancyGuard, IERC721Re
             _stakedTokens[msg.sender].push(tokenId);
             // pulls the NFT (reverts if not approved/owned)
             nft.safeTransferFrom(msg.sender, address(this), tokenId);
-            emit Staked(msg.sender, tokenId, tokenRate[tokenId]);
+            emit Staked(msg.sender, tokenId, tokenRate(tokenId));
         }
     }
 
@@ -142,6 +168,16 @@ contract WhaleTownStaking is AccessControl, Pausable, ReentrancyGuard, IERC721Re
     // Admin: rate updates (spec §2.8)
     // -------------------------------------------------------------------
 
+    function setBaseRates(uint256 shark, uint256 whale, uint256 seaLion)
+        external
+        onlyRole(RATE_MANAGER_ROLE)
+    {
+        baseRates[0] = shark;
+        baseRates[1] = whale;
+        baseRates[2] = seaLion;
+        emit BaseRatesUpdated(shark, whale, seaLion);
+    }
+
     function setTokenRate(uint256 tokenId, uint256 newRate)
         external
         onlyRole(RATE_MANAGER_ROLE)
@@ -160,13 +196,13 @@ contract WhaleTownStaking is AccessControl, Pausable, ReentrancyGuard, IERC721Re
     }
 
     function _checkpointRate(uint256 tokenId, uint256 newRate) internal {
-        uint256 oldRate = tokenRate[tokenId];
+        uint256 oldRate = tokenRate(tokenId);
         address staker = stakerOf[tokenId];
         if (staker != address(0)) {
             pendingRewards[staker] += _accrued(tokenId);
             stakedAt[tokenId] = uint64(block.timestamp);
         }
-        tokenRate[tokenId] = newRate;
+        customTokenRate[tokenId] = newRate;
         emit RateUpdated(tokenId, oldRate, newRate);
     }
 

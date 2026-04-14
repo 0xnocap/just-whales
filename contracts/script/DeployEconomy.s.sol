@@ -3,7 +3,7 @@ pragma solidity ^0.8.28;
 
 import {Script, console} from "forge-std/Script.sol";
 import {WhaleTownPoints} from "../contracts/economy/WhaleTownPoints.sol";
-import {WhaleTownStaking, IMintablePoints} from "../contracts/economy/WhaleTownStaking.sol";
+import {WhaleTownStaking, IMintablePoints, IWhaleTown} from "../contracts/economy/WhaleTownStaking.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 /**
@@ -45,7 +45,7 @@ contract DeployEconomy is Script {
         // 2. Deploy staking contract.
         WhaleTownStaking staking = new WhaleTownStaking(
             deployer,
-            IERC721(nftAddress),
+            IWhaleTown(nftAddress),
             IMintablePoints(address(points))
         );
         console.log("WhaleTownStaking:", address(staking));

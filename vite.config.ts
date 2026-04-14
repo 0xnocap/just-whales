@@ -246,6 +246,7 @@ export default defineConfig(({mode}) => {
       'process.env.POINTS_CONTRACT': JSON.stringify(mode === 'development' ? env.TEST_POINTS_CONTRACT : env.POINTS_CONTRACT),
       'process.env.STAKING_CONTRACT': JSON.stringify(mode === 'development' ? env.TEST_STAKING_CONTRACT : env.STAKING_CONTRACT),
       'process.env.RPC_URL': JSON.stringify(mode === 'development' ? env.TEST_RPC_URL : env.RPC_URL),
+      'process.env.CHAIN_ID': JSON.stringify(env.CHAIN_ID || (mode === 'development' ? '42431' : '4217')),
     },
     resolve: {
       alias: {
