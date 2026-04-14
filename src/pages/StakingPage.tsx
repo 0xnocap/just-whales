@@ -60,7 +60,7 @@ const StakingPage: React.FC = () => {
 
   return (
     <div className="w-full max-w-2xl mx-auto">
-      <div className="bg-[#072436]/60 border border-white/10 backdrop-blur-[40px] rounded-[2rem] overflow-hidden shadow-[0_0_80px_rgba(34,211,238,0.1)] flex flex-col h-[650px]">
+      <div className="bg-[#072436]/60 border border-white/10 backdrop-blur-[40px] rounded-[2rem] overflow-hidden shadow-[0_0_80px_rgba(34,211,238,0.1)] flex flex-col h-[560px]">
         <div className="p-4 bg-white/[0.03] border-b border-white/5 flex-shrink-0">
           <div className="flex bg-ocean-deep/80 rounded-2xl p-1.5 border border-white/10 relative h-14">
              <motion.div
@@ -95,7 +95,7 @@ const StakingPage: React.FC = () => {
                 exit={{ opacity: 0, x: 10 }}
                 className="flex-1 flex flex-col"
               >
-                <div className="w-full flex-1 flex flex-col space-y-8">
+                <div className="w-full flex-1 flex flex-col space-y-4">
                     <div className="text-center space-y-1">
                       <h2 className="text-lg font-bold tracking-tighter text-dream-white uppercase leading-none">OCEAN POINTS EMISSIONS</h2>
                       <p className="text-dream-cyan/40 font-mono text-[7px] uppercase tracking-[0.3em]">Whale Town Staking Protocol</p>
@@ -174,7 +174,7 @@ const StakingPage: React.FC = () => {
                     </div>
 
                   <div className="flex-1 flex flex-col justify-end">
-                    <div className="flex flex-col items-center space-y-10">
+                    <div className="flex flex-col items-center space-y-5">
                         {error && (
                           <div className="text-[9px] font-mono text-red-400/80 uppercase tracking-widest text-center">{error}</div>
                         )}
@@ -192,7 +192,7 @@ const StakingPage: React.FC = () => {
                           ) : paused ? 'Staking Paused' : !contractsConfigured ? 'Awaiting Launch' : selected.size > 0 ? `Stake ${selected.size} Whale${selected.size > 1 ? 's' : ''}` : 'Select NFTs to Stake'}
                         </button>
                         <motion.div
-                        style={{marginBottom: "20px"}}
+                        style={{marginBottom: "10px"}}
                           animate={{ y: [0, -2, 0] }}
                           transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                           className="p-2 rounded-full bg-dream-cyan/5 border border-dream-cyan/10 shadow-[0_0_15px_rgba(34,211,238,0.05)]"
