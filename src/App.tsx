@@ -15,20 +15,23 @@ import StakingPage from './pages/StakingPage';
 import TradePage from './pages/TradePage';
 import ProfilePage from './pages/ProfilePage';
 import FishPage from './pages/FishPage';
-import { usePointsBalance } from './hooks/useStaking';
+import { usePointsBalance, useStakingReads } from './hooks/useStaking';
 
 function PointsBadge() {
   const { isConnected } = useAccount();
-  const { formatted, raw } = usePointsBalance();
+  const { formatted: balanceFormatted } = usePointsBalance();
+  const { rewardsFormatted } = useStakingReads();
+  
   if (!isConnected) return null;
+  
   return (
     <Link
       to="/staking"
       className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-dream-purple/10 border border-dream-purple/30 hover:bg-dream-purple/20 transition-colors"
-      title={`${raw.toString()} wei-OP`}
+      title={`Unclaimed: ${rewardsFormatted} $OP | Wallet: ${balanceFormatted} $OP`}
     >
       <span className="font-mono text-[11px] text-dream-purple font-bold uppercase tracking-tight mr-1">$OP</span>
-      <span className="font-mono font-bold text-[11px] text-dream-white tracking-tight">{formatted}</span>
+      <span className="font-mono font-bold text-[11px] text-dream-white tracking-tight">{rewardsFormatted}</span>
     </Link>
   );
 }

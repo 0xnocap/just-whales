@@ -50,7 +50,7 @@ export function usePointsBalance() {
   const raw = (data as bigint | undefined) ?? 0n;
   const formatted = useMemo(() => {
     const n = Number(formatUnits(raw, 18));
-    return Number.isFinite(n) ? n.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '0';
+    return Number.isFinite(n) ? n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
   }, [raw]);
   return { raw, formatted, refetch, isLoading };
 }
@@ -107,7 +107,7 @@ export function useStakingReads() {
   const rewardsRaw = (data?.[1]?.result as bigint | undefined) ?? 0n;
   const rewardsFormatted = useMemo(() => {
     const n = Number(formatUnits(rewardsRaw, 18));
-    return Number.isFinite(n) ? n.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '0';
+    return Number.isFinite(n) ? n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
   }, [rewardsRaw]);
 
   const paused = (data?.[2]?.result as boolean | undefined) ?? false;
