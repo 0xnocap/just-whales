@@ -13,22 +13,29 @@ const RetroButton = ({ icon: Icon, label, to, disabled, tooltip }: RetroButtonPr
   const navigate = useNavigate();
   const location = useLocation();
   const active = location.pathname === to || (to === '/profile' && location.pathname.startsWith('/profile'));
+  const isStakeButton = label === 'Stake';
+
   const onClick = () => {
     if (disabled) return;
     navigate(to);
   };
 
+  const buttonClasses = [
+    'relative group flex flex-col items-center justify-center rounded-xl border transition-all duration-300',
+    active
+      ? 'border-dream-cyan/40 bg-white/[0.08] backdrop-blur-xl shadow-[0_0_15px_rgba(34,211,238,0.15)]'
+      : disabled
+        ? 'border-transparent bg-transparent opacity-40 cursor-not-allowed'
+        : isStakeButton
+          ? 'border-emerald-500/30 bg-white/[0.02] animate-[pulse_3s_infinite_ease-in-out] shadow-[0_0_10px_rgba(16,185,129,0.1)]'
+          : 'border-transparent bg-transparent hover:bg-white/[0.04]',
+  ].filter(Boolean).join(' ');
+
   return (
     <motion.button
       onClick={onClick}
       disabled={disabled}
-      className={`relative group flex flex-col items-center justify-center rounded-xl border transition-all duration-300 ${
-        active
-          ? 'border-dream-cyan/40 bg-white/[0.08] backdrop-blur-xl shadow-[0_0_15px_rgba(34,211,238,0.15)]'
-          : disabled
-            ? 'border-transparent bg-transparent opacity-40 cursor-not-allowed'
-            : 'border-transparent bg-transparent hover:bg-white/[0.04]'
-      }`}
+      className={buttonClasses}
       style={{ width: 'clamp(3.5rem, 6vw, 6rem)', height: 'clamp(3.5rem, 6vw, 6rem)' }}
       whileHover={disabled ? {} : { scale: 1.05, y: -2 }}
       whileTap={disabled ? {} : { scale: 0.95 }}

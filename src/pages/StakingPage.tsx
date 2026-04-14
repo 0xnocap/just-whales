@@ -211,7 +211,7 @@ const StakingPage: React.FC = () => {
                 exit={{ opacity: 0, x: -10 }}
                 className="flex-1 flex flex-col items-center"
               >
-                <div className="w-full space-y-3">
+                <div className="w-full space-y-2">
                   <div className="text-center py-4 bg-gradient-to-b from-dream-purple/5 via-white/[0.02] to-transparent rounded-[2rem] border border-white/5 relative overflow-hidden flex flex-col items-center justify-center">
                     <div className="relative mb-1">
                       <span className="text-6xl font-bold text-dream-white tracking-tighter leading-none">{rewardsFormatted}</span>
@@ -219,7 +219,7 @@ const StakingPage: React.FC = () => {
                         <span className="text-dream-white/40 text-4xl font-bold tracking-tighter whitespace-nowrap">$OP</span>
                       </div>
                     </div>
-                    <div className="text-[9px] font-mono text-white/30 uppercase tracking-[0.2em] mt-2">Accumulated Ocean Points</div>
+                    <div className="text-[9px] font-mono text-white/30 uppercase tracking-[0.2em] mt-0">Accumulated Ocean Points</div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
