@@ -1,12 +1,12 @@
 import { getPool } from '../_db.js';
 import { createPublicClient, http } from 'viem';
 // Defined as a custom chain-like setup for Tempo
-const tempoTransport = http('https://rpc.tempo.xyz');
+const tempoTransport = http(process.env.RPC_URL || 'https://rpc.tempo.xyz');
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const ABI = [{ name: 'tokenURI', type: 'function', stateMutability: 'view', inputs: [{ name: 'tokenId', type: 'uint256' }], outputs: [{ name: '', type: 'string' }] }];
-const CONTRACT = '0x1065ef5996C86C8C90D97974F3c9E5234416839F' as const;
+const ABI = [{ name: 'tokenURI', type: 'function', stateMutability: 'view', inputs: [{ name: 'tokenId', type: 'uint256' }], outputs: [{ name: '', type: 'string' }] }] as const;
+const CONTRACT = (process.env.NFT_CONTRACT || '0x1065ef5996C86C8C90D97974F3c9E5234416839F') as `0x${string}`;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { secret } = req.query;

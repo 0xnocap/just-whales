@@ -1,0 +1,30 @@
+# Whale Town Economy — Deployed Addresses
+
+## Tempo Testnet (chainId 42431)
+WHALE_TOWN_POINTS   = 0x8D4DdF2be88bEd56467eb44D338dcAc8f606BEEC
+WHALE_TOWN_STAKING  = 0xC768b6ce7eE238524FD1578581cd8cA51A4bfAC5
+WHALE_TOWN_NFT      = 0x1A8E6629937F4E88315C3a65DC9eC3740e3b567C  (existing)
+
+Admin / MINTER_ROLE / RATE_MANAGER_ROLE holder: 0x7831959816fAA58B5Dc869b7692cebdb6EFC311E
+Staking contract holds MINTER_ROLE on Points: yes (verified)
+
+Deploy txs:
+  Points:    0x00fff247304a5f0d6d00913ec5b57f084f698a85ba9852f784e71ae938865b32  (gasUsed 5,010,021)
+  Staking:   0x3af74867c0e0ef4f1ce4c4737ea795643e401f8a9e80eca1caaae50d4155468c  (gasUsed 6,712,821)
+  grantRole: 0x05dafeff44645057153c1f9451834036cf951a12acdeb924496d5da476d93ff2  (gasUsed   281,590)
+
+## Tempo Mainnet (chainId 4217)
+pending
+
+---
+
+# Deployment notes
+
+Tempo's actual deploy gas is ~5-6x what standard EVM simulation reports — `cast run`
+shows the EVM execution, but Tempo adds substantial protocol-layer gas for TIP-20 fee
+metering. Forge's `forge script` auto-estimator fails silently on this (status=0, full
+gasLimit consumed). Work around with:
+
+  cast send --gas-limit 15000000 ...
+
+Empirically: WhaleTownPoints needs ~5M, WhaleTownStaking needs ~7M. Use 10-15M to be safe.

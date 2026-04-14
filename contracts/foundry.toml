@@ -2,9 +2,17 @@
 src = "contracts"
 out = "artifacts"
 libs = ["node_modules", "lib"]
+optimizer = true
+optimizer_runs = 200
+evm_version = "cancun"
 remappings = [
     "@openzeppelin/=node_modules/@openzeppelin/",
     "hardhat/=node_modules/hardhat/",
 ]
+
+# Tempo network aliases — use via `forge script ... --rpc-url tempo_testnet`
+[rpc_endpoints]
+tempo_testnet = "https://rpc.moderato.tempo.xyz"
+tempo = "https://rpc.tempo.xyz"
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

@@ -240,6 +240,12 @@ export default defineConfig(({mode}) => {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
       'process.env.ALCHEMY_TEMPO_RPC': JSON.stringify(env.ALCHEMY_TEMPO_RPC || ''),
       'process.env.ALCHEMY_TEMPO_WEBSOCKET': JSON.stringify(env.ALCHEMY__TEMPO_WEBSOCKET || ''),
+      'process.env.NFT_CONTRACT': JSON.stringify(mode === 'development' ? env.TEST_NFT_CONTRACT : env.NFT_CONTRACT),
+      'process.env.MARKETPLACE_CONTRACT': JSON.stringify(mode === 'development' ? env.TEST_MARKETPLACE_CONTRACT : env.MARKETPLACE_CONTRACT),
+      'process.env.PATH_USD_CONTRACT': JSON.stringify(mode === 'development' ? env.TEST_PATH_USD_CONTRACT : env.PATH_USD_CONTRACT),
+      'process.env.POINTS_CONTRACT': JSON.stringify(mode === 'development' ? env.TEST_POINTS_CONTRACT : env.POINTS_CONTRACT),
+      'process.env.STAKING_CONTRACT': JSON.stringify(mode === 'development' ? env.TEST_STAKING_CONTRACT : env.STAKING_CONTRACT),
+      'process.env.RPC_URL': JSON.stringify(mode === 'development' ? env.TEST_RPC_URL : env.RPC_URL),
     },
     resolve: {
       alias: {

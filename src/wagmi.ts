@@ -3,7 +3,7 @@ import { defineChain, http, webSocket, fallback } from 'viem';
 // @ts-ignore
 import { TEMPO_MAINNET } from '@/contract.js';
 
-const alchemyRpc: string = process.env.ALCHEMY_TEMPO_RPC || '';
+const customRpc: string = process.env.RPC_URL || process.env.ALCHEMY_TEMPO_RPC || '';
 const alchemyWs: string = process.env.ALCHEMY_TEMPO_WEBSOCKET || '';
 const publicRpc: string = TEMPO_MAINNET.rpcUrls.default.http[0];
 
@@ -13,7 +13,7 @@ export const tempoMainnet = defineChain({
   network: TEMPO_MAINNET.network,
   nativeCurrency: TEMPO_MAINNET.nativeCurrency,
   rpcUrls: {
-    default: { http: [alchemyRpc || publicRpc] },
+    default: { http: [customRpc || publicRpc] },
     public: { http: [publicRpc] },
   },
 });
@@ -21,7 +21,7 @@ export const tempoMainnet = defineChain({
 // Build transport chain: Alchemy WS (real-time) → Alchemy HTTP → public RPC fallback
 const transportList = [
   ...(alchemyWs ? [webSocket(alchemyWs)] : []),
-  ...(alchemyRpc ? [http(alchemyRpc)] : []),
+  ...(customRpc ? [http(customRpc)] : []),
   http(publicRpc),
 ];
 

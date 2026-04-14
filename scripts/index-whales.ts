@@ -4,9 +4,9 @@ import { createPublicClient, http } from 'viem';
 import 'dotenv/config';
 
 const POSTGRES_URL = process.env.POSTGRES_URL;
-const RPC_URL = 'https://rpc.tempo.xyz';
-const CONTRACT = '0x1065ef5996C86C8C90D97974F3c9E5234416839F';
-const ABI = [{ name: 'tokenURI', type: 'function', stateMutability: 'view', inputs: [{ name: 'tokenId', type: 'uint256' }], outputs: [{ name: '', type: 'string' }] }];
+const RPC_URL = process.env.RPC_URL || 'https://rpc.tempo.xyz';
+const CONTRACT = (process.env.NFT_CONTRACT || '0x1065ef5996C86C8C90D97974F3c9E5234416839F') as `0x${string}`;
+const ABI = [{ name: 'tokenURI', type: 'function', stateMutability: 'view', inputs: [{ name: 'tokenId', type: 'uint256' }], outputs: [{ name: '', type: 'string' }] }] as const;
 
 async function run() {
   if (!POSTGRES_URL) {

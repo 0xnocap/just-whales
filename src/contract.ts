@@ -1,15 +1,15 @@
 import { createPublicClient, http, fallback } from 'viem';
 // @ts-ignore
-import { TEMPO_MAINNET, WHALE_TOWN_ADDRESS, WHALE_TOWN_ABI, WHALE_TOWN_MARKETPLACE_ADDRESS, WHALE_TOWN_MARKETPLACE_ABI, PATH_USD_ADDRESS, PATH_USD_ABI } from '@/contract.js';
+import { TEMPO_MAINNET, WHALE_TOWN_ADDRESS, WHALE_TOWN_ABI, WHALE_TOWN_MARKETPLACE_ADDRESS, WHALE_TOWN_MARKETPLACE_ABI, PATH_USD_ADDRESS, PATH_USD_ABI, POINTS_CONTRACT_ADDRESS, STAKING_CONTRACT_ADDRESS } from '@/contract.js';
 import { tempoMainnet } from './wagmi';
 
-const alchemyRpc: string = process.env.ALCHEMY_TEMPO_RPC || '';
+const customRpc: string = process.env.RPC_URL || process.env.ALCHEMY_TEMPO_RPC || '';
 const publicRpc: string = TEMPO_MAINNET.rpcUrls.default.http[0];
 
 const publicClient = createPublicClient({
   chain: tempoMainnet,
-  transport: alchemyRpc
-    ? fallback([http(alchemyRpc), http(publicRpc)])
+  transport: customRpc
+    ? fallback([http(customRpc), http(publicRpc)])
     : http(publicRpc),
 });
 
@@ -21,6 +21,9 @@ export const marketplaceAbi = WHALE_TOWN_MARKETPLACE_ABI;
 
 export const pathUSDAddress = PATH_USD_ADDRESS as `0x${string}`;
 export const pathUSDAbi = PATH_USD_ABI;
+
+export const pointsAddress = POINTS_CONTRACT_ADDRESS as `0x${string}`;
+export const stakingAddress = STAKING_CONTRACT_ADDRESS as `0x${string}`;
 
 function read(functionName: string, args?: any[]): Promise<any> {
   return publicClient.readContract({ address: contractAddress, abi: contractAbi, functionName, args } as any);

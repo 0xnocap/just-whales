@@ -12,12 +12,16 @@
 // Fully on-chain: traits stored via SSTORE2, SVG rendered on-chain
 // Token naming: "Sharks #0", "Whales #42", "SeaLions #388"
 
-export const WHALE_TOWN_ADDRESS = "0x1065ef5996C86C8C90D97974F3c9E5234416839F";
+export const WHALE_TOWN_ADDRESS = process.env.NFT_CONTRACT || "0x1065ef5996C86C8C90D97974F3c9E5234416839F";
 
 // Deployed: 2026-04-11 | batchBuy + collection royalty overrides
-export const WHALE_TOWN_MARKETPLACE_ADDRESS = "0x26CC31587Faa3334e7bbfC9A2255E1c1434fDbBe";
+export const WHALE_TOWN_MARKETPLACE_ADDRESS = process.env.MARKETPLACE_CONTRACT || "0x26CC31587Faa3334e7bbfC9A2255E1c1434fDbBe";
 
-export const PATH_USD_ADDRESS = "0x20c0000000000000000000000000000000000000";
+export const PATH_USD_ADDRESS = process.env.PATH_USD_CONTRACT || "0x20c0000000000000000000000000000000000000";
+
+// --- Economy / Points & Staking ---
+export const POINTS_CONTRACT_ADDRESS = process.env.POINTS_CONTRACT;
+export const STAKING_CONTRACT_ADDRESS = process.env.STAKING_CONTRACT;
 
 export const PATH_USD_ABI = [
   {
