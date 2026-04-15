@@ -1,12 +1,7 @@
 -- Whale-Town Points Economy schema
 -- Derived from econonmy-technical-spec.md section 10
-
--- Drop the empty stub tables from scratch/setup_economy_db.ts so CREATE TABLE
--- below takes effect with the full column set. Data-bearing tables (listed,
--- sales, transfers, tokens, canceled) from the Goldsky indexer are NOT touched.
-DROP TABLE IF EXISTS redemptions CASCADE;
-DROP TABLE IF EXISTS inventory CASCADE;
-DROP TABLE IF EXISTS economy_events CASCADE;
+-- NOTE: idempotent. All CREATE TABLE statements use IF NOT EXISTS.
+-- DO NOT add DROP TABLE here — it will wipe columns added by later migrations.
 
 -- ---------------------------------------------------------------------------
 -- users: canonical wallet registry + cached points balance
