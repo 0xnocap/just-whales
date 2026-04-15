@@ -10,12 +10,14 @@ import {
   Volume2,
   VolumeX,
   Coins,
+  XCircle,
 } from 'lucide-react';
 import { useAccount } from 'wagmi';
 import { useFishGameServer } from '../hooks/useFishGameServer';
 import GameScene from '../components/fish/GameScene';
 import { FISH_LIST, OCEAN_TREASURES } from '../constants/fishGameData';
 import { soundManager } from '../lib/fishSoundService';
+import { Link } from 'react-router-dom';
 
 const FRAME_H = 'clamp(32rem, 64vh, 46rem)';
 
@@ -149,13 +151,48 @@ export default function FishPage() {
               <span className="text-dream-cyan font-mono font-bold text-xs uppercase tracking-widest">Connection Required</span>
             </div>
           </div>
-        </div>
-      </div>
-    );
-  }
+          </div>
+          </div>
+          );
+          }
 
-  return (
-    <div className="w-full">
+          // Add Loading State
+          if (loading && !state) {
+          return (
+          <div className="w-full flex items-center justify-center" style={{ height: FRAME_H }}>
+          <div className="flex flex-col items-center gap-6">
+          <div className="w-12 h-12 rounded-full border-4 border-white/5 border-t-dream-cyan/80 animate-spin" />
+          <span className="font-mono text-dream-cyan/60 uppercase tracking-[0.2em] text-xs">Verifying Access...</span>
+          </div>
+          </div>
+          );
+          }
+
+          // Add NFT Gating State
+          if (state && state.isNFTOwner === false) {
+          return (
+          <div className="w-full flex items-center justify-center" style={{ height: FRAME_H }}>
+          <div className="text-center p-10 bg-black/40 border border-white/5 rounded-3xl backdrop-blur-2xl max-w-sm mx-auto shadow-2xl">
+          <XCircle size={48} className="mx-auto mb-6 text-dream-purple opacity-80" />
+          <h2 className="text-2xl font-black text-white mb-4 uppercase tracking-tight">Access Denied</h2>
+          <p className="text-white/50 font-mono text-sm leading-relaxed mb-8">
+            This area of the ocean is restricted. You must own a WhaleTown NFT to fish and earn rewards.
+          </p>
+          <div className="flex justify-center">
+            <Link 
+              to="/trade"
+              className="px-6 py-3 bg-dream-purple/10 hover:bg-dream-purple/20 border border-dream-purple/30 rounded-xl transition-colors inline-block"
+            >
+              <span className="text-dream-purple font-mono font-bold text-xs uppercase tracking-widest">Visit the Exchange</span>
+            </Link>
+          </div>
+          </div>
+          </div>
+          );
+          }
+
+          return (
+          <div className="w-full flex justify-center items-start">
       <div
         className="border border-white/10 bg-white/5 backdrop-blur-xl flex flex-col overflow-hidden shadow-[0_32px_64px_rgba(0,0,0,0.45)]"
         style={{ borderRadius: 'clamp(1.25rem, 1.75vw, 1.75rem)', height: FRAME_H }}

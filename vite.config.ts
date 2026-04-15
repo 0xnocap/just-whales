@@ -361,6 +361,48 @@ function apiMiddleware() {
           if (fishStateMatch) {
             res.setHeader('Content-Type', 'application/json');
             const address = fishStateMatch[1].toLowerCase();
+
+            // --- NFT Ownership Check ---
+            let isNFTOwner = false;
+            const ownershipResult = await db.query(`
+              SELECT COUNT(*)::int as count FROM (
+                SELECT DISTINCT ON (token_id) "to" as owner FROM transfers ORDER BY token_id, block_number DESC, vid DESC
+              ) sub WHERE LOWER(owner) = $1
+            `, [address]);
+            
+            if (ownershipResult.rows[0].count > 0) {
+              isNFTOwner = true;
+            } else {
+              try {
+                const isProd = process.env.ENVIRONMENT === 'production';
+                const chainId = Number((isProd ? process.env.CHAIN_ID : process.env.TEST_CHAIN_ID) || (isProd ? '4217' : '42431'));
+                const rpcUrl = (isProd ? process.env.RPC_URL : process.env.TEST_RPC_URL) || (isProd ? 'https://rpc.tempo.xyz' : 'https://rpc.moderato.tempo.xyz');
+                const stakingContract = isProd ? process.env.STAKING_CONTRACT : process.env.TEST_STAKING_CONTRACT;
+                
+                if (stakingContract) {
+                  const { createPublicClient, http, parseAbi } = await import('viem');
+                  const publicClient = createPublicClient({
+                    chain: { id: chainId, name: 'Tempo', nativeCurrency: { name: 'TMP', symbol: 'TMP', decimals: 18 }, rpcUrls: { default: { http: [rpcUrl] } } },
+                    transport: http()
+                  });
+                  const abi = parseAbi(['function stakedTokensOf(address) view returns (uint256[])']);
+                  const stakedTokens = await publicClient.readContract({
+                    address: stakingContract as `0x${string}`,
+                    abi,
+                    functionName: 'stakedTokensOf',
+                    args: [address as `0x${string}`]
+                  }) as readonly bigint[];
+                  
+                  if (stakedTokens && stakedTokens.length > 0) {
+                    isNFTOwner = true;
+                  }
+                }
+              } catch (err) {
+                console.error('Error verifying staked ownership:', err);
+              }
+            }
+            // ----------------------------
+
             const today = new Date().toISOString().split('T')[0];
             const attemptsResult = await db.query('SELECT COUNT(*)::int as count FROM game_events WHERE LOWER(wallet) = $1 AND game = \'fish\' AND created_at >= $2', [address, today]);
             const tackleBoxResult = await db.query(`SELECT created_at FROM game_events WHERE LOWER(wallet) = $1 AND game = 'tackle_box' AND created_at >= NOW() - INTERVAL '24 hours' ORDER BY created_at DESC LIMIT 1`, [address]);
@@ -371,6 +413,7 @@ function apiMiddleware() {
             const unclaimedResult = await db.query('SELECT COALESCE(SUM(points_awarded), 0)::numeric as total FROM economy_events WHERE LOWER(wallet) = $1 AND event_type = \'fish\' AND claimed = FALSE', [address]);
             const unclaimedWei = BigInt(unclaimedResult.rows[0]?.total || 0);
             res.end(JSON.stringify({
+              isNFTOwner,
               castsRemaining: Math.max(0, (hasTackleBox ? 15 : 5) - attemptsResult.rows[0].count),
               totalCasts: hasTackleBox ? 15 : 5,
               tackleBoxPurchased: hasTackleBox,
@@ -392,7 +435,55 @@ function apiMiddleware() {
           if (req.url === '/api/fish/cast' && req.method === 'POST') {
             res.setHeader('Content-Type', 'application/json');
             const { address } = await getBody(req);
-            const cleanAddress = (address || '').toLowerCase();
+            const cleanAddress = address.toLowerCase();
+
+            // --- NFT Ownership Check ---
+            let isNFTOwner = false;
+            const ownershipResult = await db.query(`
+              SELECT COUNT(*)::int as count FROM (
+                SELECT DISTINCT ON (token_id) "to" as owner FROM transfers ORDER BY token_id, block_number DESC, vid DESC
+              ) sub WHERE LOWER(owner) = $1
+            `, [cleanAddress]);
+            
+            if (ownershipResult.rows[0].count > 0) {
+              isNFTOwner = true;
+            } else {
+              try {
+                const isProd = process.env.ENVIRONMENT === 'production';
+                const chainId = Number((isProd ? process.env.CHAIN_ID : process.env.TEST_CHAIN_ID) || (isProd ? '4217' : '42431'));
+                const rpcUrl = (isProd ? process.env.RPC_URL : process.env.TEST_RPC_URL) || (isProd ? 'https://rpc.tempo.xyz' : 'https://rpc.moderato.tempo.xyz');
+                const stakingContract = isProd ? process.env.STAKING_CONTRACT : process.env.TEST_STAKING_CONTRACT;
+                
+                if (stakingContract) {
+                  const { createPublicClient, http, parseAbi } = await import('viem');
+                  const publicClient = createPublicClient({
+                    chain: { id: chainId, name: 'Tempo', nativeCurrency: { name: 'TMP', symbol: 'TMP', decimals: 18 }, rpcUrls: { default: { http: [rpcUrl] } } },
+                    transport: http()
+                  });
+                  const abi = parseAbi(['function stakedTokensOf(address) view returns (uint256[])']);
+                  const stakedTokens = await publicClient.readContract({
+                    address: stakingContract as `0x${string}`,
+                    abi,
+                    functionName: 'stakedTokensOf',
+                    args: [cleanAddress as `0x${string}`]
+                  }) as readonly bigint[];
+                  
+                  if (stakedTokens && stakedTokens.length > 0) {
+                    isNFTOwner = true;
+                  }
+                }
+              } catch (err) {
+                console.error('Error verifying staked ownership:', err);
+              }
+            }
+            // ----------------------------
+            
+            if (!isNFTOwner) {
+              res.statusCode = 403;
+              res.end(JSON.stringify({ error: 'NFT Ownership Required', code: 'UNAUTHORIZED' }));
+              return;
+            }
+
             const { FISH_LIST, NO_BITE_MESSAGES, FREE_DAILY_ATTEMPTS, TACKLE_BOX_ATTEMPTS } = await import('./api/fish/_gameData.js');
             const today = new Date().toISOString().split('T')[0];
 

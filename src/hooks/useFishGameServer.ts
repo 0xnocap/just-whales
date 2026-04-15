@@ -13,6 +13,7 @@ export interface FishInventoryItem {
 }
 
 export interface FishGameState {
+  isNFTOwner?: boolean;
   castsRemaining: number;
   totalCasts: number;
   tackleBoxPurchased: boolean;

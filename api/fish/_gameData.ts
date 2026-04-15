@@ -109,4 +109,4 @@ export const NO_BITE_MESSAGES = [
 
 export const TACKLE_BOX_COST = 125;
 export const TACKLE_BOX_ATTEMPTS = 10;
-export const FREE_DAILY_ATTEMPTS = 5;
+export const FREE_DAILY_ATTEMPTS = 10;

@@ -1,6 +1,7 @@
 import { getPool } from '../_db.js';
 import { FISH_LIST, NO_BITE_MESSAGES, FREE_DAILY_ATTEMPTS, TACKLE_BOX_ATTEMPTS } from './_gameData.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { createPublicClient, http, parseAbi } from 'viem';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -17,6 +18,54 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const cleanAddress = address.toLowerCase();
     const db = await getPool();
+
+    // --- NFT Ownership Check ---
+    let isNFTOwner = false;
+    
+    // 1. Unstaked Check (DB)
+    const ownershipResult = await db.query(`
+      SELECT COUNT(*)::int as count FROM (
+        SELECT DISTINCT ON (token_id) "to" as owner FROM transfers ORDER BY token_id, block_number DESC, vid DESC
+      ) sub WHERE LOWER(owner) = $1
+    `, [cleanAddress]);
+    
+    if (ownershipResult.rows[0].count > 0) {
+      isNFTOwner = true;
+    } else {
+      // 2. Staked Check (On-Chain Fallback)
+      try {
+        const isProd = process.env.ENVIRONMENT === 'production';
+        const chainId = Number((isProd ? process.env.CHAIN_ID : process.env.TEST_CHAIN_ID) || (isProd ? '4217' : '42431'));
+        const rpcUrl = (isProd ? process.env.RPC_URL : process.env.TEST_RPC_URL) || (isProd ? 'https://rpc.tempo.xyz' : 'https://rpc.moderato.tempo.xyz');
+        const stakingContract = isProd ? process.env.STAKING_CONTRACT : process.env.TEST_STAKING_CONTRACT;
+        
+        if (stakingContract) {
+          const publicClient = createPublicClient({
+            chain: { id: chainId, name: 'Tempo', nativeCurrency: { name: 'TMP', symbol: 'TMP', decimals: 18 }, rpcUrls: { default: { http: [rpcUrl] } } },
+            transport: http()
+          });
+          const abi = parseAbi(['function stakedTokensOf(address) view returns (uint256[])']);
+          const stakedTokens = await publicClient.readContract({
+            address: stakingContract as `0x${string}`,
+            abi,
+            functionName: 'stakedTokensOf',
+            args: [cleanAddress as `0x${string}`]
+          }) as readonly bigint[];
+          
+          if (stakedTokens && stakedTokens.length > 0) {
+            isNFTOwner = true;
+          }
+        }
+      } catch (err) {
+        console.error('Error verifying staked ownership:', err);
+      }
+    }
+
+    if (!isNFTOwner) {
+      res.status(403).json({ error: 'NFT Ownership Required', code: 'UNAUTHORIZED' });
+      return;
+    }
+    // ----------------------------
 
     // 1. Check daily attempts
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
