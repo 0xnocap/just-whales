@@ -42,16 +42,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const cleanAddress = address.toLowerCase();
     const db = await getPool();
-    const today = new Date().toISOString().split('T')[0];
 
-    // 1. Already bought today?
+    // 1. Already bought within 24 hours?
     const existing = await db.query(`
       SELECT id FROM game_events
-      WHERE LOWER(wallet) = $1 AND game = 'tackle_box' AND created_at >= $2
-    `, [cleanAddress, today]);
+      WHERE LOWER(wallet) = $1 AND game = 'tackle_box' AND created_at >= NOW() - INTERVAL '24 hours'
+    `, [cleanAddress]);
 
     if (existing.rows.length > 0) {
-      res.status(400).json({ error: 'Already purchased tackle box today' });
+      res.status(400).json({ error: 'Tackle box already purchased within the last 24 hours' });
       return;
     }
 
@@ -81,7 +80,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const from = '0x' + log.topics[1]?.slice(26).toLowerCase();
         const to = '0x' + log.topics[2]?.slice(26).toLowerCase();
         const value = BigInt(log.data);
-        if (from === cleanAddress && to === treasury && value === BigInt(100) * BigInt(10**18)) {
+        if (from === cleanAddress && to === treasury && value === BigInt(125) * BigInt(10**18)) {
           validTransfer = true;
           break;
         }

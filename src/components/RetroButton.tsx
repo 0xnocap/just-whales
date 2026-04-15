@@ -14,6 +14,7 @@ const RetroButton = ({ icon: Icon, label, to, disabled, tooltip }: RetroButtonPr
   const location = useLocation();
   const active = location.pathname === to || (to === '/profile' && location.pathname.startsWith('/profile'));
   const isStakeButton = label === 'Stake';
+  const isFishButton = label === 'Fish';
 
   const onClick = () => {
     if (disabled) return;
@@ -27,8 +28,10 @@ const RetroButton = ({ icon: Icon, label, to, disabled, tooltip }: RetroButtonPr
       : disabled
         ? 'border-transparent bg-transparent opacity-40 cursor-not-allowed'
         : isStakeButton
-          ? 'border-emerald-500/30 bg-white/[0.02] animate-[pulse_3s_infinite_ease-in-out] shadow-[0_0_10px_rgba(16,185,129,0.1)]'
-          : 'border-transparent bg-transparent hover:bg-white/[0.04]',
+          ? 'border-emerald-500/50 bg-white/[0.04] animate-[pulse_3s_infinite_ease-in-out] shadow-[0_0_8px_rgba(16,185,129,0.3)]'
+          : isFishButton
+            ? 'border-dream-cyan/50 bg-white/[0.04] animate-[pulse_3s_infinite_ease-in-out] shadow-[0_0_8px_rgba(34,211,238,0.3)]'
+            : 'border-transparent bg-transparent hover:bg-white/[0.04]',
   ].filter(Boolean).join(' ');
 
   return (

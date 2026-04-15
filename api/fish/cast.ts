@@ -62,6 +62,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
+    // Check gatekeeper cap: kraken-tentacle is limited to 12 drops globally
+    const KRAKEN_CAP = 12;
+    const krakenCountResult = await db.query(`
+      SELECT COUNT(*)::int as count
+      FROM game_events
+      WHERE game = 'fish'
+        AND result::jsonb->>'id' = 'kraken-tentacle'
+    `);
+    const krakenCapped = krakenCountResult.rows[0].count >= KRAKEN_CAP;
+
     // Resolve Catch
     const roll = Math.random() * 100;
     let caughtFish;
@@ -75,7 +85,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       else caughtFish = nfts.find(n => n.nftTier === 'Common');
       if (!caughtFish) caughtFish = nfts[Math.floor(Math.random() * nfts.length)];
     } else if (roll > 96) {
-      const legendaries = FISH_LIST.filter(f => f.rarity === 'Legendary');
+      const legendaries = FISH_LIST.filter(f => f.rarity === 'Legendary' && (!krakenCapped || f.id !== 'kraken-tentacle'));
       caughtFish = legendaries[Math.floor(Math.random() * legendaries.length)];
     } else if (roll > 90) {
       const epics = FISH_LIST.filter(f => f.rarity === 'Epic');

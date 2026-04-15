@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Anchor,
@@ -14,7 +14,7 @@ import {
 import { useAccount } from 'wagmi';
 import { useFishGameServer } from '../hooks/useFishGameServer';
 import GameScene from '../components/fish/GameScene';
-import { FISH_LIST } from '../constants/fishGameData';
+import { FISH_LIST, OCEAN_TREASURES } from '../constants/fishGameData';
 import { soundManager } from '../lib/fishSoundService';
 
 const FRAME_H = 'clamp(32rem, 64vh, 46rem)';
@@ -83,9 +83,12 @@ export default function FishPage() {
     state,
     loading,
     isPurchasing,
+    sellingId,
+    onChainOPBalance,
     cast,
     sell,
     buyTackleBox,
+    grantTestResources,
   } = useFishGameServer();
 
   const [tab, setTab] = useState<Tab>('ocean');
@@ -95,10 +98,42 @@ export default function FishPage() {
   const attempts = state?.castsRemaining ?? 0;
   const discoveredFishIds = state?.discoveredFishIds || [];
   const coins = state ? Number(BigInt(state.unclaimedFishingOP) / BigInt(10**18)) : 0;
+  const OP_DECIMALS = BigInt(10) ** BigInt(18);
+  // null = still loading, number = resolved
+  const onChainOP = onChainOPBalance !== undefined ? Number(onChainOPBalance / OP_DECIMALS) : null;
+  // Only gate when balance is confirmed below threshold — never block while loading
+  const insufficientBalance = onChainOP !== null && onChainOP < 125;
 
-  const journalFound = discoveredFishIds.length;
-  const journalTotal = FISH_LIST.length;
+  const JOURNAL_LIST = FISH_LIST.filter(f => f.rarity !== 'NFT');
+  const oceanTreasuresFound = discoveredFishIds.filter(id => OCEAN_TREASURES.some(f => f.id === id)).length;
+  const journalFound = discoveredFishIds.filter(id => JOURNAL_LIST.some(f => f.id === id)).length + oceanTreasuresFound;
+  const journalTotal = JOURNAL_LIST.length + OCEAN_TREASURES.length;
   const journalPct = (journalFound / journalTotal) * 100;
+
+  // Net: available-to-trade items first
+  const sortedInventory = [...inventory].sort((a, b) => {
+    if (a.redeemed === b.redeemed) return 0;
+    return a.redeemed ? 1 : -1;
+  });
+
+  // Market: 24h rolling countdown from purchase time
+  const [tackleCountdown, setTackleCountdown] = useState('');
+  useEffect(() => {
+    if (!state?.tackleBoxPurchasedAt) return;
+    const resetAt = new Date(state.tackleBoxPurchasedAt).getTime() + 24 * 60 * 60 * 1000;
+    const tick = () => {
+      const ms = resetAt - Date.now();
+      if (ms <= 0) { setTackleCountdown(''); return; }
+      const s = Math.floor(ms / 1000);
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const sec = s % 60;
+      setTackleCountdown(`${h}h ${String(m).padStart(2, '0')}m ${String(sec).padStart(2, '0')}s`);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [state?.tackleBoxPurchasedAt]);
 
   if (!isConnected) {
     return (
@@ -183,8 +218,8 @@ export default function FishPage() {
               primary
               icon={<Coins size={11} className="text-sun" fill="currentColor" />}
               value={coins.toLocaleString()}
-              label="coins"
-              aria={`${coins} coins`}
+              label="Unclaimed $OP"
+              aria={`${coins} unclaimed $OP`}
             />
             <StatPill
               icon={<Zap size={10} className="text-dream-cyan" fill="currentColor" />}
@@ -212,7 +247,7 @@ export default function FishPage() {
           role="tabpanel"
           aria-labelledby={`tab-${tab}`}
         >
-          <AnimatePresence mode="wait">
+          <AnimatePresence>
             {tab === 'ocean' && (
               <motion.div
                 key="ocean"
@@ -229,10 +264,10 @@ export default function FishPage() {
             {tab === 'net' && (
               <motion.div
                 key="net"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.18 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
                 className="absolute inset-0 overflow-y-auto"
                 style={{ padding: 'clamp(1.1rem, 2vw, 1.75rem)' }}
               >
@@ -256,15 +291,17 @@ export default function FishPage() {
                       gap: 'clamp(0.65rem, 1.2vw, 0.95rem)',
                     }}
                   >
-                    {inventory.map((item, idx) => {
+                    {sortedInventory.map((item) => {
                       const fish = item.fish;
                       const t = tint(fish.rarity);
                       const isNft = fish.rarity === 'NFT';
                       const isRedeemed = item.redeemed;
 
+                      const isSelling = sellingId === item.gameEventId;
+
                       return (
                         <div
-                          key={`${fish.id}-${item.gameEventId}-${idx}`}
+                          key={item.gameEventId}
                           className={`relative flex flex-col items-center text-center border ${t.border} bg-white/[0.025] ${t.glow} transition-colors hover:bg-white/[0.045] ${isRedeemed ? 'opacity-40 grayscale' : ''}`}
                           style={{
                             padding: 'clamp(0.9rem, 1.6vw, 1.25rem)',
@@ -326,9 +363,9 @@ export default function FishPage() {
                             </button>
                           ) : (
                             <button
-                              onClick={() => !isRedeemed && sell(item.gameEventId)}
-                              disabled={isRedeemed}
-                              className={`w-full font-mono font-bold transition-colors ${isRedeemed ? 'bg-white/5 text-white/20 border border-white/5' : 'bg-white/[0.04] hover:bg-dream-cyan/15 border border-white/10 hover:border-dream-cyan/40 text-white/80 hover:text-dream-cyan'}`}
+                              onClick={() => !isRedeemed && !isSelling && sell(item.gameEventId)}
+                              disabled={isRedeemed || isSelling}
+                              className={`w-full font-mono font-bold transition-colors ${isRedeemed || isSelling ? 'bg-white/5 text-white/20 border border-white/5' : 'bg-white/[0.04] hover:bg-dream-cyan/15 border border-white/10 hover:border-dream-cyan/40 text-white/80 hover:text-dream-cyan'}`}
                               style={{
                                 fontSize: 'clamp(10px, 0.8vw, 12px)',
                                 padding: 'clamp(0.5rem, 1vh, 0.7rem)',
@@ -337,7 +374,7 @@ export default function FishPage() {
                                 letterSpacing: '0.08em',
                               }}
                             >
-                              {isRedeemed ? 'Sold' : 'Sell'}
+                              {isRedeemed ? 'Traded' : isSelling ? 'Trading...' : 'Trade'}
                             </button>
                           )}
                         </div>
@@ -351,10 +388,10 @@ export default function FishPage() {
             {tab === 'market' && (
               <motion.div
                 key="market"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.18 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
                 className="absolute inset-0 overflow-y-auto"
                 style={{ padding: 'clamp(1.1rem, 2vw, 1.75rem)' }}
               >
@@ -363,16 +400,25 @@ export default function FishPage() {
                   title="Supplies & bait"
                   sub="Restock before your next cast"
                 />
+                <div
+                  className="flex items-center gap-1.5 font-mono text-white/50"
+                  style={{ fontSize: 'clamp(11px, 0.85vw, 13px)', marginBottom: 'clamp(0.65rem, 1.2vh, 0.9rem)' }}
+                >
+                  <Coins size={11} className="text-sun" fill="currentColor" />
+                  <span>Wallet: <span className="text-sun/80 font-bold">{onChainOP !== null ? `${onChainOP.toLocaleString()} $OP` : '...'}</span></span>
+                </div>
                 <div className="flex flex-col" style={{ gap: 'clamp(0.6rem, 1.2vh, 0.85rem)' }}>
                   <MarketRow
                     icon="📦"
                     name="Tackle Box"
                     desc={`+10 casts today · one per day · on-chain purchase`}
-                    price={100}
-                    disabled={state?.tackleBoxPurchased || isPurchasing}
+                    price={125}
+                    disabled={state?.tackleBoxPurchased || isPurchasing || insufficientBalance}
                     disabledLabel={
                       state?.tackleBoxPurchased
-                        ? 'Sold out · back tomorrow'
+                        ? tackleCountdown ? tackleCountdown : 'Available tomorrow'
+                        : insufficientBalance
+                        ? 'Need 100 $OP'
                         : undefined
                     }
                     onBuy={buyTackleBox}
@@ -384,17 +430,17 @@ export default function FishPage() {
             {tab === 'journal' && (
               <motion.div
                 key="journal"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.18 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
                 className="absolute inset-0 overflow-y-auto"
                 style={{ padding: 'clamp(1.1rem, 2vw, 1.75rem)' }}
               >
                 <SectionHead
                   eyebrow="Journal"
-                  title={`${journalFound} of ${journalTotal} discovered`}
-                  sub="Every species unlocks lore"
+                  title={`${journalFound} of ${journalTotal} collected`}
+                  sub="Go fish and be the first to fill your journal"
                   action={
                     <div
                       className="flex items-center overflow-hidden rounded-full border border-white/10 bg-white/[0.03]"
@@ -418,7 +464,7 @@ export default function FishPage() {
                     gap: 'clamp(0.45rem, 0.9vw, 0.7rem)',
                   }}
                 >
-                  {FISH_LIST.map(f => {
+                  {JOURNAL_LIST.map(f => {
                     const found = discoveredFishIds.includes(f.id);
                     const t = tint(f.rarity);
                     return (
@@ -442,14 +488,58 @@ export default function FishPage() {
                     );
                   })}
                 </div>
+
+                {/* Ocean Treasures section */}
+                <div style={{ marginTop: 'clamp(1.25rem, 2.5vh, 2rem)' }}>
+                  <div className="flex items-center gap-2" style={{ marginBottom: 'clamp(0.6rem, 1.2vh, 0.9rem)' }}>
+                    <span style={{ fontSize: 'clamp(0.6rem, 0.75vw, 0.7rem)' }} className="font-mono uppercase tracking-[0.18em] text-amber-400/70">
+                      Ocean Treasures
+                    </span>
+                    <div className="flex-1 h-px bg-amber-400/15" />
+                    <span style={{ fontSize: 'clamp(0.6rem, 0.75vw, 0.7rem)' }} className="font-mono text-amber-400/50">
+                      {oceanTreasuresFound}/{OCEAN_TREASURES.length}
+                    </span>
+                  </div>
+                  <div
+                    className="grid"
+                    style={{
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(3.5rem, 5.5vw, 4.5rem), 1fr))',
+                      gap: 'clamp(0.45rem, 0.9vw, 0.7rem)',
+                    }}
+                  >
+                    {OCEAN_TREASURES.map(f => {
+                      const found = discoveredFishIds.includes(f.id);
+                      const t = tint(f.rarity);
+                      return (
+                        <div
+                          key={f.id}
+                          aria-label={found ? `${f.name}, ${f.rarity}` : 'Undiscovered treasure'}
+                          className={`aspect-square flex flex-col items-center justify-center border transition-colors ${
+                            found
+                              ? `${t.border} bg-amber-400/[0.04] hover:bg-amber-400/[0.08]`
+                              : 'border-white/[0.05] bg-black/15 text-white/15'
+                          }`}
+                          style={{
+                            borderRadius: 'clamp(0.55rem, 0.8vw, 0.75rem)',
+                            padding: 'clamp(0.25rem, 0.5vh, 0.4rem)',
+                          }}
+                        >
+                          <span style={{ fontSize: 'clamp(1.25rem, 2vw, 1.75rem)' }}>
+                            {found ? f.icon : '?'}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
       </div>
 
-      {/* Dev-only grant button */}
-      {(import.meta as any).env?.DEV && (
+      {/* Dev-only grant button — hidden when ENVIRONMENT=production */}
+      {(import.meta as any).env?.DEV && process.env.IS_PRODUCTION !== 'true' && (
         <div className="flex justify-center" style={{ marginTop: 'clamp(0.75rem, 1.5vh, 1.25rem)' }}>
           <button
             onClick={grantTestResources}
@@ -672,12 +762,11 @@ function MarketRow({
         style={{ gap: 'clamp(0.6rem, 1vw, 0.9rem)' }}
       >
         <span className="flex items-center gap-1.5">
-          <Coins size={13} className="text-sun" fill="currentColor" />
           <span
             className="font-mono font-bold text-sun"
             style={{ fontSize: 'clamp(13px, 1vw, 15px)' }}
           >
-            {price}
+            {price} $OP
           </span>
         </span>
         <button
@@ -693,7 +782,7 @@ function MarketRow({
             letterSpacing: '0.08em',
           }}
         >
-          {disabled ? 'Unavailable' : 'Buy'}
+          {disabled ? (disabledLabel ?? 'Unavailable') : 'Buy'}
         </button>
       </div>
     </div>

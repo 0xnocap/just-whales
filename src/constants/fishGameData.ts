@@ -8,6 +8,14 @@ export interface FishType {
   nftTier?: 'Common' | 'Rare' | 'Ultra Rare' | 'Legendary';
 }
 
+export const OCEAN_TREASURES: FishType[] = [
+  { id: 'pirates-cutlass', name: "Pirate's Cutlass", rarity: 'Epic', value: 200, color: 'text-slate-300', icon: '🗡️' },
+  { id: 'davy-jones-locket', name: "Davy Jones' Locket", rarity: 'Legendary', value: 500, color: 'text-emerald-700', icon: '🪬' },
+  { id: 'pirates-spyglass', name: "Pirate's Spyglass", rarity: 'Legendary', value: 750, color: 'text-amber-600', icon: '🔭' },
+  { id: 'jolly-roger', name: 'Jolly Roger', rarity: 'Legendary', value: 1000, color: 'text-slate-100', icon: '🏴‍☠️' },
+  { id: 'cursed-gold', name: 'Cursed Gold', rarity: 'Legendary', value: 1500, color: 'text-yellow-500', icon: '💰' },
+];
+
 export const FISH_LIST: FishType[] = [
   { id: 'clownfish', name: 'Clownfish', rarity: 'Common', value: 5, color: 'text-orange-500', icon: '🤡' },
   { id: 'blue-tang', name: 'Blue Tang', rarity: 'Common', value: 5, color: 'text-blue-500', icon: '🐟' },
@@ -42,17 +50,12 @@ export const FISH_LIST: FishType[] = [
   { id: 'pufferfish', name: 'Pufferfish', rarity: 'Rare', value: 110, color: 'text-yellow-600', icon: '🐡' },
   { id: 'sea-dragon', name: 'Sea Dragon', rarity: 'Rare', value: 130, color: 'text-emerald-400', icon: '🐉' },
   { id: 'manta-ray', name: 'Manta Ray', rarity: 'Epic', value: 150, color: 'text-blue-800', icon: '🪁' },
-  { id: 'hammerhead', name: 'Hammerhead', rarity: 'Epic', value: 200, color: 'text-slate-500', icon: '🔨' },
   { id: 'dolphin', name: 'Dolphin', rarity: 'Epic', value: 250, color: 'text-cyan-400', icon: '🐬' },
   { id: 'turtle', name: 'Sea Turtle', rarity: 'Epic', value: 300, color: 'text-emerald-600', icon: '🐢' },
   { id: 'swordfish', name: 'Swordfish', rarity: 'Epic', value: 350, color: 'text-blue-900', icon: '⚔️' },
   { id: 'narwhal', name: 'Narwhal', rarity: 'Epic', value: 400, color: 'text-slate-200', icon: '🦄' },
   { id: 'sunfish', name: 'Sunfish', rarity: 'Epic', value: 450, color: 'text-gray-300', icon: '☀️' },
   { id: 'megalodon-tooth', name: 'Megalodon Tooth', rarity: 'Epic', value: 500, color: 'text-slate-400', icon: '🦷' },
-  { id: 'whale-shark', name: 'Whale Shark', rarity: 'Legendary', value: 500, color: 'text-indigo-900', icon: '🐋' },
-  { id: 'great-white', name: 'Great White', rarity: 'Legendary', value: 750, color: 'text-slate-700', icon: '🦈' },
-  { id: 'orca', name: 'Orca', rarity: 'Legendary', value: 1000, color: 'text-black', icon: '🐳' },
-  { id: 'blue-whale', name: 'Blue Whale', rarity: 'Legendary', value: 1500, color: 'text-blue-900', icon: '🐋' },
   { id: 'giant-squid', name: 'Giant Squid', rarity: 'Legendary', value: 2000, color: 'text-red-900', icon: '🦑' },
   { id: 'kraken-tentacle', name: 'Kraken', rarity: 'Legendary', value: 2500, color: 'text-purple-900', icon: '🐙' },
   { id: 'nft-common', name: 'Barnacle Key', rarity: 'NFT', nftTier: 'Common', value: 0, color: 'text-slate-400', icon: '🔑' },
@@ -79,8 +82,18 @@ export const FISH_LIST: FishType[] = [
   { id: 'rusty-hook', name: 'Rusty Hook', rarity: 'Junk', value: 1, color: 'text-slate-500', icon: '🪝' },
   { id: 'lost-ring', name: 'Lost Ring', rarity: 'Rare', value: 150, color: 'text-yellow-400', icon: '💍' },
   { id: 'treasure-chest', name: 'Sunken Chest', rarity: 'Epic', value: 500, color: 'text-amber-600', icon: '📦' },
+  { id: 'sea-cucumber', name: 'Sea Cucumber', rarity: 'Junk', value: 2, color: 'text-green-600', icon: '🥒' },
+  { id: 'coral-fragment', name: 'Coral Fragment', rarity: 'Common', value: 6, color: 'text-pink-400', icon: '🪸' },
+  { id: 'parrotfish', name: 'Parrotfish', rarity: 'Common', value: 11, color: 'text-emerald-400', icon: '🦜' },
+  { id: 'nautilus', name: 'Nautilus', rarity: 'Uncommon', value: 28, color: 'text-amber-200', icon: '🐚' },
+  { id: 'mantis-shrimp', name: 'Mantis Shrimp', rarity: 'Uncommon', value: 38, color: 'text-cyan-300', icon: '🥊' },
+  { id: 'blobfish', name: 'Blobfish', rarity: 'Rare', value: 72, color: 'text-pink-300', icon: '🫠' },
+  { id: 'anglerfish', name: 'Anglerfish', rarity: 'Rare', value: 88, color: 'text-indigo-800', icon: '🔦' },
+  { id: 'giant-isopod', name: 'Giant Isopod', rarity: 'Epic', value: 300, color: 'text-slate-300', icon: '🪲' },
+  { id: 'oarfish', name: 'Oarfish', rarity: 'Legendary', value: 1750, color: 'text-silver-400', icon: '🐟' },
+  ...OCEAN_TREASURES,
 ];
 
-export const TACKLE_BOX_COST = 100;
+export const TACKLE_BOX_COST = 125;
 export const TACKLE_BOX_ATTEMPTS = 10;
 export const FREE_DAILY_ATTEMPTS = 5;

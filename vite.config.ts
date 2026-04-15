@@ -363,9 +363,10 @@ function apiMiddleware() {
             const address = fishStateMatch[1].toLowerCase();
             const today = new Date().toISOString().split('T')[0];
             const attemptsResult = await db.query('SELECT COUNT(*)::int as count FROM game_events WHERE LOWER(wallet) = $1 AND game = \'fish\' AND created_at >= $2', [address, today]);
-            const tackleBoxResult = await db.query('SELECT COUNT(*)::int as count FROM game_events WHERE LOWER(wallet) = $1 AND game = \'tackle_box\' AND created_at >= $2', [address, today]);
-            const hasTackleBox = tackleBoxResult.rows[0].count > 0;
-            const inventoryResult = await db.query('SELECT id, result, redeemed, prize_tier FROM game_events WHERE LOWER(wallet) = $1 AND game = \'fish\' AND created_at >= $2 ORDER BY created_at DESC', [address, today]);
+            const tackleBoxResult = await db.query(`SELECT created_at FROM game_events WHERE LOWER(wallet) = $1 AND game = 'tackle_box' AND created_at >= NOW() - INTERVAL '24 hours' ORDER BY created_at DESC LIMIT 1`, [address]);
+            const hasTackleBox = tackleBoxResult.rows.length > 0;
+            const tackleBoxPurchasedAt = hasTackleBox ? new Date(tackleBoxResult.rows[0].created_at).toISOString() : null;
+            const inventoryResult = await db.query(`SELECT id, result, redeemed, prize_tier FROM game_events WHERE LOWER(wallet) = $1 AND game = 'fish' AND created_at >= $2 AND (result::jsonb->>'id') IS NOT NULL ORDER BY created_at DESC`, [address, today]);
             const journalResult = await db.query('SELECT DISTINCT (result->>\'id\') as fish_id FROM game_events WHERE LOWER(wallet) = $1 AND game = \'fish\'', [address]);
             const unclaimedResult = await db.query('SELECT COALESCE(SUM(points_awarded), 0)::numeric as total FROM economy_events WHERE LOWER(wallet) = $1 AND event_type = \'fish\' AND claimed = FALSE', [address]);
             const unclaimedWei = BigInt(unclaimedResult.rows[0]?.total || 0);
@@ -373,6 +374,7 @@ function apiMiddleware() {
               castsRemaining: Math.max(0, (hasTackleBox ? 15 : 5) - attemptsResult.rows[0].count),
               totalCasts: hasTackleBox ? 15 : 5,
               tackleBoxPurchased: hasTackleBox,
+              tackleBoxPurchasedAt,
               inventory: inventoryResult.rows.map((r: any) => ({
                 gameEventId: r.id,
                 fish: typeof r.result === 'string' ? JSON.parse(r.result) : r.result,
@@ -391,8 +393,68 @@ function apiMiddleware() {
             res.setHeader('Content-Type', 'application/json');
             const { address } = await getBody(req);
             const cleanAddress = (address || '').toLowerCase();
-            // Just a mock for dev middleware - full logic is in api/fish/cast.ts
-            res.end(JSON.stringify({ result: 'no_bite', message: 'Dev mock: please use production API for full RNG' }));
+            const { FISH_LIST, NO_BITE_MESSAGES, FREE_DAILY_ATTEMPTS, TACKLE_BOX_ATTEMPTS } = await import('./api/fish/_gameData.js');
+            const today = new Date().toISOString().split('T')[0];
+
+            const attemptsResult = await db.query(`SELECT COUNT(*)::int as count FROM game_events WHERE LOWER(wallet) = $1 AND game = 'fish' AND created_at >= $2`, [cleanAddress, today]);
+            const tackleBoxResult = await db.query(`SELECT COUNT(*)::int as count FROM game_events WHERE LOWER(wallet) = $1 AND game = 'tackle_box' AND created_at >= $2`, [cleanAddress, today]);
+            const hasTackleBox = tackleBoxResult.rows[0].count > 0;
+            const totalAllowed = FREE_DAILY_ATTEMPTS + (hasTackleBox ? TACKLE_BOX_ATTEMPTS : 0);
+            const usedAttempts = attemptsResult.rows[0].count;
+
+            if (usedAttempts >= totalAllowed) {
+              res.statusCode = 403;
+              res.end(JSON.stringify({ error: 'No attempts remaining today', used: usedAttempts, total: totalAllowed, hasTackleBox }));
+              return;
+            }
+
+            const isBite = Math.random() > 0.5;
+            if (!isBite) {
+              await db.query(`INSERT INTO game_events (wallet, game, result, points_earned) VALUES ($1, 'fish', $2, 0)`, [cleanAddress, JSON.stringify({ result: 'no_bite' })]);
+              const message = NO_BITE_MESSAGES[Math.floor(Math.random() * NO_BITE_MESSAGES.length)];
+              res.end(JSON.stringify({ result: 'no_bite', message, attemptsRemaining: totalAllowed - usedAttempts - 1 }));
+              return;
+            }
+
+            // Gatekeeper cap: kraken-tentacle limited to 12 drops globally
+            const krakenCountResult = await db.query(`SELECT COUNT(*)::int as count FROM game_events WHERE game = 'fish' AND result::jsonb->>'id' = 'kraken-tentacle'`);
+            const krakenCapped = krakenCountResult.rows[0].count >= 12;
+
+            const roll = Math.random() * 100;
+            let caughtFish: any;
+            if (roll > 99) {
+              const nfts = FISH_LIST.filter((f: any) => f.rarity === 'NFT');
+              const nftRoll = Math.random() * 100;
+              if (nftRoll > 95) caughtFish = nfts.find((n: any) => n.nftTier === 'Legendary');
+              else if (nftRoll > 80) caughtFish = nfts.find((n: any) => n.nftTier === 'Ultra Rare');
+              else if (nftRoll > 50) caughtFish = nfts.find((n: any) => n.nftTier === 'Rare');
+              else caughtFish = nfts.find((n: any) => n.nftTier === 'Common');
+              if (!caughtFish) caughtFish = nfts[Math.floor(Math.random() * nfts.length)];
+            } else if (roll > 96) {
+              const legendaries = FISH_LIST.filter((f: any) => f.rarity === 'Legendary' && (!krakenCapped || f.id !== 'kraken-tentacle'));
+              caughtFish = legendaries[Math.floor(Math.random() * legendaries.length)];
+            } else if (roll > 90) {
+              const epics = FISH_LIST.filter((f: any) => f.rarity === 'Epic');
+              caughtFish = epics[Math.floor(Math.random() * epics.length)];
+            } else if (roll > 80) {
+              const rares = FISH_LIST.filter((f: any) => f.rarity === 'Rare');
+              caughtFish = rares[Math.floor(Math.random() * rares.length)];
+            } else if (roll > 65) {
+              const uncommons = FISH_LIST.filter((f: any) => f.rarity === 'Uncommon');
+              caughtFish = uncommons[Math.floor(Math.random() * uncommons.length)];
+            } else if (roll > 35) {
+              const junks = FISH_LIST.filter((f: any) => f.rarity === 'Junk');
+              caughtFish = junks[Math.floor(Math.random() * junks.length)];
+            } else {
+              const commons = FISH_LIST.filter((f: any) => f.rarity === 'Common');
+              caughtFish = commons[Math.floor(Math.random() * commons.length)];
+            }
+
+            const recordResult = await db.query(
+              `INSERT INTO game_events (wallet, game, result, points_earned, prize_tier) VALUES ($1, 'fish', $2, $3, $4) RETURNING id`,
+              [cleanAddress, JSON.stringify(caughtFish), caughtFish.value, caughtFish.rarity === 'NFT' ? caughtFish.nftTier?.toLowerCase() : null]
+            );
+            res.end(JSON.stringify({ result: 'catch', fish: caughtFish, gameEventId: recordResult.rows[0].id, attemptsRemaining: totalAllowed - usedAttempts - 1 }));
             return;
           }
 
@@ -454,6 +516,19 @@ function apiMiddleware() {
             const { address, txHash } = await getBody(req);
             await db.query('INSERT INTO game_events (wallet, game, result, points_earned) VALUES ($1, \'tackle_box\', $2, 0)', [address.toLowerCase(), JSON.stringify({ txHash, dev: true })]);
             res.end(JSON.stringify({ success: true, castsGranted: 10 }));
+            return;
+          }
+
+          // /api/fish/dev-grant (POST) — dev only: reset today's casts + grant 1000 $OP
+          if (req.url === '/api/fish/dev-grant' && req.method === 'POST') {
+            res.setHeader('Content-Type', 'application/json');
+            const { address } = await getBody(req);
+            const cleanAddress = (address || '').toLowerCase();
+            const today = new Date().toISOString().split('T')[0];
+            const grantWei = (BigInt(1000) * BigInt(10) ** BigInt(18)).toString();
+            await db.query(`DELETE FROM game_events WHERE LOWER(wallet) = $1 AND game = 'fish' AND created_at >= $2`, [cleanAddress, today]);
+            await db.query(`INSERT INTO economy_events (wallet, event_type, source_id, points_awarded, points_overflow, claimed) VALUES ($1, 'fish', 'dev-grant', $2, '0', FALSE)`, [cleanAddress, grantWei]);
+            res.end(JSON.stringify({ success: true, castsReset: true, opGranted: 1000 }));
             return;
           }
 
@@ -674,6 +749,7 @@ export default defineConfig(({mode}) => {
       'process.env.CHAIN_ID': JSON.stringify(isProd ? (env.CHAIN_ID || '4217') : (env.TEST_CHAIN_ID || '42431')),
       'process.env.REWARDS_CLAIMER_CONTRACT': JSON.stringify(isProd ? env.REWARDS_CLAIMER_CONTRACT : env.TEST_REWARDS_CLAIMER_CONTRACT),
       'process.env.TREASURY_WALLET': JSON.stringify(isProd ? env.TREASURY_WALLET : env.TEST_TREASURY_WALLET),
+      'process.env.IS_PRODUCTION': JSON.stringify(isProd ? 'true' : 'false'),
     },
     resolve: {
       alias: {

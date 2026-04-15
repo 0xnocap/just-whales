@@ -109,7 +109,7 @@ export default function App() {
               <Route path="/profile" element={<ProfilePage onSelectToken={setModalToken} />} />
               <Route path="/profile/:address" element={<ProfilePage onSelectToken={setModalToken} />} />
               <Route path="/fish" element={<FishPage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
+<Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </motion.div>
         </AnimatePresence>
@@ -129,7 +129,7 @@ export default function App() {
             <RetroButton icon={Home} label="Home" to="/" />
             <RetroButton icon={ArrowLeftRight} label="Trade" to="/trade" />
             <RetroButton icon={Coins} label="Stake" to="/staking" />
-            <RetroButton icon={FishingPoleIcon} label="Fish" to="/fish" disabled />
+            <RetroButton icon={FishingPoleIcon} label="Fish" to="/fish" />
             <RetroButton icon={User} label="Profile" to={isConnected && address ? `/profile/${address}` : '/profile'} />
           </motion.nav>
         )}

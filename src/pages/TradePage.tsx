@@ -602,7 +602,6 @@ const TradePage: React.FC<TradePageProps> = ({
                   <div
                     key={isListed ? `listing-${listing.id}` : `gallery-${token.id}`}
                     className={`relative ${sweepMode && isListed && !isSeller ? 'cursor-pointer' : ''}`}
-                    style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 300px' }}
                     onClick={sweepMode && isListed && !isSeller ? handleSweepToggle : undefined}
                   >
                     {sweepMode && isListed && !isSeller && (

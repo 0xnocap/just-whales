@@ -22,12 +22,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     `, [cleanAddress, today]);
 
     const tackleBoxResult = await db.query(`
-      SELECT COUNT(*)::int as count
+      SELECT created_at
       FROM game_events
-      WHERE LOWER(wallet) = $1 AND game = 'tackle_box' AND created_at >= $2
-    `, [cleanAddress, today]);
+      WHERE LOWER(wallet) = $1 AND game = 'tackle_box' AND created_at >= NOW() - INTERVAL '24 hours'
+      ORDER BY created_at DESC
+      LIMIT 1
+    `, [cleanAddress]);
 
-    const hasTackleBox = tackleBoxResult.rows[0].count > 0;
+    const hasTackleBox = tackleBoxResult.rows.length > 0;
+    const tackleBoxPurchasedAt = hasTackleBox ? tackleBoxResult.rows[0].created_at : null;
     const totalAllowed = FREE_DAILY_ATTEMPTS + (hasTackleBox ? TACKLE_BOX_ATTEMPTS : 0);
     const usedAttempts = attemptsResult.rows[0].count;
 
@@ -36,6 +39,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       SELECT id, result, redeemed, prize_tier
       FROM game_events
       WHERE LOWER(wallet) = $1 AND game = 'fish' AND created_at >= $2
+        AND (result::jsonb->>'id') IS NOT NULL
       ORDER BY created_at DESC
     `, [cleanAddress, today]);
 
@@ -59,6 +63,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       castsRemaining: Math.max(0, totalAllowed - usedAttempts),
       totalCasts: totalAllowed,
       tackleBoxPurchased: hasTackleBox,
+      tackleBoxPurchasedAt: tackleBoxPurchasedAt ? new Date(tackleBoxPurchasedAt).toISOString() : null,
       inventory: inventoryResult.rows.map(r => ({
         gameEventId: r.id,
         fish: typeof r.result === 'string' ? JSON.parse(r.result) : r.result,

@@ -615,91 +615,118 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSelectToken }) => {
       {tab === 'rewards' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Trading Rewards */}
-          <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-sans font-black text-white text-lg tracking-tight uppercase">Trading Rewards</h3>
-                <div className="px-2 py-0.5 bg-dream-cyan/10 border border-dream-cyan/20 rounded-full">
-                  <span className="text-[10px] font-mono font-bold text-dream-cyan uppercase tracking-wider">10 $OP / $1 Spent</span>
-                </div>
+          <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="px-4 py-2.5 bg-white/[0.03] border-b border-white/5 flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-dream-cyan shadow-[0_0_6px_rgba(34,211,238,0.8)]" />
+                <span className="font-sans font-black text-white text-sm tracking-tight uppercase">Trading Rewards</span>
               </div>
-              <p className="text-white/50 text-xs font-mono mb-6 leading-relaxed">
-                Earn $OP points for every NFT you buy on the Whale Town Marketplace.
-              </p>
-              
-              <div className="space-y-4 mb-8">
-                <div className="flex justify-between items-end">
-                  <span className="text-[10px] font-mono text-white/30 uppercase tracking-widest">Total Purchases</span>
-                  <span className="text-sm font-bold text-white">{rewards?.trading.totalPurchases || 0}</span>
-                </div>
-                <div className="flex justify-between items-end">
-                  <span className="text-[10px] font-mono text-white/30 uppercase tracking-widest">Unclaimed $OP</span>
-                  <div className="text-right">
-                    <div className="text-xl font-black text-dream-cyan leading-none">{rewards?.trading.unclaimedFormatted || '0.00'} $OP</div>
-                    <div className="text-[10px] font-mono text-white/20 mt-1">{rewards?.trading.unclaimedPurchases || 0} purchases pending</div>
+              <div className="inline-flex items-center px-2 py-0.5 bg-dream-cyan/10 border border-dream-cyan/20 rounded-full">
+                <span className="text-[9px] font-mono font-bold text-dream-cyan uppercase tracking-wider">10 $OP / $1</span>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 p-4 flex flex-col gap-4">
+              {/* Big number */}
+              <div className="text-center py-5 bg-dream-cyan/[0.04] rounded-xl border border-dream-cyan/10">
+                <div className="relative inline-block mb-1">
+                  <span className="text-5xl font-bold text-dream-white tracking-tighter leading-none">{rewards?.trading.unclaimedFormatted || '0.00'}</span>
+                  <div className="absolute left-full inset-y-0 flex items-center ml-2">
+                    <span className="text-dream-white/40 text-3xl font-bold tracking-tighter whitespace-nowrap">$OP</span>
                   </div>
+                </div>
+                <div className="text-[8px] font-mono text-white/30 uppercase tracking-[0.2em] mt-1">Unclaimed Ocean Points</div>
+              </div>
+
+              {/* Stat grid */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white/[0.03] border border-white/[0.06] p-3.5 rounded-xl flex flex-col items-center justify-center text-center">
+                  <div className="text-dream-white font-bold text-lg leading-none">{rewards?.trading.totalPurchases || 0}</div>
+                  <div className="text-[8px] font-mono text-white/30 uppercase tracking-widest mt-1.5">Total Buys</div>
+                </div>
+                <div className="bg-white/[0.03] border border-white/[0.06] p-3.5 rounded-xl flex flex-col items-center justify-center text-center">
+                  <div className="text-dream-white font-bold text-lg leading-none">{rewards?.trading.unclaimedPurchases || 0}</div>
+                  <div className="text-[8px] font-mono text-white/30 uppercase tracking-widest mt-1.5">Pending Txs</div>
                 </div>
               </div>
             </div>
 
-            <button
-              onClick={claimTradingRewards}
-              disabled={isClaiming || !rewards || BigInt(rewards.trading.unclaimedOP) === 0n}
-              className={`w-full py-4 rounded-xl font-mono text-xs font-black tracking-widest transition-all cursor-pointer ${
-                isClaiming || !rewards || BigInt(rewards.trading.unclaimedOP) === 0n
-                  ? 'bg-white/5 text-white/20 border border-white/5'
-                  : 'bg-dream-cyan text-[#0a0a0c] shadow-[0_0_20px_rgba(0,240,255,0.2)] hover:shadow-[0_0_30px_rgba(0,240,255,0.3)] hover:-translate-y-0.5 active:translate-y-0'
-              }`}
-            >
-              {isClaiming ? (
-                <span className="inline-flex items-center justify-center gap-2">
-                  <span className="w-3 h-3 rounded-full border-2 border-white/20 border-t-white/70 animate-spin" />
-                  CLAIMING...
-                </span>
-              ) : 'CLAIM TRADING REWARDS'}
-            </button>
+            {/* Claim button */}
+            <div className="p-4 pt-0">
+              <button
+                onClick={claimTradingRewards}
+                disabled={isClaiming || !rewards || BigInt(rewards.trading.unclaimedOP) === 0n}
+                className={`w-full py-3 rounded-xl font-mono text-xs font-black tracking-widest transition-all cursor-pointer ${
+                  isClaiming || !rewards || BigInt(rewards.trading.unclaimedOP) === 0n
+                    ? 'bg-white/5 text-white/20 border border-white/5'
+                    : 'bg-dream-cyan text-[#0a0a0c] shadow-[0_0_20px_rgba(0,240,255,0.2)] hover:shadow-[0_0_30px_rgba(0,240,255,0.3)] hover:-translate-y-0.5 active:translate-y-0'
+                }`}
+              >
+                {isClaiming ? (
+                  <span className="inline-flex items-center justify-center gap-2">
+                    <span className="w-3 h-3 rounded-full border-2 border-white/20 border-t-white/70 animate-spin" />
+                    CLAIMING...
+                  </span>
+                ) : 'CLAIM TRADING REWARDS'}
+              </button>
+            </div>
           </div>
 
           {/* Fishing Rewards */}
-          <div className="bg-white/[0.03] border border-white/[0.06] y-space-20 rounded-2xl p-6 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-sans font-black text-white text-lg tracking-tight uppercase">Fishing Rewards</h3>
-                <div className="px-2 py-0.5 bg-dream-magenta/10 border border-dream-magenta/20 rounded-full">
-                  <span className="text-[10px] font-mono font-bold text-dream-magenta uppercase tracking-wider">1k Cap / Hr</span>
-                </div>
+          <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="px-4 py-2.5 bg-white/[0.03] border-b border-white/5 flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-dream-purple shadow-[0_0_6px_rgba(192,132,252,0.8)]" />
+                <span className="font-sans font-black text-white text-sm tracking-tight uppercase">Fishing Rewards</span>
               </div>
-              <p className="text-white/50 text-xs font-mono mb-6 leading-relaxed">
-                Earn $OP points by fishing in WhaleTown Ocean Quests.
-              </p>
-              
-              <div style={{marginTop: "80px"}} className="space-y-10 mb-8">
-                <div className="flex justify-between items-end">
-                  <span className="text-[10px] font-mono text-white/30 uppercase tracking-widest">Unclaimed $OP</span>
-                  <div className="text-right">
-                    <div className="text-xl font-black text-dream-magenta leading-none">{rewards?.fishing.unclaimedFormatted || '0.00'} $OP</div>
-                    <div className="text-[10px] font-mono text-white/20 mt-1">From Ocean Quest adventures</div>
-                  </div>
-                </div>
+              <div className="inline-flex items-center px-2 py-0.5 bg-dream-purple/10 border border-dream-purple/20 rounded-full">
+                <span className="text-[9px] font-mono font-bold text-dream-purple uppercase tracking-wider">1k Cap / Hr</span>
               </div>
             </div>
 
-            <button
-              onClick={claimFishingRewards}
-              disabled={isClaiming || !rewards || BigInt(rewards.fishing.unclaimedOP) === 0n}
-              className={`w-full py-4 rounded-xl font-mono text-xs font-black tracking-widest transition-all cursor-pointer ${
-                isClaiming || !rewards || BigInt(rewards.fishing.unclaimedOP) === 0n
-                  ? 'bg-white/5 text-white/20 border border-white/5'
-                  : 'bg-dream-magenta text-white shadow-[0_0_20px_rgba(255,0,255,0.15)] hover:shadow-[0_0_30px_rgba(255,0,255,0.25)] hover:-translate-y-0.5 active:translate-y-0'
-              }`}
-            >
-              {isClaiming ? (
-                <span className="inline-flex items-center justify-center gap-2">
-                  <span className="w-3 h-3 rounded-full border-2 border-white/20 border-t-white/70 animate-spin" />
-                  CLAIMING...
-                </span>
-              ) : 'COMING SOON'}
-            </button>
+            {/* Body */}
+            <div className="flex-1 p-4 flex flex-col gap-4">
+              {/* Big number */}
+              <div className="text-center py-5 bg-dream-purple/[0.04] rounded-xl border border-dream-purple/10">
+                <div className="relative inline-block mb-1">
+                  <span className="text-5xl font-bold text-dream-white tracking-tighter leading-none">{rewards?.fishing.unclaimedFormatted || '0.00'}</span>
+                  <div className="absolute left-full inset-y-0 flex items-center ml-2">
+                    <span className="text-dream-white/40 text-3xl font-bold tracking-tighter whitespace-nowrap">$OP</span>
+                  </div>
+                </div>
+                <div className="text-[8px] font-mono text-white/30 uppercase tracking-[0.2em] mt-1">Unclaimed Ocean Points</div>
+              </div>
+
+              {/* Description */}
+              <div className="pt-9 bg-white/[0.03] border border-white/[0.06] rounded-xl p-3.5">
+                <p className="text-white/40 text-[10px] font-mono leading-relaxed text-center">
+                  Earn $OP by fishing in the WhaleTown Ocean.
+                </p>
+              </div>
+            </div>
+
+            {/* Claim button */}
+            <div className="p-4 pt-0">
+              <button
+                onClick={claimFishingRewards}
+                disabled={isClaiming || !rewards || BigInt(rewards.fishing.unclaimedOP) === 0n}
+                className={`w-full py-3 rounded-xl font-mono text-xs font-black tracking-widest transition-all cursor-pointer ${
+                  isClaiming || !rewards || BigInt(rewards.fishing.unclaimedOP) === 0n
+                    ? 'bg-white/5 text-white/20 border border-white/5'
+                    : 'bg-dream-purple text-white shadow-[0_0_20px_rgba(192,132,252,0.2)] hover:shadow-[0_0_30px_rgba(192,132,252,0.3)] hover:-translate-y-0.5 active:translate-y-0'
+                }`}
+              >
+                {isClaiming ? (
+                  <span className="inline-flex items-center justify-center gap-2">
+                    <span className="w-3 h-3 rounded-full border-2 border-white/20 border-t-white/70 animate-spin" />
+                    CLAIMING...
+                  </span>
+                ) : 'CLAIM FISHING REWARDS'}
+              </button>
+            </div>
           </div>
         </div>
       )}
