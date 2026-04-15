@@ -414,8 +414,8 @@ function apiMiddleware() {
             const unclaimedWei = BigInt(unclaimedResult.rows[0]?.total || 0);
             res.end(JSON.stringify({
               isNFTOwner,
-              castsRemaining: Math.max(0, (hasTackleBox ? 15 : 5) - attemptsResult.rows[0].count),
-              totalCasts: hasTackleBox ? 15 : 5,
+              castsRemaining: Math.max(0, (hasTackleBox ? 20 : 10) - attemptsResult.rows[0].count),
+              totalCasts: hasTackleBox ? 20 : 10,
               tackleBoxPurchased: hasTackleBox,
               tackleBoxPurchasedAt,
               inventory: inventoryResult.rows.map((r: any) => ({
