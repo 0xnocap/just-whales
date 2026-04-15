@@ -279,13 +279,20 @@ function apiMiddleware() {
           if (rewardsMatch) {
             res.setHeader('Content-Type', 'application/json');
             const address = rewardsMatch[1].toLowerCase();
-            const salesResult = await db.query('SELECT transaction_hash, price::numeric as price FROM sales WHERE LOWER(buyer) = $1', [address]);
-            const claimedSalesResult = await db.query('SELECT transaction_hash FROM economy_events WHERE LOWER(wallet) = $1 AND event_type = \'purchase\'', [address]);
+            // NFT count (for "TOTAL PURCHASES" display)
+            const salesCountResult = await db.query('SELECT COUNT(*)::int as n FROM sales WHERE LOWER(buyer) = $1', [address]);
+            const totalPurchases = salesCountResult.rows[0]?.n || 0;
+            // Aggregated by tx_hash (one economy_events row per tx)
+            const salesResult = await db.query('SELECT transaction_hash, SUM(price::numeric) as price FROM sales WHERE LOWER(buyer) = $1 GROUP BY transaction_hash', [address]);
+            // Only CLAIMED rows count as tracked — pending rows remain claimable
+            const claimedSalesResult = await db.query('SELECT transaction_hash FROM economy_events WHERE LOWER(wallet) = $1 AND event_type = \'purchase\' AND claimed = TRUE', [address]);
             const claimedHashes = new Set(claimedSalesResult.rows.map((r: any) => r.transaction_hash));
             let totalUnclaimedOP = BigInt(0);
+            let unclaimedPurchases = 0;
             salesResult.rows.forEach((sale: any) => {
               if (!claimedHashes.has(sale.transaction_hash)) {
                 totalUnclaimedOP += BigInt(sale.price) * BigInt(10**13);
+                unclaimedPurchases++;
               }
             });
             const fishingRewardsResult = await db.query('SELECT COALESCE(SUM(points_awarded), 0)::numeric as total FROM economy_events WHERE LOWER(wallet) = $1 AND event_type = \'fish\' AND claimed = FALSE', [address]);
@@ -317,7 +324,8 @@ function apiMiddleware() {
 
             res.end(JSON.stringify({
               trading: {
-                totalPurchases: salesResult.rows.length,
+                totalPurchases,
+                unclaimedPurchases,
                 unclaimedOP: totalUnclaimedOP.toString(),
                 unclaimedFormatted: (Number(totalUnclaimedOP) / 1e18).toFixed(2)
               },
@@ -455,9 +463,9 @@ function apiMiddleware() {
             const { address } = await getBody(req);
             const cleanAddress = (address || '').toLowerCase();
 
-            // Compute unclaimed sales
-            const salesResult = await db.query('SELECT transaction_hash, price::numeric as price FROM sales WHERE LOWER(buyer) = $1', [cleanAddress]);
-            const trackedResult = await db.query('SELECT transaction_hash FROM economy_events WHERE LOWER(wallet) = $1 AND event_type = \'purchase\'', [cleanAddress]);
+            // Aggregate sales by tx_hash; only claimed=TRUE rows are "tracked"
+            const salesResult = await db.query('SELECT transaction_hash, SUM(price::numeric) as price FROM sales WHERE LOWER(buyer) = $1 GROUP BY transaction_hash', [cleanAddress]);
+            const trackedResult = await db.query('SELECT transaction_hash FROM economy_events WHERE LOWER(wallet) = $1 AND event_type = \'purchase\' AND claimed = TRUE', [cleanAddress]);
             const tracked = new Set(trackedResult.rows.map((r: any) => r.transaction_hash));
 
             let totalUnclaimedOPWei = BigInt(0);
@@ -530,7 +538,11 @@ function apiMiddleware() {
               await dbClient.query('BEGIN');
               for (const sale of unclaimedSales) {
                 await dbClient.query(
-                  'INSERT INTO economy_events (wallet, event_type, transaction_hash, points_awarded, claimed) VALUES ($1, \'purchase\', $2, $3, FALSE) ON CONFLICT DO NOTHING',
+                  `INSERT INTO economy_events (wallet, event_type, transaction_hash, points_awarded, claimed)
+                   VALUES ($1, 'purchase', $2, $3, FALSE)
+                   ON CONFLICT (wallet, event_type, transaction_hash)
+                   WHERE transaction_hash IS NOT NULL
+                   DO UPDATE SET points_awarded = EXCLUDED.points_awarded`,
                   [cleanAddress, sale.hash, sale.amount.toString()]
                 );
               }

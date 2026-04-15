@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { rewardsClaimerAddress, rewardsClaimerAbi } from '../contract';
 
@@ -25,8 +25,13 @@ export function useRewards() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { writeContract, data: hash, isPending: isClaiming, error: claimError } = useWriteContract();
+  const { writeContract, data: hash, isPending: isWritePending, error: claimError, reset: resetWrite } = useWriteContract();
   const { isLoading: isConfirming, isSuccess: isClaimed } = useWaitForTransactionReceipt({ hash });
+
+  // Sync ref-based guard prevents double-click from firing two sign requests
+  // before React re-renders the disabled button.
+  const busyRef = useRef(false);
+  const [isSigning, setIsSigning] = useState(false);
 
   const fetchRewards = useCallback(async () => {
     if (!address) return;
@@ -52,6 +57,12 @@ export function useRewards() {
   // Track which claim type is in progress so we can confirm the right one
   const [pendingClaimType, setPendingClaimType] = useState<'trading' | 'fishing' | null>(null);
 
+  const clearBusy = useCallback(() => {
+    busyRef.current = false;
+    setIsSigning(false);
+    setPendingClaimType(null);
+  }, []);
+
   useEffect(() => {
     if (isClaimed && address && hash && pendingClaimType) {
       // Confirm on-chain success with the backend
@@ -60,17 +71,38 @@ export function useRewards() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ address, type: pendingClaimType, txHash: hash })
       }).then(() => {
-        setPendingClaimType(null);
+        clearBusy();
         fetchRewards();
-      }).catch(console.error);
+      }).catch((err) => {
+        console.error(err);
+        clearBusy();
+      });
     }
-  }, [isClaimed, hash, address, pendingClaimType, fetchRewards]);
+  }, [isClaimed, hash, address, pendingClaimType, fetchRewards, clearBusy]);
 
-  const claimTradingRewards = async () => {
+  // Wallet rejection or RPC error from writeContract → release the lock
+  useEffect(() => {
+    if (claimError) {
+      clearBusy();
+      resetWrite();
+    }
+  }, [claimError, clearBusy, resetWrite]);
+
+  const runClaim = async (
+    type: 'trading' | 'fishing',
+    endpoint: string,
+    contractFn: 'claimTradingRewards' | 'claimFishingRewards'
+  ) => {
     if (!address) return;
-    setPendingClaimType('trading');
+    // Sync guard — blocks double-click even before React re-renders the disabled button
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setIsSigning(true);
+    setPendingClaimType(type);
+    setError(null);
+
     try {
-      const res = await fetch('/api/economy/sign-trading-claim', {
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ address })
@@ -81,48 +113,28 @@ export function useRewards() {
       }
       const { amount, nonce, signature } = await res.json();
 
+      // Keep busy flag set; clearBusy runs on success, cancel, or error.
       writeContract({
         address: rewardsClaimerAddress,
         abi: rewardsClaimerAbi,
-        functionName: 'claimTradingRewards',
+        functionName: contractFn,
         args: [BigInt(amount), BigInt(nonce), signature],
       });
     } catch (err: any) {
       setError(err.message);
+      clearBusy();
     }
   };
 
-  const claimFishingRewards = async () => {
-    if (!address) return;
-    setPendingClaimType('fishing');
-    try {
-      const res = await fetch('/api/economy/sign-fishing-claim', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address })
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to sign claim');
-      }
-      const { amount, nonce, signature } = await res.json();
-
-      writeContract({
-        address: rewardsClaimerAddress,
-        abi: rewardsClaimerAbi,
-        functionName: 'claimFishingRewards',
-        args: [BigInt(amount), BigInt(nonce), signature],
-      });
-    } catch (err: any) {
-      setError(err.message);
-    }
-  };
+  const claimTradingRewards = () => runClaim('trading', '/api/economy/sign-trading-claim', 'claimTradingRewards');
+  const claimFishingRewards = () => runClaim('fishing', '/api/economy/sign-fishing-claim', 'claimFishingRewards');
 
   return {
     rewards,
     loading,
     error: error || claimError?.message,
-    isClaiming: isClaiming || isConfirming,
+    // Button stays disabled + spinner stays up from click → sign → wallet → confirm → DB update
+    isClaiming: isSigning || isWritePending || isConfirming,
     isClaimed,
     claimTradingRewards,
     claimFishingRewards,

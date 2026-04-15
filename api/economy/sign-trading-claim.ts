@@ -40,25 +40,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const claimer = env.requireRewardsClaimer();
 
     // 1. Unclaimed trading $OP (wei). Rate: 10 $OP per $1 pathUSD (6 decimals) → price * 10^13.
+    //    Sales are aggregated by transaction_hash so multi-NFT purchases collapse to one row.
+    //    Only claimed=TRUE rows are treated as tracked — pending rows stay claimable on retry.
     const salesResult = await db.query(`
-      SELECT transaction_hash, price::numeric as price
+      SELECT transaction_hash, SUM(price::numeric) as price
       FROM sales
       WHERE LOWER(buyer) = $1
+      GROUP BY transaction_hash
     `, [cleanAddress]);
 
-    const existingPurchasesResult = await db.query(`
+    const claimedResult = await db.query(`
       SELECT transaction_hash
       FROM economy_events
-      WHERE LOWER(wallet) = $1 AND event_type = 'purchase'
+      WHERE LOWER(wallet) = $1 AND event_type = 'purchase' AND claimed = TRUE
     `, [cleanAddress]);
 
-    const trackedHashes = new Set(existingPurchasesResult.rows.map(r => r.transaction_hash));
+    const claimedHashes = new Set(claimedResult.rows.map(r => r.transaction_hash));
 
     let totalUnclaimedOPWei = BigInt(0);
     const unclaimedSales: { hash: string; amount: bigint }[] = [];
 
     for (const sale of salesResult.rows) {
-      if (!trackedHashes.has(sale.transaction_hash)) {
+      if (!claimedHashes.has(sale.transaction_hash)) {
         const opWei = BigInt(sale.price) * BigInt(10**13);
         totalUnclaimedOPWei += opWei;
         unclaimedSales.push({ hash: sale.transaction_hash, amount: opWei });
@@ -92,7 +95,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         await dbClient.query(`
           INSERT INTO economy_events (wallet, event_type, transaction_hash, points_awarded, claimed)
           VALUES ($1, 'purchase', $2, $3, FALSE)
-          ON CONFLICT DO NOTHING
+          ON CONFLICT (wallet, event_type, transaction_hash)
+          WHERE transaction_hash IS NOT NULL
+          DO UPDATE SET points_awarded = EXCLUDED.points_awarded
         `, [cleanAddress, sale.hash, sale.amount.toString()]);
       }
 

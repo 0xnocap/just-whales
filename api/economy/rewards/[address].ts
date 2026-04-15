@@ -33,32 +33,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const db = await getPool();
     const env = getEnvConfig();
 
-    // 1. All sales for this buyer
+    // 1a. Total NFT purchase count (one row per NFT in sales)
+    const salesCountResult = await db.query(
+      `SELECT COUNT(*)::int as n FROM sales WHERE LOWER(buyer) = $1`,
+      [cleanAddress]
+    );
+    const totalPurchases = salesCountResult.rows[0]?.n || 0;
+
+    // 1b. Aggregate sales by transaction_hash (multi-NFT tx = one economy_events row)
     const salesResult = await db.query(`
-      SELECT transaction_hash, price::numeric as price
+      SELECT transaction_hash, SUM(price::numeric) as price
       FROM sales
       WHERE LOWER(buyer) = $1
+      GROUP BY transaction_hash
     `, [cleanAddress]);
 
-    // 2. Purchase events already tracked (pending or confirmed, both count — prevents double-signing)
-    const existingPurchasesResult = await db.query(`
+    // 2. Only CLAIMED events count as tracked. Pending (claimed=FALSE) rows are in-flight
+    //    signatures the user may retry, so they must still show as unclaimed.
+    const claimedResult = await db.query(`
       SELECT transaction_hash
       FROM economy_events
-      WHERE LOWER(wallet) = $1 AND event_type = 'purchase'
+      WHERE LOWER(wallet) = $1 AND event_type = 'purchase' AND claimed = TRUE
     `, [cleanAddress]);
 
-    const trackedHashes = new Set(existingPurchasesResult.rows.map(r => r.transaction_hash));
+    const claimedHashes = new Set(claimedResult.rows.map(r => r.transaction_hash));
 
-    // 3. Diff: unclaimed sales. Rate: 10 $OP per $1 pathUSD. pathUSD has 6 decimals, $OP has 18.
-    //    Stored in points_awarded as wei: opWei = price * 10 * 10^12 = price * 10^13.
+    // 3. Diff: unclaimed transactions. Rate: 10 $OP per $1 pathUSD (6 decimals) → price * 10^13.
     let totalUnclaimedOPWei = BigInt(0);
-    let unclaimedSalesCount = 0;
+    let unclaimedPurchasesCount = 0;
 
     for (const sale of salesResult.rows) {
-      if (!trackedHashes.has(sale.transaction_hash)) {
+      if (!claimedHashes.has(sale.transaction_hash)) {
         const opWei = BigInt(sale.price) * BigInt(10**13);
         totalUnclaimedOPWei += opWei;
-        unclaimedSalesCount++;
+        unclaimedPurchasesCount++;
       }
     }
 
@@ -99,8 +107,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     res.status(200).json({
       trading: {
-        totalPurchases: salesResult.rows.length,
-        unclaimedPurchases: unclaimedSalesCount,
+        totalPurchases,
+        unclaimedPurchases: unclaimedPurchasesCount,
         unclaimedOP: totalUnclaimedOPWei.toString(),
         unclaimedFormatted: (Number(totalUnclaimedOPWei) / 1e18).toFixed(2)
       },

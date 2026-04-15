@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Clock, Search, Filter, ChevronUp, ChevronDown, X } from 'lucide-react';
 import { useAccount, useReadContract } from 'wagmi';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { formatUnits } from 'viem';
 import { contractAddress, contractAbi } from '../contract';
 import { truncateAddress, timeAgo, timeUntil } from '../utils/format';
@@ -28,7 +28,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSelectToken }) => {
   const profileAddress = paramAddress || connectedAddress || '';
   const isOwnProfile = isConnected && connectedAddress?.toLowerCase() === profileAddress.toLowerCase();
 
-  const [tab, setTab] = useState<'collected' | 'listed' | 'activity' | 'rewards'>('collected');
+  const [searchParams] = useSearchParams();
+  const initialTab = (searchParams.get('tab') as 'collected' | 'listed' | 'activity' | 'rewards' | null) || 'collected';
+  const [tab, setTab] = useState<'collected' | 'listed' | 'activity' | 'rewards'>(initialTab);
   const { rewards, loading: rewardsLoading, claimTradingRewards, claimFishingRewards, isClaiming } = useRewards();
   const [ownedTokenIds, setOwnedTokenIds] = useState<number[]>([]);
   const [ownedTokens, setOwnedTokens] = useState<any[]>([]);
@@ -649,12 +651,17 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSelectToken }) => {
                   : 'bg-dream-cyan text-[#0a0a0c] shadow-[0_0_20px_rgba(0,240,255,0.2)] hover:shadow-[0_0_30px_rgba(0,240,255,0.3)] hover:-translate-y-0.5 active:translate-y-0'
               }`}
             >
-              {isClaiming ? 'CLAIMING...' : 'CLAIM TRADING REWARDS'}
+              {isClaiming ? (
+                <span className="inline-flex items-center justify-center gap-2">
+                  <span className="w-3 h-3 rounded-full border-2 border-white/20 border-t-white/70 animate-spin" />
+                  CLAIMING...
+                </span>
+              ) : 'CLAIM TRADING REWARDS'}
             </button>
           </div>
 
           {/* Fishing Rewards */}
-          <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6 flex flex-col justify-between">
+          <div className="bg-white/[0.03] border border-white/[0.06] y-space-20 rounded-2xl p-6 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-sans font-black text-white text-lg tracking-tight uppercase">Fishing Rewards</h3>
@@ -663,10 +670,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSelectToken }) => {
                 </div>
               </div>
               <p className="text-white/50 text-xs font-mono mb-6 leading-relaxed">
-                Earn $OP points by selling fish you've caught in the Whale Town Ocean Quest.
+                Earn $OP points by fishing in WhaleTown Ocean Quests.
               </p>
               
-              <div className="space-y-4 mb-8">
+              <div style={{marginTop: "80px"}} className="space-y-10 mb-8">
                 <div className="flex justify-between items-end">
                   <span className="text-[10px] font-mono text-white/30 uppercase tracking-widest">Unclaimed $OP</span>
                   <div className="text-right">
@@ -686,7 +693,12 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSelectToken }) => {
                   : 'bg-dream-magenta text-white shadow-[0_0_20px_rgba(255,0,255,0.15)] hover:shadow-[0_0_30px_rgba(255,0,255,0.25)] hover:-translate-y-0.5 active:translate-y-0'
               }`}
             >
-              {isClaiming ? 'CLAIMING...' : 'CLAIM FISHING REWARDS'}
+              {isClaiming ? (
+                <span className="inline-flex items-center justify-center gap-2">
+                  <span className="w-3 h-3 rounded-full border-2 border-white/20 border-t-white/70 animate-spin" />
+                  CLAIMING...
+                </span>
+              ) : 'COMING SOON'}
             </button>
           </div>
         </div>

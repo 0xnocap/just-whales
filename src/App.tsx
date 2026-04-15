@@ -16,22 +16,38 @@ import TradePage from './pages/TradePage';
 import ProfilePage from './pages/ProfilePage';
 import FishPage from './pages/FishPage';
 import { usePointsBalance, useStakingReads } from './hooks/useStaking';
+import { useRewards } from './hooks/useRewards';
+
+function formatWei(wei: bigint): string {
+  const n = Number(wei) / 1e18;
+  return Number.isFinite(n) ? n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
+}
 
 function PointsBadge() {
   const { isConnected } = useAccount();
-  const { formatted: balanceFormatted } = usePointsBalance();
-  const { rewardsFormatted } = useStakingReads();
-  
+  const { raw: walletRaw, formatted: walletFormatted } = usePointsBalance();
+  const { rewardsRaw: stakingRaw, rewardsFormatted: stakingFormatted } = useStakingReads();
+  const { rewards } = useRewards();
+
   if (!isConnected) return null;
-  
+
+  const tradingRaw = rewards ? BigInt(rewards.trading.unclaimedOP) : 0n;
+  const fishingRaw = rewards ? BigInt(rewards.fishing.unclaimedOP) : 0n;
+  const unclaimedRaw = stakingRaw + tradingRaw + fishingRaw;
+  const totalRaw = walletRaw + unclaimedRaw;
+
+  const totalFormatted = formatWei(totalRaw);
+  const tradingFormatted = formatWei(tradingRaw);
+  const fishingFormatted = formatWei(fishingRaw);
+
   return (
     <Link
-      to="/staking"
+      to="/profile?tab=rewards"
       className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-dream-purple/10 border border-dream-purple/30 hover:bg-dream-purple/20 transition-colors"
-      title={`Unclaimed: ${rewardsFormatted} $OP | Wallet: ${balanceFormatted} $OP`}
+      title={`Wallet: ${walletFormatted} $OP\nUnclaimed Staking: ${stakingFormatted} $OP\nUnclaimed Trading: ${tradingFormatted} $OP\nUnclaimed Fishing: ${fishingFormatted} $OP`}
     >
       <span className="font-mono text-[11px] text-dream-purple font-bold uppercase tracking-tight mr-1">$OP</span>
-      <span className="font-mono font-bold text-[11px] text-dream-white tracking-tight">{rewardsFormatted}</span>
+      <span className="font-mono font-bold text-[11px] text-dream-white tracking-tight">{totalFormatted}</span>
     </Link>
   );
 }
