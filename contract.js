@@ -22,7 +22,7 @@ export const PATH_USD_ADDRESS = process.env.PATH_USD_CONTRACT || "0x20c000000000
 // --- Economy / Points & Staking ---
 export const POINTS_CONTRACT_ADDRESS = process.env.POINTS_CONTRACT || "0xCf4A2079A2c058d266A0999F3fCA256d6F1F53a9";
 export const STAKING_CONTRACT_ADDRESS = process.env.STAKING_CONTRACT || "0x650F7fd9084b8631e16780A90BBed731679598F0";
-export const REWARDS_CLAIMER_CONTRACT_ADDRESS = process.env.REWARDS_CLAIMER_CONTRACT || ""; // To be filled after deploy
+export const REWARDS_CLAIMER_CONTRACT_ADDRESS = process.env.REWARDS_CLAIMER_CONTRACT || "0xfEAA26Fff4687028dDbb8904c3c7ceFe4abc0817";
 
 export const REWARDS_CLAIMER_ABI = [
   { inputs: [{ internalType: "uint256", name: "amount", type: "uint256" }, { internalType: "uint256", name: "nonce", type: "uint256" }, { internalType: "bytes", name: "signature", type: "bytes" }], name: "claimTradingRewards", outputs: [], stateMutability: "nonpayable", type: "function" },
