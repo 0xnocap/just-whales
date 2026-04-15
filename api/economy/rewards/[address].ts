@@ -1,24 +1,25 @@
 import { getPool } from '../../_db.js';
 import { createPublicClient, http, Address, parseAbi } from 'viem';
+import { getEnvConfig } from '../../_env.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-
-const REWARDS_CLAIMER_CONTRACT = process.env.REWARDS_CLAIMER_CONTRACT as Address;
-const TEMPO_RPC = 'https://rpc.tempo.xyz';
-
-const publicClient = createPublicClient({
-  chain: {
-    id: 4217,
-    name: 'Tempo',
-    nativeCurrency: { name: 'Tempo', symbol: 'TMP', decimals: 18 },
-    rpcUrls: { default: { http: [TEMPO_RPC] } }
-  },
-  transport: http()
-});
 
 const abi = parseAbi([
   'function tradingNonces(address) view returns (uint256)',
   'function fishingNonces(address) view returns (uint256)'
 ]);
+
+function makeClient() {
+  const env = getEnvConfig();
+  return createPublicClient({
+    chain: {
+      id: env.chainId,
+      name: 'Tempo',
+      nativeCurrency: { name: 'Tempo', symbol: 'TMP', decimals: 18 },
+      rpcUrls: { default: { http: [env.rpcUrl] } }
+    },
+    transport: http()
+  });
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
@@ -30,67 +31,62 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const cleanAddress = address.toLowerCase();
     const db = await getPool();
+    const env = getEnvConfig();
 
-    // 1. Get all sales for this buyer from Goldsky table
+    // 1. All sales for this buyer
     const salesResult = await db.query(`
       SELECT transaction_hash, price::numeric as price
       FROM sales
       WHERE LOWER(buyer) = $1
     `, [cleanAddress]);
 
-    // 2. Get all purchase events from economy_events table (pending OR confirmed)
-    //    Once a sale is recorded in economy_events (even as pending), it's accounted for.
-    //    This prevents double-signing.
-    const claimedSalesResult = await db.query(`
-      SELECT transaction_hash, claimed
+    // 2. Purchase events already tracked (pending or confirmed, both count — prevents double-signing)
+    const existingPurchasesResult = await db.query(`
+      SELECT transaction_hash
       FROM economy_events
       WHERE LOWER(wallet) = $1 AND event_type = 'purchase'
     `, [cleanAddress]);
 
-    const claimedHashes = new Set(claimedSalesResult.rows.map(r => r.transaction_hash));
-    
-    // 3. Diff: unclaimed sales
-    let totalUnclaimedOP = BigInt(0);
+    const trackedHashes = new Set(existingPurchasesResult.rows.map(r => r.transaction_hash));
+
+    // 3. Diff: unclaimed sales. Rate: 10 $OP per $1 pathUSD. pathUSD has 6 decimals, $OP has 18.
+    //    Stored in points_awarded as wei: opWei = price * 10 * 10^12 = price * 10^13.
+    let totalUnclaimedOPWei = BigInt(0);
     let unclaimedSalesCount = 0;
 
     for (const sale of salesResult.rows) {
-      if (!claimedHashes.has(sale.transaction_hash)) {
-        // Rate: 10 $OP per $1 pathUSD
-        // price is in 6 decimals. $OP is 18 decimals.
-        // OP_wei = (price / 1e6) * 10 * 1e18 = price * 10^13
+      if (!trackedHashes.has(sale.transaction_hash)) {
         const opWei = BigInt(sale.price) * BigInt(10**13);
-        totalUnclaimedOP += opWei;
+        totalUnclaimedOPWei += opWei;
         unclaimedSalesCount++;
       }
     }
 
-    // 4. Get unclaimed fishing rewards from economy_events
-    //    points_awarded is stored as human-readable $OP (e.g. 50, 2500).
-    //    Convert to wei by multiplying by 10^18 here.
+    // 4. Unclaimed fishing rewards. Stored as wei throughout — no multiplication here.
     const fishingRewardsResult = await db.query(`
-      SELECT SUM(points_awarded)::numeric as total
+      SELECT COALESCE(SUM(points_awarded), 0)::numeric as total
       FROM economy_events
       WHERE LOWER(wallet) = $1 AND event_type = 'fish' AND claimed = FALSE
     `, [cleanAddress]);
 
-    const unclaimedFishingPlain = BigInt(fishingRewardsResult.rows[0]?.total || 0);
-    const unclaimedFishingOP = unclaimedFishingPlain * BigInt(10**18);
+    const unclaimedFishingOPWei = BigInt(fishingRewardsResult.rows[0]?.total || 0);
 
-    // 5. Get on-chain nonces
+    // 5. On-chain nonces
     let tradingNonce = BigInt(0);
     let fishingNonce = BigInt(0);
 
-    if (REWARDS_CLAIMER_CONTRACT) {
+    if (env.rewardsClaimer) {
       try {
+        const client = makeClient();
         [tradingNonce, fishingNonce] = await Promise.all([
-          publicClient.readContract({
-            address: REWARDS_CLAIMER_CONTRACT,
+          client.readContract({
+            address: env.rewardsClaimer as Address,
             abi,
             functionName: 'tradingNonces',
             args: [cleanAddress as Address]
           }),
-          publicClient.readContract({
-            address: REWARDS_CLAIMER_CONTRACT,
+          client.readContract({
+            address: env.rewardsClaimer as Address,
             abi,
             functionName: 'fishingNonces',
             args: [cleanAddress as Address]
@@ -105,12 +101,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       trading: {
         totalPurchases: salesResult.rows.length,
         unclaimedPurchases: unclaimedSalesCount,
-        unclaimedOP: totalUnclaimedOP.toString(),
-        unclaimedFormatted: (Number(totalUnclaimedOP) / 1e18).toFixed(2)
+        unclaimedOP: totalUnclaimedOPWei.toString(),
+        unclaimedFormatted: (Number(totalUnclaimedOPWei) / 1e18).toFixed(2)
       },
       fishing: {
-        unclaimedOP: unclaimedFishingOP.toString(),
-        unclaimedFormatted: Number(unclaimedFishingPlain).toFixed(2)
+        unclaimedOP: unclaimedFishingOPWei.toString(),
+        unclaimedFormatted: (Number(unclaimedFishingOPWei) / 1e18).toFixed(2)
       },
       nonces: {
         trading: Number(tradingNonce),

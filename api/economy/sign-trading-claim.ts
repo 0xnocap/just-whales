@@ -1,24 +1,25 @@
 import { getPool } from '../_db.js';
 import { createPublicClient, http, Address, parseAbi } from 'viem';
 import { signTradingClaim } from '../_signer.js';
+import { getEnvConfig } from '../_env.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-
-const REWARDS_CLAIMER_CONTRACT = process.env.REWARDS_CLAIMER_CONTRACT as Address;
-const TEMPO_RPC = 'https://rpc.tempo.xyz';
-
-const publicClient = createPublicClient({
-  chain: {
-    id: 4217,
-    name: 'Tempo',
-    nativeCurrency: { name: 'Tempo', symbol: 'TMP', decimals: 18 },
-    rpcUrls: { default: { http: [TEMPO_RPC] } }
-  },
-  transport: http()
-});
 
 const abi = parseAbi([
   'function tradingNonces(address) view returns (uint256)'
 ]);
+
+function makeClient() {
+  const env = getEnvConfig();
+  return createPublicClient({
+    chain: {
+      id: env.chainId,
+      name: 'Tempo',
+      nativeCurrency: { name: 'Tempo', symbol: 'TMP', decimals: 18 },
+      rpcUrls: { default: { http: [env.rpcUrl] } }
+    },
+    transport: http()
+  });
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -35,81 +36,85 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const cleanAddress = address.toLowerCase();
     const db = await getPool();
+    const env = getEnvConfig();
+    const claimer = env.requireRewardsClaimer();
 
-    // 1. Calculate unclaimed trading $OP
+    // 1. Unclaimed trading $OP (wei). Rate: 10 $OP per $1 pathUSD (6 decimals) → price * 10^13.
     const salesResult = await db.query(`
       SELECT transaction_hash, price::numeric as price
       FROM sales
       WHERE LOWER(buyer) = $1
     `, [cleanAddress]);
 
-    const claimedSalesResult = await db.query(`
+    const existingPurchasesResult = await db.query(`
       SELECT transaction_hash
       FROM economy_events
       WHERE LOWER(wallet) = $1 AND event_type = 'purchase'
     `, [cleanAddress]);
 
-    const claimedHashes = new Set(claimedSalesResult.rows.map(r => r.transaction_hash));
-    
-    let totalUnclaimedOP = BigInt(0);
-    const unclaimedSales = [];
+    const trackedHashes = new Set(existingPurchasesResult.rows.map(r => r.transaction_hash));
+
+    let totalUnclaimedOPWei = BigInt(0);
+    const unclaimedSales: { hash: string; amount: bigint }[] = [];
 
     for (const sale of salesResult.rows) {
-      if (!claimedHashes.has(sale.transaction_hash)) {
+      if (!trackedHashes.has(sale.transaction_hash)) {
         const opWei = BigInt(sale.price) * BigInt(10**13);
-        totalUnclaimedOP += opWei;
+        totalUnclaimedOPWei += opWei;
         unclaimedSales.push({ hash: sale.transaction_hash, amount: opWei });
       }
     }
 
-    if (totalUnclaimedOP === BigInt(0)) {
-      res.status(400).json({ error: 'No unclaimed rewards' });
+    if (totalUnclaimedOPWei === BigInt(0)) {
+      res.status(400).json({ error: 'No unclaimed trading rewards' });
       return;
     }
 
-    // 2. Read current trading nonce from contract
-    const tradingNonce = await publicClient.readContract({
-      address: REWARDS_CLAIMER_CONTRACT,
+    // 2. Read current trading nonce
+    const client = makeClient();
+    const tradingNonce = await client.readContract({
+      address: claimer as Address,
       abi,
       functionName: 'tradingNonces',
       args: [cleanAddress as Address]
     });
 
     // 3. Sign EIP-712 claim
-    const signature = await signTradingClaim(cleanAddress as Address, totalUnclaimedOP, tradingNonce);
+    const signature = await signTradingClaim(cleanAddress as Address, totalUnclaimedOPWei, tradingNonce);
 
-    // 4. Record in economy_events and update user balance
-    const client = await db.connect();
+    // 4. Record pending claims. Do NOT mark as claimed; confirm-claim endpoint does that
+    //    after on-chain tx succeeds. points_awarded is stored as wei.
+    const dbClient = await db.connect();
     try {
-      await client.query('BEGIN');
+      await dbClient.query('BEGIN');
 
       for (const sale of unclaimedSales) {
-        await client.query(`
+        await dbClient.query(`
           INSERT INTO economy_events (wallet, event_type, transaction_hash, points_awarded, claimed)
           VALUES ($1, 'purchase', $2, $3, FALSE)
           ON CONFLICT DO NOTHING
         `, [cleanAddress, sale.hash, sale.amount.toString()]);
       }
 
-      await client.query(`
+      await dbClient.query(`
         INSERT INTO users (wallet, points_balance, lifetime_points)
         VALUES ($1, 0, 0)
         ON CONFLICT (wallet) DO UPDATE SET updated_at = NOW()
       `, [cleanAddress]);
 
-      await client.query('COMMIT');
+      await dbClient.query('COMMIT');
     } catch (e) {
-      await client.query('ROLLBACK');
+      await dbClient.query('ROLLBACK');
       throw e;
     } finally {
-      client.release();
+      dbClient.release();
     }
 
     res.status(200).json({
-      amount: totalUnclaimedOP.toString(),
+      amount: totalUnclaimedOPWei.toString(),
       nonce: Number(tradingNonce),
       signature,
-      salesClaimed: unclaimedSales.length
+      salesPending: unclaimedSales.length
     });
   } catch (err: any) {
     console.error('API error:', err);

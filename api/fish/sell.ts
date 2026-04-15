@@ -1,8 +1,9 @@
 import { getPool } from '../_db.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const ROLLING_CAP = 1000;
-const CAP_WINDOW_MINUTES = 60;
+// Rolling cap: 1000 $OP per 60-minute window, stored/compared in wei.
+const ROLLING_CAP_WEI = BigInt(1000) * BigInt(10**18);
+const WEI_PER_OP = BigInt(10**18);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -32,28 +33,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const event = eventResult.rows[0];
-    const fishValue = Number(event.points_earned);
+    // game_events.points_earned is the plain $OP fish value (e.g. 50, 2500).
+    // Convert to wei once, here, at the boundary into economy_events.
+    const fishValuePlain = Number(event.points_earned);
+    const fishValueWei = BigInt(fishValuePlain) * WEI_PER_OP;
 
-    if (fishValue === 0 && event.prize_tier) {
+    if (fishValuePlain === 0 && event.prize_tier) {
       res.status(400).json({ error: 'NFT prizes cannot be sold for points. Use the Claim button.' });
       return;
     }
 
-    // 2. Apply rolling cap
+    // 2. Apply rolling cap (wei)
     const capResult = await db.query(`
-      SELECT SUM(points_awarded)::int as total
+      SELECT COALESCE(SUM(points_awarded), 0)::numeric as total
       FROM economy_events
       WHERE LOWER(wallet) = $1 AND event_type = 'fish' AND created_at >= NOW() - INTERVAL '1 hour'
     `, [cleanAddress]);
 
-    const currentAccrued = capResult.rows[0].total || 0;
-    const remainingCap = Math.max(0, ROLLING_CAP - currentAccrued);
-    
-    const awarded = Math.min(fishValue, remainingCap);
-    const overflow = fishValue - awarded;
+    const currentAccruedWei = BigInt(capResult.rows[0].total || 0);
+    const remainingCapWei = ROLLING_CAP_WEI > currentAccruedWei ? ROLLING_CAP_WEI - currentAccruedWei : BigInt(0);
 
-    // 3. Record and update. points_awarded stored as plain integer $OP (e.g. 50);
-    //    conversion to wei happens at claim time in sign-fishing-claim.ts.
+    const awardedWei = fishValueWei < remainingCapWei ? fishValueWei : remainingCapWei;
+    const overflowWei = fishValueWei - awardedWei;
+
+    // 3. Record. points_awarded stored as wei (uniform across all event_types).
     const client = await db.connect();
     try {
       await client.query('BEGIN');
@@ -61,7 +64,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await client.query(`
         INSERT INTO economy_events (wallet, event_type, source_id, points_awarded, points_overflow, claimed)
         VALUES ($1, 'fish', $2, $3, $4, FALSE)
-      `, [cleanAddress, gameEventId, awarded, overflow]);
+      `, [cleanAddress, gameEventId, awardedWei.toString(), overflowWei.toString()]);
 
       await client.query(`
         UPDATE game_events SET redeemed = TRUE WHERE id = $1
@@ -81,11 +84,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       client.release();
     }
 
-    res.status(200).json({ 
-      sold: true, 
-      opEarned: awarded, 
-      overflow, 
-      capRemaining: Math.max(0, remainingCap - awarded)
+    res.status(200).json({
+      sold: true,
+      opEarned: Number(awardedWei / WEI_PER_OP),
+      overflow: Number(overflowWei / WEI_PER_OP),
+      capRemainingOP: Number((remainingCapWei - awardedWei) / WEI_PER_OP)
     });
   } catch (err: any) {
     console.error('API error:', err);

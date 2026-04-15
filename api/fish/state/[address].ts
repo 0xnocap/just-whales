@@ -46,12 +46,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       WHERE LOWER(wallet) = $1 AND game = 'fish'
     `, [cleanAddress]);
 
-    // 4. Unclaimed fishing $OP (from economy_events)
+    // 4. Unclaimed fishing $OP (wei, from economy_events)
     const unclaimedResult = await db.query(`
-      SELECT SUM(points_awarded)::numeric as total
+      SELECT COALESCE(SUM(points_awarded), 0)::numeric as total
       FROM economy_events
       WHERE LOWER(wallet) = $1 AND event_type = 'fish' AND claimed = FALSE
     `, [cleanAddress]);
+
+    const unclaimedWei = BigInt(unclaimedResult.rows[0]?.total || 0);
 
     res.status(200).json({
       castsRemaining: Math.max(0, totalAllowed - usedAttempts),
@@ -64,7 +66,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         prizeTier: r.prize_tier
       })),
       discoveredFishIds: journalResult.rows.map(r => r.fish_id),
-      unclaimedFishingOP: (unclaimedResult.rows[0]?.total || '0').toString()
+      unclaimedFishingOP: unclaimedWei.toString(),
+      unclaimedFishingFormatted: (Number(unclaimedWei) / 1e18).toFixed(2)
     });
   } catch (err: any) {
     console.error('API error:', err);

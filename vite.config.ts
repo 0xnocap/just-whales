@@ -17,9 +17,11 @@ function apiMiddleware() {
       const getPool = async () => {
         if (pool) return pool;
         const { Pool } = await import('pg');
+        const isLocal = process.env.POSTGRES_URL?.includes('localhost') || process.env.POSTGRES_URL?.includes('127.0.0.1');
+        console.log('Connecting to DB:', process.env.POSTGRES_URL?.split('@')[1]);
         pool = new Pool({
           connectionString: process.env.POSTGRES_URL,
-          ssl: { rejectUnauthorized: false },
+          ssl: isLocal ? false : { rejectUnauthorized: false },
         });
         return pool;
       };
@@ -274,10 +276,35 @@ function apiMiddleware() {
                 totalUnclaimedOP += BigInt(sale.price) * BigInt(10**13);
               }
             });
-            const fishingRewardsResult = await db.query('SELECT SUM(points_awarded)::numeric as total FROM economy_events WHERE LOWER(wallet) = $1 AND event_type = \'fish\' AND claimed = FALSE', [address]);
-            // points_awarded stored as plain integers; convert to wei for unclaimedOP
-            const fishingPlain = BigInt(fishingRewardsResult.rows[0]?.total || 0);
-            const fishingWei = fishingPlain * BigInt(10**18);
+            const fishingRewardsResult = await db.query('SELECT COALESCE(SUM(points_awarded), 0)::numeric as total FROM economy_events WHERE LOWER(wallet) = $1 AND event_type = \'fish\' AND claimed = FALSE', [address]);
+            // points_awarded stored as wei uniformly
+            const fishingWei = BigInt(fishingRewardsResult.rows[0]?.total || 0);
+
+            // Read on-chain nonces from testnet claimer
+            const DEV_RPC_URL = process.env.TEST_RPC_URL || 'https://rpc.moderato.tempo.xyz';
+            const DEV_CLAIMER = process.env.TEST_REWARDS_CLAIMER_CONTRACT;
+            const DEV_CHAIN_ID = Number(process.env.TEST_CHAIN_ID || 42431);
+            let tradingNonce = 0;
+            let fishingNonce = 0;
+            if (DEV_CLAIMER) {
+              try {
+                const { createPublicClient, http, parseAbi } = await import('viem');
+                const devClient = createPublicClient({
+                  chain: { id: DEV_CHAIN_ID, name: 'Tempo Testnet', nativeCurrency: { name: 'TMP', symbol: 'TMP', decimals: 18 }, rpcUrls: { default: { http: [DEV_RPC_URL] } } },
+                  transport: http()
+                });
+                const devAbi = parseAbi(['function tradingNonces(address) view returns (uint256)', 'function fishingNonces(address) view returns (uint256)']);
+                const [tn, fn] = await Promise.all([
+                  devClient.readContract({ address: DEV_CLAIMER as `0x${string}`, abi: devAbi, functionName: 'tradingNonces', args: [address as `0x${string}`] }),
+                  devClient.readContract({ address: DEV_CLAIMER as `0x${string}`, abi: devAbi, functionName: 'fishingNonces', args: [address as `0x${string}`] })
+                ]);
+                tradingNonce = Number(tn);
+                fishingNonce = Number(fn);
+              } catch (e) {
+                console.warn('Error reading dev nonces:', e);
+              }
+            }
+
             res.end(JSON.stringify({
               trading: {
                 totalPurchases: salesResult.rows.length,
@@ -286,9 +313,9 @@ function apiMiddleware() {
               },
               fishing: {
                 unclaimedOP: fishingWei.toString(),
-                unclaimedFormatted: Number(fishingPlain).toFixed(2)
+                unclaimedFormatted: (Number(fishingWei) / 1e18).toFixed(2)
               },
-              nonces: { trading: 0, fishing: 0 } // Mock for dev
+              nonces: { trading: tradingNonce, fishing: fishingNonce }
             }));
             return;
           }
@@ -322,7 +349,8 @@ function apiMiddleware() {
             const hasTackleBox = tackleBoxResult.rows[0].count > 0;
             const inventoryResult = await db.query('SELECT id, result, redeemed, prize_tier FROM game_events WHERE LOWER(wallet) = $1 AND game = \'fish\' AND created_at >= $2 ORDER BY created_at DESC', [address, today]);
             const journalResult = await db.query('SELECT DISTINCT (result->>\'id\') as fish_id FROM game_events WHERE LOWER(wallet) = $1 AND game = \'fish\'', [address]);
-            const unclaimedResult = await db.query('SELECT SUM(points_awarded)::numeric as total FROM economy_events WHERE LOWER(wallet) = $1 AND event_type = \'fish\' AND claimed = FALSE', [address]);
+            const unclaimedResult = await db.query('SELECT COALESCE(SUM(points_awarded), 0)::numeric as total FROM economy_events WHERE LOWER(wallet) = $1 AND event_type = \'fish\' AND claimed = FALSE', [address]);
+            const unclaimedWei = BigInt(unclaimedResult.rows[0]?.total || 0);
             res.end(JSON.stringify({
               castsRemaining: Math.max(0, (hasTackleBox ? 15 : 5) - attemptsResult.rows[0].count),
               totalCasts: hasTackleBox ? 15 : 5,
@@ -334,7 +362,8 @@ function apiMiddleware() {
                 prizeTier: r.prize_tier
               })),
               discoveredFishIds: journalResult.rows.map((r: any) => r.fish_id),
-              unclaimedFishingOP: (unclaimedResult.rows[0]?.total || '0').toString()
+              unclaimedFishingOP: unclaimedWei.toString(),
+              unclaimedFishingFormatted: (Number(unclaimedWei) / 1e18).toFixed(2)
             }));
             return;
           }
@@ -349,13 +378,55 @@ function apiMiddleware() {
             return;
           }
 
-          // /api/fish/sell (POST)
+          // /api/fish/sell (POST) — real rolling cap + wei insert to mirror api/fish/sell.ts
           if (req.url === '/api/fish/sell' && req.method === 'POST') {
             res.setHeader('Content-Type', 'application/json');
             const { address, gameEventId } = await getBody(req);
-            // Mock logic: mark as redeemed in DB
-            await db.query('UPDATE game_events SET redeemed = TRUE WHERE id = $1 AND LOWER(wallet) = $2', [gameEventId, (address || '').toLowerCase()]);
-            res.end(JSON.stringify({ sold: true, opEarned: 10, overflow: 0, capRemaining: 990 }));
+            const cleanAddress = (address || '').toLowerCase();
+            const ROLLING_CAP_WEI = BigInt(1000) * BigInt(10**18);
+            const WEI_PER_OP = BigInt(10**18);
+
+            const eventResult = await db.query('SELECT * FROM game_events WHERE id = $1 AND LOWER(wallet) = $2 AND game = \'fish\' AND redeemed = FALSE', [gameEventId, cleanAddress]);
+            if (eventResult.rows.length === 0) {
+              res.statusCode = 400;
+              res.end(JSON.stringify({ error: 'Invalid or already redeemed catch' }));
+              return;
+            }
+            const fishValuePlain = Number(eventResult.rows[0].points_earned);
+            const fishValueWei = BigInt(fishValuePlain) * WEI_PER_OP;
+
+            if (fishValuePlain === 0 && eventResult.rows[0].prize_tier) {
+              res.statusCode = 400;
+              res.end(JSON.stringify({ error: 'NFT prizes cannot be sold for points.' }));
+              return;
+            }
+
+            const capResult = await db.query('SELECT COALESCE(SUM(points_awarded), 0)::numeric as total FROM economy_events WHERE LOWER(wallet) = $1 AND event_type = \'fish\' AND created_at >= NOW() - INTERVAL \'1 hour\'', [cleanAddress]);
+            const accruedWei = BigInt(capResult.rows[0].total || 0);
+            const remainingCapWei = ROLLING_CAP_WEI > accruedWei ? ROLLING_CAP_WEI - accruedWei : BigInt(0);
+            const awardedWei = fishValueWei < remainingCapWei ? fishValueWei : remainingCapWei;
+            const overflowWei = fishValueWei - awardedWei;
+
+            const dbClient = await db.connect();
+            try {
+              await dbClient.query('BEGIN');
+              await dbClient.query('INSERT INTO economy_events (wallet, event_type, source_id, points_awarded, points_overflow, claimed) VALUES ($1, \'fish\', $2, $3, $4, FALSE)', [cleanAddress, gameEventId, awardedWei.toString(), overflowWei.toString()]);
+              await dbClient.query('UPDATE game_events SET redeemed = TRUE WHERE id = $1', [gameEventId]);
+              await dbClient.query('INSERT INTO users (wallet, points_balance, lifetime_points) VALUES ($1, 0, 0) ON CONFLICT (wallet) DO UPDATE SET updated_at = NOW()', [cleanAddress]);
+              await dbClient.query('COMMIT');
+            } catch (e) {
+              await dbClient.query('ROLLBACK');
+              throw e;
+            } finally {
+              dbClient.release();
+            }
+
+            res.end(JSON.stringify({
+              sold: true,
+              opEarned: Number(awardedWei / WEI_PER_OP),
+              overflow: Number(overflowWei / WEI_PER_OP),
+              capRemainingOP: Number((remainingCapWei - awardedWei) / WEI_PER_OP)
+            }));
             return;
           }
 
@@ -368,15 +439,110 @@ function apiMiddleware() {
             return;
           }
 
-          // /api/economy/sign-trading-claim (POST)
+          // /api/economy/sign-trading-claim (POST) — real signing against testnet claimer
           if (req.url === '/api/economy/sign-trading-claim' && req.method === 'POST') {
             res.setHeader('Content-Type', 'application/json');
             const { address } = await getBody(req);
+            const cleanAddress = (address || '').toLowerCase();
+
+            // Compute unclaimed sales
+            const salesResult = await db.query('SELECT transaction_hash, price::numeric as price FROM sales WHERE LOWER(buyer) = $1', [cleanAddress]);
+            const trackedResult = await db.query('SELECT transaction_hash FROM economy_events WHERE LOWER(wallet) = $1 AND event_type = \'purchase\'', [cleanAddress]);
+            const tracked = new Set(trackedResult.rows.map((r: any) => r.transaction_hash));
+
+            let totalUnclaimedOPWei = BigInt(0);
+            const unclaimedSales: { hash: string; amount: bigint }[] = [];
+            salesResult.rows.forEach((sale: any) => {
+              if (!tracked.has(sale.transaction_hash)) {
+                const opWei = BigInt(sale.price) * BigInt(10**13);
+                totalUnclaimedOPWei += opWei;
+                unclaimedSales.push({ hash: sale.transaction_hash, amount: opWei });
+              }
+            });
+
+            if (totalUnclaimedOPWei === BigInt(0)) {
+              res.statusCode = 400;
+              res.end(JSON.stringify({ error: 'No unclaimed trading rewards' }));
+              return;
+            }
+
+            const RPC_URL = process.env.TEST_RPC_URL || 'https://rpc.moderato.tempo.xyz';
+            const CLAIMER = process.env.TEST_REWARDS_CLAIMER_CONTRACT;
+            const CHAIN_ID = Number(process.env.TEST_CHAIN_ID || 42431);
+            const PRIV_KEY = process.env.REWARDS_SIGNER_PRIVATE_KEY;
+
+            if (!CLAIMER || !PRIV_KEY) {
+              res.statusCode = 500;
+              res.end(JSON.stringify({ error: 'Env vars not set (TEST_REWARDS_CLAIMER_CONTRACT or REWARDS_SIGNER_PRIVATE_KEY)' }));
+              return;
+            }
+
+            const { createPublicClient, http, parseAbi } = await import('viem');
+            const publicClient = createPublicClient({
+              chain: { id: CHAIN_ID, name: 'Tempo Testnet', nativeCurrency: { name: 'TMP', symbol: 'TMP', decimals: 18 }, rpcUrls: { default: { http: [RPC_URL] } } },
+              transport: http()
+            });
+
+            const abiT = parseAbi(['function tradingNonces(address) view returns (uint256)']);
+            const tradingNonce = await publicClient.readContract({
+              address: CLAIMER as `0x${string}`,
+              abi: abiT,
+              functionName: 'tradingNonces',
+              args: [cleanAddress as `0x${string}`]
+            });
+
+            const { privateKeyToAccount } = await import('viem/accounts');
+            const account = privateKeyToAccount(PRIV_KEY as `0x${string}`);
+
+            const signature = await account.signTypedData({
+              domain: {
+                name: 'WhaleTownRewards',
+                version: '1',
+                chainId: CHAIN_ID,
+                verifyingContract: CLAIMER as `0x${string}`,
+              },
+              types: {
+                TradingClaim: [
+                  { name: 'wallet', type: 'address' },
+                  { name: 'amount', type: 'uint256' },
+                  { name: 'nonce', type: 'uint256' },
+                ],
+              },
+              primaryType: 'TradingClaim',
+              message: {
+                wallet: cleanAddress as `0x${string}`,
+                amount: totalUnclaimedOPWei,
+                nonce: tradingNonce,
+              },
+            });
+
+            // Record pending events in DB
+            const dbClient = await db.connect();
+            try {
+              await dbClient.query('BEGIN');
+              for (const sale of unclaimedSales) {
+                await dbClient.query(
+                  'INSERT INTO economy_events (wallet, event_type, transaction_hash, points_awarded, claimed) VALUES ($1, \'purchase\', $2, $3, FALSE) ON CONFLICT DO NOTHING',
+                  [cleanAddress, sale.hash, sale.amount.toString()]
+                );
+              }
+              await dbClient.query(
+                'INSERT INTO users (wallet, points_balance, lifetime_points) VALUES ($1, 0, 0) ON CONFLICT (wallet) DO UPDATE SET updated_at = NOW()',
+                [cleanAddress]
+              );
+              await dbClient.query('COMMIT');
+            } catch (e) {
+              await dbClient.query('ROLLBACK');
+              throw e;
+            } finally {
+              dbClient.release();
+            }
+
             res.end(JSON.stringify({
-              amount: '1000000000000000000', // 1 $OP
-              nonce: 0,
-              signature: '0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
-              dev: true
+              amount: totalUnclaimedOPWei.toString(),
+              nonce: Number(tradingNonce),
+              signature,
+              salesPending: unclaimedSales.length
             }));
             return;
           }
@@ -385,11 +551,74 @@ function apiMiddleware() {
           if (req.url === '/api/economy/sign-fishing-claim' && req.method === 'POST') {
             res.setHeader('Content-Type', 'application/json');
             const { address } = await getBody(req);
+            const cleanAddress = (address || '').toLowerCase();
+
+            // 1. Get unclaimed fishing rewards from DB (stored as wei)
+            const unclaimedResult = await db.query('SELECT COALESCE(SUM(points_awarded), 0)::numeric as total FROM economy_events WHERE LOWER(wallet) = $1 AND event_type = \'fish\' AND claimed = FALSE', [cleanAddress]);
+            const totalUnclaimedOPWei = BigInt(unclaimedResult.rows[0]?.total || 0);
+
+            if (totalUnclaimedOPWei === BigInt(0)) {
+              res.statusCode = 400;
+              res.end(JSON.stringify({ error: 'No unclaimed rewards' }));
+              return;
+            }
+
+            // 2. Fetch nonce from contract (on-chain)
+            const RPC_URL = process.env.TEST_RPC_URL || 'https://rpc.moderato.tempo.xyz';
+            const CLAIMER = process.env.TEST_REWARDS_CLAIMER_CONTRACT;
+            const CHAIN_ID = Number(process.env.TEST_CHAIN_ID || 42431);
+            const PRIV_KEY = process.env.REWARDS_SIGNER_PRIVATE_KEY;
+
+            if (!CLAIMER || !PRIV_KEY) {
+              res.statusCode = 500;
+              res.end(JSON.stringify({ error: 'Env vars not set' }));
+              return;
+            }
+
+            const { createPublicClient, http, parseAbi } = await import('viem');
+            const publicClient = createPublicClient({
+              chain: { id: CHAIN_ID, name: 'Tempo Testnet', nativeCurrency: { name: 'TMP', symbol: 'TMP', decimals: 18 }, rpcUrls: { default: { http: [RPC_URL] } } },
+              transport: http()
+            });
+
+            const abi = parseAbi(['function fishingNonces(address) view returns (uint256)']);
+            const fishingNonce = await publicClient.readContract({
+              address: CLAIMER as `0x${string}`,
+              abi,
+              functionName: 'fishingNonces',
+              args: [cleanAddress as `0x${string}`]
+            });
+
+            // 3. Sign EIP-712
+            const { privateKeyToAccount } = await import('viem/accounts');
+            const account = privateKeyToAccount(PRIV_KEY as `0x${string}`);
+            
+            const signature = await account.signTypedData({
+              domain: {
+                name: 'WhaleTownRewards',
+                version: '1',
+                chainId: CHAIN_ID,
+                verifyingContract: CLAIMER as `0x${string}`,
+              },
+              types: {
+                FishingClaim: [
+                  { name: 'wallet', type: 'address' },
+                  { name: 'amount', type: 'uint256' },
+                  { name: 'nonce', type: 'uint256' },
+                ],
+              },
+              primaryType: 'FishingClaim',
+              message: {
+                wallet: cleanAddress as `0x${string}`,
+                amount: totalUnclaimedOPWei,
+                nonce: fishingNonce,
+              },
+            });
+
             res.end(JSON.stringify({
-              amount: '1000000000000000000', // 1 $OP
-              nonce: 0,
-              signature: '0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
-              dev: true
+              amount: totalUnclaimedOPWei.toString(),
+              nonce: Number(fishingNonce),
+              signature
             }));
             return;
           }
@@ -425,6 +654,8 @@ export default defineConfig(({mode}) => {
       'process.env.STAKING_CONTRACT': JSON.stringify(isProd ? env.STAKING_CONTRACT : env.TEST_STAKING_CONTRACT),
       'process.env.RPC_URL': JSON.stringify(isProd ? env.RPC_URL : env.TEST_RPC_URL),
       'process.env.CHAIN_ID': JSON.stringify(isProd ? (env.CHAIN_ID || '4217') : (env.TEST_CHAIN_ID || '42431')),
+      'process.env.REWARDS_CLAIMER_CONTRACT': JSON.stringify(isProd ? env.REWARDS_CLAIMER_CONTRACT : env.TEST_REWARDS_CLAIMER_CONTRACT),
+      'process.env.TREASURY_WALLET': JSON.stringify(isProd ? env.TREASURY_WALLET : env.TEST_TREASURY_WALLET),
     },
     resolve: {
       alias: {
