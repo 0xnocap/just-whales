@@ -20,8 +20,17 @@ export const WHALE_TOWN_MARKETPLACE_ADDRESS = process.env.MARKETPLACE_CONTRACT |
 export const PATH_USD_ADDRESS = process.env.PATH_USD_CONTRACT || "0x20c0000000000000000000000000000000000000";
 
 // --- Economy / Points & Staking ---
-export const POINTS_CONTRACT_ADDRESS = process.env.POINTS_CONTRACT;
-export const STAKING_CONTRACT_ADDRESS = process.env.STAKING_CONTRACT;
+export const POINTS_CONTRACT_ADDRESS = process.env.POINTS_CONTRACT || "0xCf4A2079A2c058d266A0999F3fCA256d6F1F53a9";
+export const STAKING_CONTRACT_ADDRESS = process.env.STAKING_CONTRACT || "0x650F7fd9084b8631e16780A90BBed731679598F0";
+export const REWARDS_CLAIMER_CONTRACT_ADDRESS = process.env.REWARDS_CLAIMER_CONTRACT || ""; // To be filled after deploy
+
+export const REWARDS_CLAIMER_ABI = [
+  { inputs: [{ internalType: "uint256", name: "amount", type: "uint256" }, { internalType: "uint256", name: "nonce", type: "uint256" }, { internalType: "bytes", name: "signature", type: "bytes" }], name: "claimTradingRewards", outputs: [], stateMutability: "nonpayable", type: "function" },
+  { inputs: [{ internalType: "uint256", name: "amount", type: "uint256" }, { internalType: "uint256", name: "nonce", type: "uint256" }, { internalType: "bytes", name: "signature", type: "bytes" }], name: "claimFishingRewards", outputs: [], stateMutability: "nonpayable", type: "function" },
+  { inputs: [{ internalType: "address", name: "", type: "address" }], name: "tradingNonces", outputs: [{ internalType: "uint256", name: "", type: "uint256" }], stateMutability: "view", type: "function" },
+  { inputs: [{ internalType: "address", name: "", type: "address" }], name: "fishingNonces", outputs: [{ internalType: "uint256", name: "", type: "uint256" }], stateMutability: "view", type: "function" },
+  { inputs: [], name: "authorizedSigner", outputs: [{ internalType: "address", name: "", type: "address" }], stateMutability: "view", type: "function" },
+];
 
 export const POINTS_ABI = [
   { inputs: [{ internalType: "address", name: "account", type: "address" }], name: "balanceOf", outputs: [{ internalType: "uint256", name: "", type: "uint256" }], stateMutability: "view", type: "function" },

@@ -249,6 +249,151 @@ function apiMiddleware() {
             return;
           }
 
+          // --- ECONOMY & FISH GAME ---
+
+          // Helper to get body from request
+          const getBody = async (req: any) => {
+            return new Promise<any>((resolve) => {
+              let body = '';
+              req.on('data', (chunk: any) => { body += chunk.toString(); });
+              req.on('end', () => { try { resolve(JSON.parse(body)); } catch { resolve({}); } });
+            });
+          };
+
+          // /api/economy/rewards/:address
+          const rewardsMatch = req.url.match(/^\/api\/economy\/rewards\/([a-fA-F0-9x]+)$/);
+          if (rewardsMatch) {
+            res.setHeader('Content-Type', 'application/json');
+            const address = rewardsMatch[1].toLowerCase();
+            const salesResult = await db.query('SELECT transaction_hash, price::numeric as price FROM sales WHERE LOWER(buyer) = $1', [address]);
+            const claimedSalesResult = await db.query('SELECT transaction_hash FROM economy_events WHERE LOWER(wallet) = $1 AND event_type = \'purchase\'', [address]);
+            const claimedHashes = new Set(claimedSalesResult.rows.map((r: any) => r.transaction_hash));
+            let totalUnclaimedOP = BigInt(0);
+            salesResult.rows.forEach((sale: any) => {
+              if (!claimedHashes.has(sale.transaction_hash)) {
+                totalUnclaimedOP += BigInt(sale.price) * BigInt(10**13);
+              }
+            });
+            const fishingRewardsResult = await db.query('SELECT SUM(points_awarded)::numeric as total FROM economy_events WHERE LOWER(wallet) = $1 AND event_type = \'fish\' AND claimed = FALSE', [address]);
+            // points_awarded stored as plain integers; convert to wei for unclaimedOP
+            const fishingPlain = BigInt(fishingRewardsResult.rows[0]?.total || 0);
+            const fishingWei = fishingPlain * BigInt(10**18);
+            res.end(JSON.stringify({
+              trading: {
+                totalPurchases: salesResult.rows.length,
+                unclaimedOP: totalUnclaimedOP.toString(),
+                unclaimedFormatted: (Number(totalUnclaimedOP) / 1e18).toFixed(2)
+              },
+              fishing: {
+                unclaimedOP: fishingWei.toString(),
+                unclaimedFormatted: Number(fishingPlain).toFixed(2)
+              },
+              nonces: { trading: 0, fishing: 0 } // Mock for dev
+            }));
+            return;
+          }
+
+          // /api/economy/confirm-claim (POST)
+          if (req.url === '/api/economy/confirm-claim' && req.method === 'POST') {
+            res.setHeader('Content-Type', 'application/json');
+            const { address, type, txHash } = await getBody(req);
+            const eventType = type === 'trading' ? 'purchase' : type === 'fishing' ? 'fish' : null;
+            if (!eventType) {
+              res.statusCode = 400;
+              res.end(JSON.stringify({ error: 'Invalid type' }));
+              return;
+            }
+            const result = await db.query(
+              'UPDATE economy_events SET claimed = TRUE, claim_tx_hash = $3 WHERE LOWER(wallet) = $1 AND event_type = $2 AND claimed = FALSE',
+              [(address || '').toLowerCase(), eventType, txHash || null]
+            );
+            res.end(JSON.stringify({ confirmed: result.rowCount || 0 }));
+            return;
+          }
+
+          // /api/fish/state/:address
+          const fishStateMatch = req.url.match(/^\/api\/fish\/state\/([a-fA-F0-9x]+)$/);
+          if (fishStateMatch) {
+            res.setHeader('Content-Type', 'application/json');
+            const address = fishStateMatch[1].toLowerCase();
+            const today = new Date().toISOString().split('T')[0];
+            const attemptsResult = await db.query('SELECT COUNT(*)::int as count FROM game_events WHERE LOWER(wallet) = $1 AND game = \'fish\' AND created_at >= $2', [address, today]);
+            const tackleBoxResult = await db.query('SELECT COUNT(*)::int as count FROM game_events WHERE LOWER(wallet) = $1 AND game = \'tackle_box\' AND created_at >= $2', [address, today]);
+            const hasTackleBox = tackleBoxResult.rows[0].count > 0;
+            const inventoryResult = await db.query('SELECT id, result, redeemed, prize_tier FROM game_events WHERE LOWER(wallet) = $1 AND game = \'fish\' AND created_at >= $2 ORDER BY created_at DESC', [address, today]);
+            const journalResult = await db.query('SELECT DISTINCT (result->>\'id\') as fish_id FROM game_events WHERE LOWER(wallet) = $1 AND game = \'fish\'', [address]);
+            const unclaimedResult = await db.query('SELECT SUM(points_awarded)::numeric as total FROM economy_events WHERE LOWER(wallet) = $1 AND event_type = \'fish\' AND claimed = FALSE', [address]);
+            res.end(JSON.stringify({
+              castsRemaining: Math.max(0, (hasTackleBox ? 15 : 5) - attemptsResult.rows[0].count),
+              totalCasts: hasTackleBox ? 15 : 5,
+              tackleBoxPurchased: hasTackleBox,
+              inventory: inventoryResult.rows.map((r: any) => ({
+                gameEventId: r.id,
+                fish: typeof r.result === 'string' ? JSON.parse(r.result) : r.result,
+                redeemed: r.redeemed,
+                prizeTier: r.prize_tier
+              })),
+              discoveredFishIds: journalResult.rows.map((r: any) => r.fish_id),
+              unclaimedFishingOP: (unclaimedResult.rows[0]?.total || '0').toString()
+            }));
+            return;
+          }
+
+          // /api/fish/cast (POST)
+          if (req.url === '/api/fish/cast' && req.method === 'POST') {
+            res.setHeader('Content-Type', 'application/json');
+            const { address } = await getBody(req);
+            const cleanAddress = (address || '').toLowerCase();
+            // Just a mock for dev middleware - full logic is in api/fish/cast.ts
+            res.end(JSON.stringify({ result: 'no_bite', message: 'Dev mock: please use production API for full RNG' }));
+            return;
+          }
+
+          // /api/fish/sell (POST)
+          if (req.url === '/api/fish/sell' && req.method === 'POST') {
+            res.setHeader('Content-Type', 'application/json');
+            const { address, gameEventId } = await getBody(req);
+            // Mock logic: mark as redeemed in DB
+            await db.query('UPDATE game_events SET redeemed = TRUE WHERE id = $1 AND LOWER(wallet) = $2', [gameEventId, (address || '').toLowerCase()]);
+            res.end(JSON.stringify({ sold: true, opEarned: 10, overflow: 0, capRemaining: 990 }));
+            return;
+          }
+
+          // /api/fish/buy-tackle-box (POST)
+          if (req.url === '/api/fish/buy-tackle-box' && req.method === 'POST') {
+            res.setHeader('Content-Type', 'application/json');
+            const { address, txHash } = await getBody(req);
+            await db.query('INSERT INTO game_events (wallet, game, result, points_earned) VALUES ($1, \'tackle_box\', $2, 0)', [address.toLowerCase(), JSON.stringify({ txHash, dev: true })]);
+            res.end(JSON.stringify({ success: true, castsGranted: 10 }));
+            return;
+          }
+
+          // /api/economy/sign-trading-claim (POST)
+          if (req.url === '/api/economy/sign-trading-claim' && req.method === 'POST') {
+            res.setHeader('Content-Type', 'application/json');
+            const { address } = await getBody(req);
+            res.end(JSON.stringify({
+              amount: '1000000000000000000', // 1 $OP
+              nonce: 0,
+              signature: '0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
+              dev: true
+            }));
+            return;
+          }
+
+          // /api/economy/sign-fishing-claim (POST)
+          if (req.url === '/api/economy/sign-fishing-claim' && req.method === 'POST') {
+            res.setHeader('Content-Type', 'application/json');
+            const { address } = await getBody(req);
+            res.end(JSON.stringify({
+              amount: '1000000000000000000', // 1 $OP
+              nonce: 0,
+              signature: '0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
+              dev: true
+            }));
+            return;
+          }
+
           res.statusCode = 404;
           res.setHeader('Content-Type', 'application/json');
           res.end(JSON.stringify({ error: 'Not found' }));

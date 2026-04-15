@@ -14,6 +14,8 @@ import { pixel, palettes } from '@iconoma-icons/collection';
 import SkeletonCard from '../components/SkeletonCard';
 import type { CollectionData } from '../types';
 
+import { useRewards } from '../hooks/useRewards';
+
 interface ProfilePageProps {
   onSelectToken: (t: any) => void;
 }
@@ -26,7 +28,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSelectToken }) => {
   const profileAddress = paramAddress || connectedAddress || '';
   const isOwnProfile = isConnected && connectedAddress?.toLowerCase() === profileAddress.toLowerCase();
 
-  const [tab, setTab] = useState<'collected' | 'listed' | 'activity'>('collected');
+  const [tab, setTab] = useState<'collected' | 'listed' | 'activity' | 'rewards'>('collected');
+  const { rewards, loading: rewardsLoading, claimTradingRewards, claimFishingRewards, isClaiming } = useRewards();
   const [ownedTokenIds, setOwnedTokenIds] = useState<number[]>([]);
   const [ownedTokens, setOwnedTokens] = useState<any[]>([]);
   const [activity, setActivity] = useState<any[]>([]);
@@ -362,12 +365,17 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSelectToken }) => {
 
       {/* Tabs */}
       <div className="flex gap-1 mb-2 bg-white/[0.03] border border-white/[0.06] rounded-lg p-0.5">
-        {([
+        {(isOwnProfile ? [
           { key: 'collected', label: `Collected (${trueBalance})` },
           { key: 'listed',    label: `Listed (${listings.length})` },
           { key: 'activity',  label: 'Activity' },
-        ] as const).map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)}
+          { key: 'rewards',   label: 'Rewards' },
+        ] : [
+          { key: 'collected', label: `Collected (${trueBalance})` },
+          { key: 'listed',    label: `Listed (${listings.length})` },
+          { key: 'activity',  label: 'Activity' },
+        ]).map(t => (
+          <button key={t.key} onClick={() => setTab(t.key as any)}
             className={`flex-1 px-3 py-2 rounded-md font-mono text-[10px] font-bold uppercase tracking-[0.1em] transition-all cursor-pointer ${tab === t.key ? 'bg-dream-cyan/15 text-dream-cyan' : 'text-white/30 hover:text-white/60'}`}
           >
             {t.label}
@@ -599,6 +607,89 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSelectToken }) => {
             ))}
           </div>
         )
+      )}
+
+      {/* Rewards Tab */}
+      {tab === 'rewards' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Trading Rewards */}
+          <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-sans font-black text-white text-lg tracking-tight uppercase">Trading Rewards</h3>
+                <div className="px-2 py-0.5 bg-dream-cyan/10 border border-dream-cyan/20 rounded-full">
+                  <span className="text-[10px] font-mono font-bold text-dream-cyan uppercase tracking-wider">10 $OP / $1 Spent</span>
+                </div>
+              </div>
+              <p className="text-white/50 text-xs font-mono mb-6 leading-relaxed">
+                Earn $OP points for every NFT you buy on the Whale Town Marketplace.
+              </p>
+              
+              <div className="space-y-4 mb-8">
+                <div className="flex justify-between items-end">
+                  <span className="text-[10px] font-mono text-white/30 uppercase tracking-widest">Total Purchases</span>
+                  <span className="text-sm font-bold text-white">{rewards?.trading.totalPurchases || 0}</span>
+                </div>
+                <div className="flex justify-between items-end">
+                  <span className="text-[10px] font-mono text-white/30 uppercase tracking-widest">Unclaimed $OP</span>
+                  <div className="text-right">
+                    <div className="text-xl font-black text-dream-cyan leading-none">{rewards?.trading.unclaimedFormatted || '0.00'} $OP</div>
+                    <div className="text-[10px] font-mono text-white/20 mt-1">{rewards?.trading.unclaimedPurchases || 0} purchases pending</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={claimTradingRewards}
+              disabled={isClaiming || !rewards || BigInt(rewards.trading.unclaimedOP) === 0n}
+              className={`w-full py-4 rounded-xl font-mono text-xs font-black tracking-widest transition-all cursor-pointer ${
+                isClaiming || !rewards || BigInt(rewards.trading.unclaimedOP) === 0n
+                  ? 'bg-white/5 text-white/20 border border-white/5'
+                  : 'bg-dream-cyan text-[#0a0a0c] shadow-[0_0_20px_rgba(0,240,255,0.2)] hover:shadow-[0_0_30px_rgba(0,240,255,0.3)] hover:-translate-y-0.5 active:translate-y-0'
+              }`}
+            >
+              {isClaiming ? 'CLAIMING...' : 'CLAIM TRADING REWARDS'}
+            </button>
+          </div>
+
+          {/* Fishing Rewards */}
+          <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-sans font-black text-white text-lg tracking-tight uppercase">Fishing Rewards</h3>
+                <div className="px-2 py-0.5 bg-dream-magenta/10 border border-dream-magenta/20 rounded-full">
+                  <span className="text-[10px] font-mono font-bold text-dream-magenta uppercase tracking-wider">1k Cap / Hr</span>
+                </div>
+              </div>
+              <p className="text-white/50 text-xs font-mono mb-6 leading-relaxed">
+                Earn $OP points by selling fish you've caught in the Whale Town Ocean Quest.
+              </p>
+              
+              <div className="space-y-4 mb-8">
+                <div className="flex justify-between items-end">
+                  <span className="text-[10px] font-mono text-white/30 uppercase tracking-widest">Unclaimed $OP</span>
+                  <div className="text-right">
+                    <div className="text-xl font-black text-dream-magenta leading-none">{rewards?.fishing.unclaimedFormatted || '0.00'} $OP</div>
+                    <div className="text-[10px] font-mono text-white/20 mt-1">From Ocean Quest adventures</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={claimFishingRewards}
+              disabled={isClaiming || !rewards || BigInt(rewards.fishing.unclaimedOP) === 0n}
+              className={`w-full py-4 rounded-xl font-mono text-xs font-black tracking-widest transition-all cursor-pointer ${
+                isClaiming || !rewards || BigInt(rewards.fishing.unclaimedOP) === 0n
+                  ? 'bg-white/5 text-white/20 border border-white/5'
+                  : 'bg-dream-magenta text-white shadow-[0_0_20px_rgba(255,0,255,0.15)] hover:shadow-[0_0_30px_rgba(255,0,255,0.25)] hover:-translate-y-0.5 active:translate-y-0'
+              }`}
+            >
+              {isClaiming ? 'CLAIMING...' : 'CLAIM FISHING REWARDS'}
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Mobile filter sheet */}

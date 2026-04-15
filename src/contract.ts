@@ -1,6 +1,6 @@
 import { createPublicClient, http, fallback } from 'viem';
 // @ts-ignore
-import { WHALE_TOWN_ADDRESS, WHALE_TOWN_ABI, WHALE_TOWN_MARKETPLACE_ADDRESS, WHALE_TOWN_MARKETPLACE_ABI, PATH_USD_ADDRESS, PATH_USD_ABI, POINTS_CONTRACT_ADDRESS, STAKING_CONTRACT_ADDRESS, POINTS_ABI, STAKING_ABI } from '@/contract.js';
+import { WHALE_TOWN_ADDRESS, WHALE_TOWN_ABI, WHALE_TOWN_MARKETPLACE_ADDRESS, WHALE_TOWN_MARKETPLACE_ABI, PATH_USD_ADDRESS, PATH_USD_ABI, POINTS_CONTRACT_ADDRESS, STAKING_CONTRACT_ADDRESS, POINTS_ABI, STAKING_ABI, REWARDS_CLAIMER_CONTRACT_ADDRESS, REWARDS_CLAIMER_ABI } from '@/contract.js';
 import { activeChain } from './wagmi';
 
 const customRpc: string = process.env.ALCHEMY_TEMPO_RPC || process.env.RPC_URL || '';
@@ -26,6 +26,9 @@ export const pointsAddress = POINTS_CONTRACT_ADDRESS as `0x${string}`;
 export const pointsAbi = POINTS_ABI;
 export const stakingAddress = STAKING_CONTRACT_ADDRESS as `0x${string}`;
 export const stakingAbi = STAKING_ABI;
+
+export const rewardsClaimerAddress = REWARDS_CLAIMER_CONTRACT_ADDRESS as `0x${string}`;
+export const rewardsClaimerAbi = REWARDS_CLAIMER_ABI;
 
 function read(functionName: string, args?: any[]): Promise<any> {
   return publicClient.readContract({ address: contractAddress, abi: contractAbi, functionName, args } as any);

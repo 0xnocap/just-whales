@@ -11,9 +11,10 @@ import {
   VolumeX,
   Coins,
 } from 'lucide-react';
-import { useFishGameState } from '../hooks/useFishGameState';
+import { useAccount } from 'wagmi';
+import { useFishGameServer } from '../hooks/useFishGameServer';
 import GameScene from '../components/fish/GameScene';
-import { FISH_LIST, TACKLE_BOX_COST, TACKLE_BOX_ATTEMPTS } from '../constants/fishGameData';
+import { FISH_LIST } from '../constants/fishGameData';
 import { soundManager } from '../lib/fishSoundService';
 
 const FRAME_H = 'clamp(32rem, 64vh, 46rem)';
@@ -77,25 +78,46 @@ function tint(rarity: string) {
 }
 
 export default function FishPage() {
+  const { isConnected } = useAccount();
   const {
-    attempts,
-    coins,
-    inventory,
-    discoveredFishIds,
-    hasPurchasedTackleBox,
-    useAttempt,
-    addFish,
-    sellFish,
+    state,
+    loading,
+    isPurchasing,
+    cast,
+    sell,
     buyTackleBox,
-    grantTestResources,
-  } = useFishGameState();
+  } = useFishGameServer();
 
   const [tab, setTab] = useState<Tab>('ocean');
   const [isMuted, setIsMuted] = useState(soundManager.isMuted());
 
+  const inventory = state?.inventory || [];
+  const attempts = state?.castsRemaining ?? 0;
+  const discoveredFishIds = state?.discoveredFishIds || [];
+  const coins = state ? Number(BigInt(state.unclaimedFishingOP) / BigInt(10**18)) : 0;
+
   const journalFound = discoveredFishIds.length;
   const journalTotal = FISH_LIST.length;
   const journalPct = (journalFound / journalTotal) * 100;
+
+  if (!isConnected) {
+    return (
+      <div className="w-full flex items-center justify-center" style={{ height: FRAME_H }}>
+        <div className="text-center p-12 bg-white/5 border border-white/10 rounded-3xl backdrop-blur-xl max-w-sm mx-auto">
+          <Anchor size={48} className="mx-auto mb-6 text-dream-cyan opacity-50" />
+          <h2 className="text-2xl font-black text-white mb-4 uppercase tracking-tight">Wallet Required</h2>
+          <p className="text-white/50 font-mono text-sm leading-relaxed mb-8">
+            Connect your wallet to explore the deep ocean, catch rare species, and earn $OP rewards.
+          </p>
+          <div className="flex justify-center">
+            <div className="px-6 py-3 bg-dream-cyan/10 border border-dream-cyan/20 rounded-xl">
+              <span className="text-dream-cyan font-mono font-bold text-xs uppercase tracking-widest">Connection Required</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
@@ -200,7 +222,7 @@ export default function FishPage() {
                 transition={{ duration: 0.18 }}
                 className="absolute inset-0"
               >
-                <GameScene onCatch={addFish} useAttempt={useAttempt} attempts={attempts} />
+                <GameScene cast={cast} attempts={attempts} />
               </motion.div>
             )}
 
@@ -217,7 +239,7 @@ export default function FishPage() {
                 <SectionHead
                   eyebrow="Your net"
                   title={inventory.length === 0 ? 'Empty' : `${inventory.length} caught`}
-                  sub="Sell non-NFT catches for coins. NFTs are claimable."
+                  sub="Sell non-NFT catches for $OP. NFTs are claimable on Profile."
                 />
 
                 {inventory.length === 0 ? (
@@ -235,12 +257,15 @@ export default function FishPage() {
                     }}
                   >
                     {inventory.map((item, idx) => {
-                      const t = tint(item.rarity);
-                      const isNft = item.rarity === 'NFT';
+                      const fish = item.fish;
+                      const t = tint(fish.rarity);
+                      const isNft = fish.rarity === 'NFT';
+                      const isRedeemed = item.redeemed;
+
                       return (
                         <div
-                          key={`${item.id}-${idx}`}
-                          className={`relative flex flex-col items-center text-center border ${t.border} bg-white/[0.025] ${t.glow} transition-colors hover:bg-white/[0.045]`}
+                          key={`${fish.id}-${item.gameEventId}-${idx}`}
+                          className={`relative flex flex-col items-center text-center border ${t.border} bg-white/[0.025] ${t.glow} transition-colors hover:bg-white/[0.045] ${isRedeemed ? 'opacity-40 grayscale' : ''}`}
                           style={{
                             padding: 'clamp(0.9rem, 1.6vw, 1.25rem)',
                             borderRadius: 'clamp(0.75rem, 1vw, 1rem)',
@@ -254,7 +279,7 @@ export default function FishPage() {
                               fontSize: 'clamp(8px, 0.65vw, 10px)',
                             }}
                           >
-                            {isNft ? `${item.nftTier} NFT` : item.rarity}
+                            {isNft ? `${fish.nftTier} NFT` : fish.rarity}
                           </span>
                           <span
                             style={{
@@ -262,7 +287,7 @@ export default function FishPage() {
                               marginTop: 'clamp(0.65rem, 1.3vh, 1rem)',
                             }}
                           >
-                            {item.icon}
+                            {fish.icon}
                           </span>
                           <div
                             className="font-bold text-dream-white"
@@ -271,7 +296,7 @@ export default function FishPage() {
                               marginTop: 'clamp(0.5rem, 1vh, 0.75rem)',
                             }}
                           >
-                            {item.name}
+                            {fish.name}
                           </div>
                           {!isNft && (
                             <div
@@ -281,13 +306,14 @@ export default function FishPage() {
                                 marginTop: 'clamp(0.2rem, 0.4vh, 0.3rem)',
                               }}
                             >
-                              <Coins size={10} className="text-sun" fill="currentColor" />
-                              <span className="text-sun/90">{item.value}</span>
+                              <Zap size={10} className="text-sun" fill="currentColor" />
+                              <span className="text-sun/90">{fish.value} $OP</span>
                             </div>
                           )}
                           {isNft ? (
                             <button
-                              className="w-full bg-dream-purple/15 hover:bg-dream-purple/25 border border-dream-purple/40 text-dream-purple font-mono font-bold transition-colors"
+                              disabled
+                              className="w-full bg-dream-purple/15 border border-dream-purple/40 text-dream-purple font-mono font-bold transition-colors opacity-50"
                               style={{
                                 fontSize: 'clamp(10px, 0.8vw, 12px)',
                                 padding: 'clamp(0.5rem, 1vh, 0.7rem)',
@@ -296,12 +322,13 @@ export default function FishPage() {
                                 letterSpacing: '0.08em',
                               }}
                             >
-                              Claim
+                              Claim on Profile
                             </button>
                           ) : (
                             <button
-                              onClick={() => sellFish(item.id)}
-                              className="w-full bg-white/[0.04] hover:bg-dream-cyan/15 border border-white/10 hover:border-dream-cyan/40 text-white/80 hover:text-dream-cyan font-mono font-bold transition-colors"
+                              onClick={() => !isRedeemed && sell(item.gameEventId)}
+                              disabled={isRedeemed}
+                              className={`w-full font-mono font-bold transition-colors ${isRedeemed ? 'bg-white/5 text-white/20 border border-white/5' : 'bg-white/[0.04] hover:bg-dream-cyan/15 border border-white/10 hover:border-dream-cyan/40 text-white/80 hover:text-dream-cyan'}`}
                               style={{
                                 fontSize: 'clamp(10px, 0.8vw, 12px)',
                                 padding: 'clamp(0.5rem, 1vh, 0.7rem)',
@@ -310,7 +337,7 @@ export default function FishPage() {
                                 letterSpacing: '0.08em',
                               }}
                             >
-                              Sell
+                              {isRedeemed ? 'Sold' : 'Sell'}
                             </button>
                           )}
                         </div>
@@ -339,15 +366,13 @@ export default function FishPage() {
                 <div className="flex flex-col" style={{ gap: 'clamp(0.6rem, 1.2vh, 0.85rem)' }}>
                   <MarketRow
                     icon="📦"
-                    name="Supply Pack"
-                    desc={`+${TACKLE_BOX_ATTEMPTS} casts today · one per day`}
-                    price={TACKLE_BOX_COST}
-                    disabled={hasPurchasedTackleBox || coins < TACKLE_BOX_COST}
+                    name="Tackle Box"
+                    desc={`+10 casts today · one per day · on-chain purchase`}
+                    price={100}
+                    disabled={state?.tackleBoxPurchased || isPurchasing}
                     disabledLabel={
-                      hasPurchasedTackleBox
+                      state?.tackleBoxPurchased
                         ? 'Sold out · back tomorrow'
-                        : coins < TACKLE_BOX_COST
-                        ? 'Not enough coins'
                         : undefined
                     }
                     onBuy={buyTackleBox}

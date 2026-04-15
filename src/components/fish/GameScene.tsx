@@ -123,17 +123,16 @@ function FishModel({ fish }: { fish: any }) {
 }
 
 interface GameSceneProps {
-  onCatch: (fish: any) => void;
-  useAttempt: () => boolean;
+  cast: () => Promise<any>;
   attempts: number;
 }
 
-export default function GameScene({ onCatch, useAttempt, attempts }: GameSceneProps) {
+export default function GameScene({ cast, attempts }: GameSceneProps) {
   const [gameState, setGameState] = useState<'idle' | 'casting' | 'waiting' | 'bite' | 'result'>('idle');
   const [result, setResult] = useState<any>(null);
   const [message, setMessage] = useState<string>('');
 
-  const handleCast = () => {
+  const handleCast = async () => {
     if (gameState !== 'idle') return;
 
     if (attempts <= 0) {
@@ -142,96 +141,67 @@ export default function GameScene({ onCatch, useAttempt, attempts }: GameScenePr
       return;
     }
 
-    if (!useAttempt()) return;
-
     soundManager.play('cast');
     setGameState('casting');
 
-    setTimeout(() => {
-      setGameState('waiting');
+    try {
+      // Initiate cast on server immediately
+      const castPromise = cast();
 
-      const waitTime = 2000 + Math.random() * 3000;
-      setTimeout(() => {
-        const isBite = Math.random() > 0.5;
+      setTimeout(async () => {
+        setGameState('waiting');
 
-        if (isBite) {
+        const waitTime = 2000 + Math.random() * 3000;
+        
+        // Wait for both the visual timer and the server response
+        const [serverData] = await Promise.all([
+          castPromise,
+          new Promise(resolve => setTimeout(resolve, waitTime))
+        ]);
+
+        if (serverData.result === 'catch') {
           soundManager.play('bite');
           setGameState('bite');
           setTimeout(() => {
-            resolveCatch();
+            setResult(serverData.fish);
+            
+            const caughtFish = serverData.fish;
+            if (caughtFish.rarity === 'Legendary' || caughtFish.rarity === 'NFT') {
+              soundManager.play('catch_legendary');
+            } else if (caughtFish.rarity === 'Rare' || caughtFish.rarity === 'Epic') {
+              soundManager.play('catch_rare');
+            } else if (caughtFish.rarity === 'Junk') {
+              soundManager.play('junk');
+            } else {
+              soundManager.play('catch_common');
+            }
+
+            setGameState('result');
+            setTimeout(() => {
+              setGameState('idle');
+              setResult(null);
+            }, 4000);
           }, 1500);
-        } else {
+        } else if (serverData.result === 'no_bite') {
           setGameState('result');
           setResult(null);
-          const randomMessage = NO_BITE_MESSAGES[Math.floor(Math.random() * NO_BITE_MESSAGES.length)];
-          setMessage(randomMessage);
+          setMessage(serverData.message);
           setTimeout(() => {
             setGameState('idle');
             setMessage('');
           }, 4000);
+        } else {
+          // Error handling
+          setGameState('idle');
+          setMessage(serverData.error || 'Something went wrong');
+          setTimeout(() => setMessage(''), 3000);
         }
-      }, waitTime);
-    }, 1000);
-  };
-
-  const resolveCatch = () => {
-    const roll = Math.random() * 100;
-    let caughtFish;
-
-    if (roll > 99) {
-      const nfts = FISH_LIST.filter(f => f.rarity === 'NFT');
-      const nftRoll = Math.random() * 100;
-      if (nftRoll > 95) {
-        caughtFish = nfts.find(n => n.nftTier === 'Legendary');
-      } else if (nftRoll > 80) {
-        caughtFish = nfts.find(n => n.nftTier === 'Ultra Rare');
-      } else if (nftRoll > 50) {
-        caughtFish = nfts.find(n => n.nftTier === 'Rare');
-      } else {
-        caughtFish = nfts.find(n => n.nftTier === 'Common');
-      }
-      if (!caughtFish) caughtFish = nfts[Math.floor(Math.random() * nfts.length)];
-    } else if (roll > 96) {
-      const legendaries = FISH_LIST.filter(f => f.rarity === 'Legendary');
-      caughtFish = legendaries[Math.floor(Math.random() * legendaries.length)];
-    } else if (roll > 90) {
-      const epics = FISH_LIST.filter(f => f.rarity === 'Epic');
-      caughtFish = epics[Math.floor(Math.random() * epics.length)];
-    } else if (roll > 80) {
-      const rares = FISH_LIST.filter(f => f.rarity === 'Rare');
-      caughtFish = rares[Math.floor(Math.random() * rares.length)];
-    } else if (roll > 65) {
-      const uncommons = FISH_LIST.filter(f => f.rarity === 'Uncommon');
-      caughtFish = uncommons[Math.floor(Math.random() * uncommons.length)];
-    } else if (roll > 35) {
-      const junks = FISH_LIST.filter(f => f.rarity === 'Junk');
-      caughtFish = junks[Math.floor(Math.random() * junks.length)];
-    } else {
-      const commons = FISH_LIST.filter(f => f.rarity === 'Common');
-      caughtFish = commons[Math.floor(Math.random() * commons.length)];
-    }
-
-    setResult(caughtFish);
-
-    if (caughtFish) {
-      if (caughtFish.rarity === 'Legendary' || caughtFish.rarity === 'NFT') {
-        soundManager.play('catch_legendary');
-      } else if (caughtFish.rarity === 'Rare' || caughtFish.rarity === 'Epic') {
-        soundManager.play('catch_rare');
-      } else if (caughtFish.rarity === 'Junk') {
-        soundManager.play('junk');
-      } else {
-        soundManager.play('catch_common');
-      }
-    }
-
-    setGameState('result');
-    if (caughtFish) onCatch(caughtFish);
-
-    setTimeout(() => {
+      }, 1000);
+    } catch (e: any) {
       setGameState('idle');
-      setResult(null);
-    }, 4000);
+      setMessage(e.message || 'Connection error');
+      setTimeout(() => setMessage(''), 3000);
+    }
   };
 
   return (
