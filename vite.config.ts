@@ -262,6 +262,18 @@ function apiMiddleware() {
             });
           };
 
+          // Env switch: ENVIRONMENT=production → mainnet vars, else → TEST_* vars
+          const devEnv = () => {
+            const isProd = process.env.ENVIRONMENT === 'production';
+            return {
+              isProd,
+              rpcUrl: (isProd ? process.env.RPC_URL : process.env.TEST_RPC_URL) || (isProd ? 'https://rpc.tempo.xyz' : 'https://rpc.moderato.tempo.xyz'),
+              chainId: Number((isProd ? process.env.CHAIN_ID : process.env.TEST_CHAIN_ID) || (isProd ? '4217' : '42431')),
+              claimer: (isProd ? process.env.REWARDS_CLAIMER_CONTRACT : process.env.TEST_REWARDS_CLAIMER_CONTRACT),
+              chainName: isProd ? 'Tempo' : 'Tempo Testnet',
+            };
+          };
+
           // /api/economy/rewards/:address
           const rewardsMatch = req.url.match(/^\/api\/economy\/rewards\/([a-fA-F0-9x]+)$/);
           if (rewardsMatch) {
@@ -280,28 +292,26 @@ function apiMiddleware() {
             // points_awarded stored as wei uniformly
             const fishingWei = BigInt(fishingRewardsResult.rows[0]?.total || 0);
 
-            // Read on-chain nonces from testnet claimer
-            const DEV_RPC_URL = process.env.TEST_RPC_URL || 'https://rpc.moderato.tempo.xyz';
-            const DEV_CLAIMER = process.env.TEST_REWARDS_CLAIMER_CONTRACT;
-            const DEV_CHAIN_ID = Number(process.env.TEST_CHAIN_ID || 42431);
+            // Read on-chain nonces from the active-environment claimer
+            const e = devEnv();
             let tradingNonce = 0;
             let fishingNonce = 0;
-            if (DEV_CLAIMER) {
+            if (e.claimer) {
               try {
                 const { createPublicClient, http, parseAbi } = await import('viem');
                 const devClient = createPublicClient({
-                  chain: { id: DEV_CHAIN_ID, name: 'Tempo Testnet', nativeCurrency: { name: 'TMP', symbol: 'TMP', decimals: 18 }, rpcUrls: { default: { http: [DEV_RPC_URL] } } },
+                  chain: { id: e.chainId, name: e.chainName, nativeCurrency: { name: 'TMP', symbol: 'TMP', decimals: 18 }, rpcUrls: { default: { http: [e.rpcUrl] } } },
                   transport: http()
                 });
                 const devAbi = parseAbi(['function tradingNonces(address) view returns (uint256)', 'function fishingNonces(address) view returns (uint256)']);
                 const [tn, fn] = await Promise.all([
-                  devClient.readContract({ address: DEV_CLAIMER as `0x${string}`, abi: devAbi, functionName: 'tradingNonces', args: [address as `0x${string}`] }),
-                  devClient.readContract({ address: DEV_CLAIMER as `0x${string}`, abi: devAbi, functionName: 'fishingNonces', args: [address as `0x${string}`] })
+                  devClient.readContract({ address: e.claimer as `0x${string}`, abi: devAbi, functionName: 'tradingNonces', args: [address as `0x${string}`] }),
+                  devClient.readContract({ address: e.claimer as `0x${string}`, abi: devAbi, functionName: 'fishingNonces', args: [address as `0x${string}`] })
                 ]);
                 tradingNonce = Number(tn);
                 fishingNonce = Number(fn);
-              } catch (e) {
-                console.warn('Error reading dev nonces:', e);
+              } catch (err) {
+                console.warn('Error reading dev nonces:', err);
               }
             }
 
@@ -466,26 +476,24 @@ function apiMiddleware() {
               return;
             }
 
-            const RPC_URL = process.env.TEST_RPC_URL || 'https://rpc.moderato.tempo.xyz';
-            const CLAIMER = process.env.TEST_REWARDS_CLAIMER_CONTRACT;
-            const CHAIN_ID = Number(process.env.TEST_CHAIN_ID || 42431);
+            const e = devEnv();
             const PRIV_KEY = process.env.REWARDS_SIGNER_PRIVATE_KEY;
 
-            if (!CLAIMER || !PRIV_KEY) {
+            if (!e.claimer || !PRIV_KEY) {
               res.statusCode = 500;
-              res.end(JSON.stringify({ error: 'Env vars not set (TEST_REWARDS_CLAIMER_CONTRACT or REWARDS_SIGNER_PRIVATE_KEY)' }));
+              res.end(JSON.stringify({ error: `Env vars not set (${e.isProd ? 'REWARDS_CLAIMER_CONTRACT' : 'TEST_REWARDS_CLAIMER_CONTRACT'} or REWARDS_SIGNER_PRIVATE_KEY)` }));
               return;
             }
 
             const { createPublicClient, http, parseAbi } = await import('viem');
             const publicClient = createPublicClient({
-              chain: { id: CHAIN_ID, name: 'Tempo Testnet', nativeCurrency: { name: 'TMP', symbol: 'TMP', decimals: 18 }, rpcUrls: { default: { http: [RPC_URL] } } },
+              chain: { id: e.chainId, name: e.chainName, nativeCurrency: { name: 'TMP', symbol: 'TMP', decimals: 18 }, rpcUrls: { default: { http: [e.rpcUrl] } } },
               transport: http()
             });
 
             const abiT = parseAbi(['function tradingNonces(address) view returns (uint256)']);
             const tradingNonce = await publicClient.readContract({
-              address: CLAIMER as `0x${string}`,
+              address: e.claimer as `0x${string}`,
               abi: abiT,
               functionName: 'tradingNonces',
               args: [cleanAddress as `0x${string}`]
@@ -498,8 +506,8 @@ function apiMiddleware() {
               domain: {
                 name: 'WhaleTownRewards',
                 version: '1',
-                chainId: CHAIN_ID,
-                verifyingContract: CLAIMER as `0x${string}`,
+                chainId: e.chainId,
+                verifyingContract: e.claimer as `0x${string}`,
               },
               types: {
                 TradingClaim: [
@@ -563,27 +571,25 @@ function apiMiddleware() {
               return;
             }
 
-            // 2. Fetch nonce from contract (on-chain)
-            const RPC_URL = process.env.TEST_RPC_URL || 'https://rpc.moderato.tempo.xyz';
-            const CLAIMER = process.env.TEST_REWARDS_CLAIMER_CONTRACT;
-            const CHAIN_ID = Number(process.env.TEST_CHAIN_ID || 42431);
+            // 2. Fetch nonce from contract (on-chain) using active env
+            const e = devEnv();
             const PRIV_KEY = process.env.REWARDS_SIGNER_PRIVATE_KEY;
 
-            if (!CLAIMER || !PRIV_KEY) {
+            if (!e.claimer || !PRIV_KEY) {
               res.statusCode = 500;
-              res.end(JSON.stringify({ error: 'Env vars not set' }));
+              res.end(JSON.stringify({ error: `Env vars not set (${e.isProd ? 'REWARDS_CLAIMER_CONTRACT' : 'TEST_REWARDS_CLAIMER_CONTRACT'} or REWARDS_SIGNER_PRIVATE_KEY)` }));
               return;
             }
 
             const { createPublicClient, http, parseAbi } = await import('viem');
             const publicClient = createPublicClient({
-              chain: { id: CHAIN_ID, name: 'Tempo Testnet', nativeCurrency: { name: 'TMP', symbol: 'TMP', decimals: 18 }, rpcUrls: { default: { http: [RPC_URL] } } },
+              chain: { id: e.chainId, name: e.chainName, nativeCurrency: { name: 'TMP', symbol: 'TMP', decimals: 18 }, rpcUrls: { default: { http: [e.rpcUrl] } } },
               transport: http()
             });
 
             const abi = parseAbi(['function fishingNonces(address) view returns (uint256)']);
             const fishingNonce = await publicClient.readContract({
-              address: CLAIMER as `0x${string}`,
+              address: e.claimer as `0x${string}`,
               abi,
               functionName: 'fishingNonces',
               args: [cleanAddress as `0x${string}`]
@@ -592,13 +598,13 @@ function apiMiddleware() {
             // 3. Sign EIP-712
             const { privateKeyToAccount } = await import('viem/accounts');
             const account = privateKeyToAccount(PRIV_KEY as `0x${string}`);
-            
+
             const signature = await account.signTypedData({
               domain: {
                 name: 'WhaleTownRewards',
                 version: '1',
-                chainId: CHAIN_ID,
-                verifyingContract: CLAIMER as `0x${string}`,
+                chainId: e.chainId,
+                verifyingContract: e.claimer as `0x${string}`,
               },
               types: {
                 FishingClaim: [
