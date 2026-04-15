@@ -103,6 +103,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const unclaimedWei = BigInt(unclaimedResult.rows[0]?.total || 0);
 
+    // Prevent aggressive browser caching of the dynamic game state
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
+
     res.status(200).json({
       isNFTOwner,
       castsRemaining: Math.max(0, totalAllowed - usedAttempts),
