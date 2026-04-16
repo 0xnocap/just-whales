@@ -403,19 +403,21 @@ function apiMiddleware() {
             }
             // ----------------------------
 
+            const { FREE_DAILY_ATTEMPTS: FREE_CASTS, TACKLE_BOX_ATTEMPTS: TB_CASTS } = await import('./api/fish/_gameData.js');
             const today = new Date().toISOString().split('T')[0];
             const attemptsResult = await db.query('SELECT COUNT(*)::int as count FROM game_events WHERE LOWER(wallet) = $1 AND game = \'fish\' AND created_at >= $2', [address, today]);
             const tackleBoxResult = await db.query(`SELECT created_at FROM game_events WHERE LOWER(wallet) = $1 AND game = 'tackle_box' AND created_at >= NOW() - INTERVAL '24 hours' ORDER BY created_at DESC LIMIT 1`, [address]);
             const hasTackleBox = tackleBoxResult.rows.length > 0;
             const tackleBoxPurchasedAt = hasTackleBox ? new Date(tackleBoxResult.rows[0].created_at).toISOString() : null;
+            const totalCasts = FREE_CASTS + (hasTackleBox ? TB_CASTS : 0);
             const inventoryResult = await db.query(`SELECT id, result, redeemed, prize_tier FROM game_events WHERE LOWER(wallet) = $1 AND game = 'fish' AND created_at >= $2 AND (result::jsonb->>'id') IS NOT NULL ORDER BY created_at DESC`, [address, today]);
             const journalResult = await db.query('SELECT DISTINCT (result->>\'id\') as fish_id FROM game_events WHERE LOWER(wallet) = $1 AND game = \'fish\'', [address]);
             const unclaimedResult = await db.query('SELECT COALESCE(SUM(points_awarded), 0)::numeric as total FROM economy_events WHERE LOWER(wallet) = $1 AND event_type = \'fish\' AND claimed = FALSE', [address]);
             const unclaimedWei = BigInt(unclaimedResult.rows[0]?.total || 0);
             res.end(JSON.stringify({
               isNFTOwner,
-              castsRemaining: Math.max(0, (hasTackleBox ? 20 : 10) - attemptsResult.rows[0].count),
-              totalCasts: hasTackleBox ? 20 : 10,
+              castsRemaining: Math.max(0, totalCasts - attemptsResult.rows[0].count),
+              totalCasts,
               tackleBoxPurchased: hasTackleBox,
               tackleBoxPurchasedAt,
               inventory: inventoryResult.rows.map((r: any) => ({
