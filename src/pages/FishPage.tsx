@@ -15,7 +15,7 @@ import {
 import { useAccount } from 'wagmi';
 import { useFishGameServer } from '../hooks/useFishGameServer';
 import GameScene from '../components/fish/GameScene';
-import { FISH_LIST, OCEAN_TREASURES } from '../constants/fishGameData';
+import { FISH_LIST, OCEAN_TREASURES, TACKLE_BOX_COST } from '../constants/fishGameData';
 import { soundManager } from '../lib/fishSoundService';
 import { Link } from 'react-router-dom';
 
@@ -104,7 +104,7 @@ export default function FishPage() {
   // null = still loading, number = resolved
   const onChainOP = onChainOPBalance !== undefined ? Number(onChainOPBalance / OP_DECIMALS) : null;
   // Only gate when balance is confirmed below threshold — never block while loading
-  const insufficientBalance = onChainOP !== null && onChainOP < 125;
+  const insufficientBalance = onChainOP !== null && onChainOP < TACKLE_BOX_COST;
 
   const JOURNAL_LIST = FISH_LIST.filter(f => f.rarity !== 'NFT');
   const oceanTreasuresFound = discoveredFishIds.filter(id => OCEAN_TREASURES.some(f => f.id === id)).length;
@@ -449,13 +449,11 @@ export default function FishPage() {
                     icon="📦"
                     name="Tackle Box"
                     desc={`+10 casts today · one per day · on-chain purchase`}
-                    price={125}
+                    price={TACKLE_BOX_COST}
                     disabled={state?.tackleBoxPurchased || isPurchasing || insufficientBalance}
                     disabledLabel={
                       state?.tackleBoxPurchased
                         ? tackleCountdown ? tackleCountdown : 'Available tomorrow'
-                        : insufficientBalance
-                        ? 'Need 100 $OP'
                         : undefined
                     }
                     onBuy={buyTackleBox}
@@ -819,7 +817,7 @@ function MarketRow({
             letterSpacing: '0.08em',
           }}
         >
-          {disabled ? (disabledLabel ?? 'Unavailable') : 'Buy'}
+          {disabled ? (disabledLabel ?? 'Buy') : 'Buy'}
         </button>
       </div>
     </div>
