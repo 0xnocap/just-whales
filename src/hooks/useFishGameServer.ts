@@ -3,7 +3,7 @@ import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadCont
 import { pointsAddress, pointsAbi } from '../contract';
 import type { FishType } from '../constants/fishGameData';
 
-const TREASURY_WALLET = '0x7831959816fAA58B5Dc869b7692cebdb6EFC311E';
+const TREASURY_WALLET = '0x65D814d1F74b35C96A3D648258922826C36d27e7';
 
 export interface FishInventoryItem {
   gameEventId: string;

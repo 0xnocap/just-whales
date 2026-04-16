@@ -1,5 +1,5 @@
 import { getPool } from '../_db.js';
-import { createPublicClient, http, Address, parseAbi } from 'viem';
+import { createPublicClient, http, Address, parseAbi, parseEventLogs } from 'viem';
 import { getEnvConfig } from '../_env.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
@@ -20,8 +20,6 @@ function makeClient() {
     transport: http()
   });
 }
-
-const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -69,28 +67,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const client = makeClient();
     const receipt = await client.waitForTransactionReceipt({ hash: txHash as `0x${string}` });
 
-    const transferLogs = receipt.logs.filter(log =>
-      log.address.toLowerCase() === pointsContract
-    );
+    const expectedValue = BigInt(125) * BigInt(10**18);
+    
+    // Use viem's parseEventLogs to handle padding and address normalization automatically
+    const logs = parseEventLogs({
+      abi: erc20Abi,
+      logs: receipt.logs,
+      eventName: 'Transfer',
+    });
 
     let validTransfer = false;
-    for (const log of transferLogs) {
-      if (log.topics[0] !== TRANSFER_TOPIC) continue;
-      try {
-        const from = '0x' + log.topics[1]?.slice(26).toLowerCase();
-        const to = '0x' + log.topics[2]?.slice(26).toLowerCase();
-        const value = BigInt(log.data);
-        if (from === cleanAddress && to === treasury && value === BigInt(125) * BigInt(10**18)) {
-          validTransfer = true;
-          break;
-        }
-      } catch (e) {
-        console.warn('Error parsing log:', e);
+    const seen: any[] = [];
+
+    for (const log of logs) {
+      // parseEventLogs ensures from/to are normalized addresses
+      const { from, to, value } = log.args;
+      const logTokenAddress = log.address.toLowerCase();
+
+      seen.push({ from, to, value: value.toString(), token: logTokenAddress });
+
+      if (
+        logTokenAddress === pointsContract &&
+        from.toLowerCase() === cleanAddress &&
+        to.toLowerCase() === treasury &&
+        value === expectedValue
+      ) {
+        validTransfer = true;
+        break;
       }
     }
 
     if (!validTransfer) {
-      res.status(400).json({ error: 'Valid $OP transfer not found in transaction' });
+      console.error('[buy-tackle-box] Verification failed', {
+        txHash,
+        expected: { from: cleanAddress, to: treasury, value: expectedValue.toString(), token: pointsContract },
+        seenTransfers: seen,
+      });
+      res.status(400).json({ 
+        error: 'Valid $OP transfer not found in transaction',
+        debug: {
+          expected: { from: cleanAddress, to: treasury, value: expectedValue.toString(), token: pointsContract },
+          seenTransfers: seen
+        }
+      });
       return;
     }
 
@@ -98,7 +117,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await db.query(`
       INSERT INTO game_events (wallet, game, result, points_earned)
       VALUES ($1, 'tackle_box', $2, 0)
-    `, [cleanAddress, JSON.stringify({ txHash, cost: 100, castsGranted: 10 })]);
+    `, [cleanAddress, JSON.stringify({ txHash, cost: 125, castsGranted: 10 })]);
 
     res.status(200).json({ success: true, castsGranted: 10 });
   } catch (err: any) {
