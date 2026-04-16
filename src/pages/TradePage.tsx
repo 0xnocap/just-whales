@@ -159,19 +159,28 @@ const TradePage: React.FC<TradePageProps> = ({
                 <p className="text-white/50 text-[13px] font-mono max-w-md">Sealions, Sharks, and Whales, oh my! The first onchain collection on Tempo.</p>
               </div>
             </div>
-            <div className="flex items-end gap-5 pb-1">
+            <div className="flex flex-col items-end gap-2 pb-1">
               {[
-                { label: 'Floor',   value: floorPrice > 0 ? `$${floorPrice.toFixed(2)}` : (loading ? null : '—') },
-                { label: 'Listed',  value: loading ? null : listings.length.toString() },
-                { label: 'Holders', value: collectionStats ? collectionStats.holders?.toLocaleString() : null },
-                { label: 'Volume',  value: collectionStats ? `$${collectionStats.totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : null },
-              ].map(stat => (
-                <div key={stat.label} className="text-right">
-                  <div className="text-[10px] font-mono text-white/40 uppercase tracking-[0.1em]">{stat.label}</div>
-                  {stat.value != null
-                    ? <div className="text-[15px] font-bold text-white leading-none mt-0.5">{stat.value}</div>
-                    : <div className="w-12 h-4 bg-white/10 rounded animate-pulse mt-0.5" />
-                  }
+                [
+                  { label: 'Floor',  value: floorPrice > 0 ? `$${floorPrice.toFixed(2)}` : (loading ? null : '—') },
+                  { label: 'Listed', value: loading ? null : listings.length.toString() },
+                ],
+                [
+                  { label: 'Staked',  value: collectionStats ? collectionStats.staked?.toLocaleString() : null },
+                  { label: 'Holders', value: collectionStats ? collectionStats.holders?.toLocaleString() : null },
+                  { label: 'Volume',  value: collectionStats ? `$${collectionStats.totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : null },
+                ],
+              ].map((row, i) => (
+                <div key={i} className="flex items-end gap-5">
+                  {row.map(stat => (
+                    <div key={stat.label} className="text-right">
+                      <div className="text-[10px] font-mono text-white/40 uppercase tracking-[0.1em]">{stat.label}</div>
+                      {stat.value != null
+                        ? <div className="text-[15px] font-bold text-white leading-none mt-0.5">{stat.value}</div>
+                        : <div className="w-12 h-4 bg-white/10 rounded animate-pulse mt-0.5" />
+                      }
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
@@ -191,19 +200,28 @@ const TradePage: React.FC<TradePageProps> = ({
                   <p className="text-[9px] font-mono text-white/40 truncate">Sealions, Sharks, and Whales, oh my! The first onchain collection on Tempo.</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 flex-shrink-0 pb-0.5">
+              <div className="flex flex-col items-end gap-1.5 flex-shrink-0 pb-0.5">
                 {[
-                  { label: 'Floor',   value: floorPrice > 0 ? `$${floorPrice.toFixed(2)}` : (loading ? null : '—') },
-                  { label: 'Listed',  value: loading ? null : listings.length.toString() },
-                  { label: 'Volume',  value: collectionStats ? `$${collectionStats.totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : null },
-                  { label: 'Holders', value: collectionStats ? collectionStats.holders?.toLocaleString() : null },
-                ].map(stat => (
-                  <div key={stat.label} className="text-right">
-                    <div className="text-[7px] font-mono uppercase tracking-widest text-white/30">{stat.label}</div>
-                    {stat.value != null
-                      ? <div className="text-[13px] font-black text-white leading-none mt-0.5">{stat.value}</div>
-                      : <div className="w-8 h-3.5 bg-white/10 rounded animate-pulse mt-0.5 ml-auto" />
-                    }
+                  [
+                    { label: 'Floor',  value: floorPrice > 0 ? `$${floorPrice.toFixed(2)}` : (loading ? null : '—') },
+                    { label: 'Listed', value: loading ? null : listings.length.toString() },
+                  ],
+                  [
+                    { label: 'Staked',  value: collectionStats ? collectionStats.staked?.toLocaleString() : null },
+                    { label: 'Holders', value: collectionStats ? collectionStats.holders?.toLocaleString() : null },
+                    { label: 'Volume',  value: collectionStats ? `$${collectionStats.totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : null },
+                  ],
+                ].map((row, i) => (
+                  <div key={i} className="flex items-end gap-4">
+                    {row.map(stat => (
+                      <div key={stat.label} className="text-right">
+                        <div className="text-[7px] font-mono uppercase tracking-widest text-white/30">{stat.label}</div>
+                        {stat.value != null
+                          ? <div className="text-[13px] font-black text-white leading-none mt-0.5">{stat.value}</div>
+                          : <div className="w-8 h-3.5 bg-white/10 rounded animate-pulse mt-0.5 ml-auto" />
+                        }
+                      </div>
+                    ))}
                   </div>
                 ))}
               </div>
@@ -231,8 +249,9 @@ const TradePage: React.FC<TradePageProps> = ({
                 {[
                   { label: 'Floor',   value: floorPrice > 0 ? `$${floorPrice.toFixed(2)}` : (loading ? null : '—') },
                   { label: 'Listed',  value: loading ? null : listings.length.toString() },
-                  { label: 'Volume',  value: collectionStats ? `$${collectionStats.totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : null },
+                  { label: 'Staked',  value: collectionStats ? collectionStats.staked?.toLocaleString() : null },
                   { label: 'Holders', value: collectionStats ? collectionStats.holders?.toLocaleString() : null },
+                  { label: 'Volume',  value: collectionStats ? `$${collectionStats.totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : null },
                 ].map((stat, i, arr) => (
                   <div key={stat.label} className={`flex-1 text-center ${i < arr.length - 1 ? 'border-r border-white/[0.06]' : ''}`}>
                     <div className="text-[7px] font-mono uppercase tracking-widest text-white/30">{stat.label}</div>

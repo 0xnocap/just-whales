@@ -34,7 +34,8 @@ function apiMiddleware() {
           // --- /api/collection/stats ---
           if (req.url === '/api/collection/stats') {
             res.setHeader('Content-Type', 'application/json');
-            const [holdersResult, mintedResult, transfersResult, volResult] = await Promise.all([
+            const stakingAddr = (process.env.STAKING_CONTRACT || '0x650F7fd9084b8631e16780A90BBed731679598F0').toLowerCase();
+            const [holdersResult, mintedResult, transfersResult, volResult, stakedResult] = await Promise.all([
               db.query(`
                 SELECT COUNT(DISTINCT owner) as holders FROM (
                   SELECT DISTINCT ON (token_id) "to" as owner
@@ -46,11 +47,19 @@ function apiMiddleware() {
               db.query(`SELECT COUNT(*) as minted FROM transfers WHERE "from" = '0x0000000000000000000000000000000000000000'`),
               db.query(`SELECT COUNT(*) as total FROM transfers WHERE "from" != '0x0000000000000000000000000000000000000000'`),
               db.query(`
-                SELECT 
+                SELECT
                   SUM(price::numeric) as total_vol,
                   SUM(CASE WHEN timestamp::bigint > $1 THEN price::numeric ELSE 0 END) as vol_24h
                 FROM sales
               `, [Math.floor(Date.now() / 1000) - 86400]),
+              db.query(`
+                SELECT COUNT(*) as staked FROM (
+                  SELECT DISTINCT ON (token_id) "to" as owner
+                  FROM transfers
+                  ORDER BY token_id, block_number DESC, vid DESC
+                ) sub
+                WHERE LOWER(owner) = $1
+              `, [stakingAddr]),
             ]);
             res.end(JSON.stringify({
               holders: Number(holdersResult.rows[0].holders),
@@ -58,6 +67,7 @@ function apiMiddleware() {
               totalTransfers: Number(transfersResult.rows[0].total),
               totalVolume: Number(volResult.rows[0].total_vol || 0) / 1e6,
               volume24h: Number(volResult.rows[0].vol_24h || 0) / 1e6,
+              staked: Number(stakedResult.rows[0].staked),
             }));
             return;
           }
