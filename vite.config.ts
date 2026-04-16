@@ -35,15 +35,16 @@ function apiMiddleware() {
           if (req.url === '/api/collection/stats') {
             res.setHeader('Content-Type', 'application/json');
             const stakingAddr = (process.env.STAKING_CONTRACT || '0x650F7fd9084b8631e16780A90BBed731679598F0').toLowerCase();
-            const [holdersResult, mintedResult, transfersResult, volResult, stakedResult] = await Promise.all([
+            const [holdersResult, mintedResult, transfersResult, volResult, stakedResult, salesResult] = await Promise.all([
               db.query(`
-                SELECT COUNT(DISTINCT owner) as holders FROM (
-                  SELECT DISTINCT ON (token_id) "to" as owner
+                SELECT COUNT(DISTINCT CASE WHEN LOWER("to") = $1 THEN "from" ELSE "to" END) as holders
+                FROM (
+                  SELECT DISTINCT ON (token_id) "to", "from"
                   FROM transfers
                   ORDER BY token_id, block_number DESC, vid DESC
                 ) sub
-                WHERE owner != '0x0000000000000000000000000000000000000000'
-              `),
+                WHERE "to" != '0x0000000000000000000000000000000000000000'
+              `, [stakingAddr]),
               db.query(`SELECT COUNT(*) as minted FROM transfers WHERE "from" = '0x0000000000000000000000000000000000000000'`),
               db.query(`SELECT COUNT(*) as total FROM transfers WHERE "from" != '0x0000000000000000000000000000000000000000'`),
               db.query(`
@@ -60,6 +61,7 @@ function apiMiddleware() {
                 ) sub
                 WHERE LOWER(owner) = $1
               `, [stakingAddr]),
+              db.query(`SELECT COUNT(*) as total FROM sales`),
             ]);
             res.end(JSON.stringify({
               holders: Number(holdersResult.rows[0].holders),
@@ -68,6 +70,7 @@ function apiMiddleware() {
               totalVolume: Number(volResult.rows[0].total_vol || 0) / 1e6,
               volume24h: Number(volResult.rows[0].vol_24h || 0) / 1e6,
               staked: Number(stakedResult.rows[0].staked),
+              salesCount: Number(salesResult.rows[0].total),
             }));
             return;
           }

@@ -1,6 +1,6 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Filter, Zap, Check, Loader2, ChevronUp, ChevronDown, X, Grid3X3, Activity } from 'lucide-react';
+import { Search, Filter, Zap, Check, Loader2, ChevronUp, ChevronDown, X, Grid3X3, Activity, Info } from 'lucide-react';
 import { useAccount, useWriteContract } from 'wagmi';
 import { formatUnits } from 'viem';
 import {
@@ -136,14 +136,85 @@ const TradePage: React.FC<TradePageProps> = ({
     ? Math.min(...listings.map(l => Number(formatUnits(l.price, 6))))
     : 0;
 
+  const stakedValue = collectionStats ? collectionStats.staked?.toLocaleString() : null;
+  const stakedPercent = collectionStats && collectionStats.totalMinted > 0
+    ? (collectionStats.staked / collectionStats.totalMinted * 100).toFixed(1)
+    : null;
+
+  const [showStatsInfo, setShowStatsInfo] = useState(false);
+  const statsInfoRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!showStatsInfo) return;
+    const onClick = (e: MouseEvent) => {
+      if (statsInfoRef.current && !statsInfoRef.current.contains(e.target as Node)) {
+        setShowStatsInfo(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowStatsInfo(false);
+    };
+    document.addEventListener('mousedown', onClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [showStatsInfo]);
+
+  const popoverStats = [
+    { label: 'Floor',        value: floorPrice > 0 ? `$${floorPrice.toFixed(2)}` : (loading ? null : '—') },
+    { label: 'Listed',       value: loading ? null : listings.length.toString() },
+    { label: 'Staked',       value: stakedValue != null && stakedPercent != null ? `${stakedValue} (${stakedPercent}%)` : stakedValue },
+    { label: 'Holders',      value: collectionStats ? collectionStats.holders?.toLocaleString() : null },
+    { label: '24h Volume',   value: collectionStats ? `$${collectionStats.volume24h.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : null },
+    { label: 'Total Volume', value: collectionStats ? `$${collectionStats.totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : null },
+    { label: 'Sales',        value: collectionStats ? collectionStats.salesCount?.toLocaleString() : null },
+  ];
+
   return (
     <div className="w-full" style={{ maxWidth: '100%' }}>
       {/* Collection Banner */}
-      <div className="relative rounded-2xl overflow-hidden mb-2" style={{ minHeight: 'clamp(130px, 20vw, 240px)' }}>
+      <div ref={statsInfoRef} className="relative mb-2">
+      <div className="relative rounded-2xl overflow-hidden" style={{ minHeight: 'clamp(130px, 20vw, 240px)' }}>
         <div className="absolute inset-0 bg-gradient-to-br from-[#0c4a6e] via-[#083344] to-[#1e1b4b]" />
         <div className="absolute top-4 right-8 text-4xl opacity-[0.07]">🐋</div>
         <div className="absolute bottom-16 right-24 text-2xl opacity-[0.05] hidden md:block">🦈</div>
         <div className="absolute top-6 right-44 text-xl opacity-[0.05] hidden md:block">🦭</div>
+
+        {!showStatsInfo && (
+          <button
+            type="button"
+            onClick={() => setShowStatsInfo(true)}
+            aria-label="Collection stats"
+            className="absolute top-3 right-3 z-20 text-white/50 hover:text-white/80 transition-colors"
+          >
+            <Info className="w-5 h-5" />
+          </button>
+        )}
+
+        {showStatsInfo && (
+          <div className="absolute top-3 right-3 z-30 w-56 max-h-[calc(100%-1.5rem)] overflow-y-auto rounded-lg bg-[#0a0a0c]/95 border border-white/10 shadow-xl backdrop-blur-md p-3">
+            <button
+              type="button"
+              onClick={() => setShowStatsInfo(false)}
+              aria-label="Close"
+              className="absolute top-1.5 right-1.5 text-white/30 hover:text-white/70 transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+            <div className="space-y-1 pr-5">
+              {popoverStats.map(stat => (
+                <div key={stat.label} className="flex items-baseline justify-between gap-3">
+                  <span className="text-[9px] font-mono uppercase tracking-wider text-white/40">{stat.label}</span>
+                  {stat.value != null
+                    ? <span className="text-[12px] font-bold text-white">{stat.value}</span>
+                    : <span className="w-10 h-2.5 bg-white/10 rounded animate-pulse" />
+                  }
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="absolute bottom-0 left-0 right-0 px-4 md:px-6 pb-4 md:pb-6">
           <div className="hidden md:flex items-end justify-between gap-6">
@@ -159,28 +230,19 @@ const TradePage: React.FC<TradePageProps> = ({
                 <p className="text-white/50 text-[13px] font-mono max-w-md">Sealions, Sharks, and Whales, oh my! The first onchain collection on Tempo.</p>
               </div>
             </div>
-            <div className="flex flex-col items-end gap-2 pb-1">
+            <div className="grid grid-cols-2 gap-x-5 gap-y-2 pb-1">
               {[
-                [
-                  { label: 'Floor',  value: floorPrice > 0 ? `$${floorPrice.toFixed(2)}` : (loading ? null : '—') },
-                  { label: 'Listed', value: loading ? null : listings.length.toString() },
-                ],
-                [
-                  { label: 'Staked',  value: collectionStats ? collectionStats.staked?.toLocaleString() : null },
-                  { label: 'Holders', value: collectionStats ? collectionStats.holders?.toLocaleString() : null },
-                  { label: 'Volume',  value: collectionStats ? `$${collectionStats.totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : null },
-                ],
-              ].map((row, i) => (
-                <div key={i} className="flex items-end gap-5">
-                  {row.map(stat => (
-                    <div key={stat.label} className="text-right">
-                      <div className="text-[10px] font-mono text-white/40 uppercase tracking-[0.1em]">{stat.label}</div>
-                      {stat.value != null
-                        ? <div className="text-[15px] font-bold text-white leading-none mt-0.5">{stat.value}</div>
-                        : <div className="w-12 h-4 bg-white/10 rounded animate-pulse mt-0.5" />
-                      }
-                    </div>
-                  ))}
+                { label: 'Floor',  value: floorPrice > 0 ? `$${floorPrice.toFixed(2)}` : (loading ? null : '—') },
+                { label: 'Listed', value: loading ? null : listings.length.toString() },
+                { label: 'Staked', value: stakedValue },
+                { label: 'Volume', value: collectionStats ? `$${collectionStats.totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : null },
+              ].map(stat => (
+                <div key={stat.label} className="text-right">
+                  <div className="text-[10px] font-mono text-white/40 uppercase tracking-[0.1em]">{stat.label}</div>
+                  {stat.value != null
+                    ? <div className="text-[15px] font-bold text-white leading-none mt-0.5">{stat.value}</div>
+                    : <div className="w-12 h-4 bg-white/10 rounded animate-pulse mt-0.5 ml-auto" />
+                  }
                 </div>
               ))}
             </div>
@@ -200,28 +262,19 @@ const TradePage: React.FC<TradePageProps> = ({
                   <p className="text-[9px] font-mono text-white/40 truncate">Sealions, Sharks, and Whales, oh my! The first onchain collection on Tempo.</p>
                 </div>
               </div>
-              <div className="flex flex-col items-end gap-1.5 flex-shrink-0 pb-0.5">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 flex-shrink-0 pb-0.5">
                 {[
-                  [
-                    { label: 'Floor',  value: floorPrice > 0 ? `$${floorPrice.toFixed(2)}` : (loading ? null : '—') },
-                    { label: 'Listed', value: loading ? null : listings.length.toString() },
-                  ],
-                  [
-                    { label: 'Staked',  value: collectionStats ? collectionStats.staked?.toLocaleString() : null },
-                    { label: 'Holders', value: collectionStats ? collectionStats.holders?.toLocaleString() : null },
-                    { label: 'Volume',  value: collectionStats ? `$${collectionStats.totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : null },
-                  ],
-                ].map((row, i) => (
-                  <div key={i} className="flex items-end gap-4">
-                    {row.map(stat => (
-                      <div key={stat.label} className="text-right">
-                        <div className="text-[7px] font-mono uppercase tracking-widest text-white/30">{stat.label}</div>
-                        {stat.value != null
-                          ? <div className="text-[13px] font-black text-white leading-none mt-0.5">{stat.value}</div>
-                          : <div className="w-8 h-3.5 bg-white/10 rounded animate-pulse mt-0.5 ml-auto" />
-                        }
-                      </div>
-                    ))}
+                  { label: 'Floor',  value: floorPrice > 0 ? `$${floorPrice.toFixed(2)}` : (loading ? null : '—') },
+                  { label: 'Listed', value: loading ? null : listings.length.toString() },
+                  { label: 'Staked', value: stakedValue },
+                  { label: 'Volume', value: collectionStats ? `$${collectionStats.totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : null },
+                ].map(stat => (
+                  <div key={stat.label} className="text-right">
+                    <div className="text-[7px] font-mono uppercase tracking-widest text-white/30">{stat.label}</div>
+                    {stat.value != null
+                      ? <div className="text-[13px] font-black text-white leading-none mt-0.5">{stat.value}</div>
+                      : <div className="w-8 h-3.5 bg-white/10 rounded animate-pulse mt-0.5 ml-auto" />
+                    }
                   </div>
                 ))}
               </div>
@@ -247,11 +300,10 @@ const TradePage: React.FC<TradePageProps> = ({
               </div>
               <div className="flex border-t border-white/[0.06] pt-2">
                 {[
-                  { label: 'Floor',   value: floorPrice > 0 ? `$${floorPrice.toFixed(2)}` : (loading ? null : '—') },
-                  { label: 'Listed',  value: loading ? null : listings.length.toString() },
-                  { label: 'Staked',  value: collectionStats ? collectionStats.staked?.toLocaleString() : null },
-                  { label: 'Holders', value: collectionStats ? collectionStats.holders?.toLocaleString() : null },
-                  { label: 'Volume',  value: collectionStats ? `$${collectionStats.totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : null },
+                  { label: 'Floor',  value: floorPrice > 0 ? `$${floorPrice.toFixed(2)}` : (loading ? null : '—') },
+                  { label: 'Listed', value: loading ? null : listings.length.toString() },
+                  { label: 'Staked', value: stakedValue },
+                  { label: 'Volume', value: collectionStats ? `$${collectionStats.totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : null },
                 ].map((stat, i, arr) => (
                   <div key={stat.label} className={`flex-1 text-center ${i < arr.length - 1 ? 'border-r border-white/[0.06]' : ''}`}>
                     <div className="text-[7px] font-mono uppercase tracking-widest text-white/30">{stat.label}</div>
@@ -265,6 +317,8 @@ const TradePage: React.FC<TradePageProps> = ({
             </div>
           )}
         </div>
+      </div>
+
       </div>
 
       {/* Sticky Toolbar */}

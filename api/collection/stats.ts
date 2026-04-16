@@ -6,15 +6,18 @@ const STAKING_ADDRESS = (process.env.STAKING_CONTRACT || '0x650F7fd9084b8631e167
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const db = await getPool();
-    const [holdersResult, mintedResult, transfersResult, volumeResult, stakedResult] = await Promise.all([
+    const [holdersResult, mintedResult, transfersResult, volumeResult, stakedResult, salesResult] = await Promise.all([
+      // Real holders: for each token's latest transfer, if currently held by staking
+      // contract use the `from` (the staker), otherwise use `to` (the owner). Dedupe.
       db.query(`
-        SELECT COUNT(DISTINCT owner) as holders FROM (
-          SELECT DISTINCT ON (token_id) "to" as owner
+        SELECT COUNT(DISTINCT CASE WHEN LOWER("to") = $1 THEN "from" ELSE "to" END) as holders
+        FROM (
+          SELECT DISTINCT ON (token_id) "to", "from"
           FROM transfers
           ORDER BY token_id, block_number DESC, vid DESC
         ) sub
-        WHERE owner != '0x0000000000000000000000000000000000000000'
-      `),
+        WHERE "to" != '0x0000000000000000000000000000000000000000'
+      `, [STAKING_ADDRESS]),
       db.query(`SELECT COUNT(*) as minted FROM transfers WHERE "from" = '0x0000000000000000000000000000000000000000'`),
       db.query(`SELECT COUNT(*) as total FROM transfers WHERE "from" != '0x0000000000000000000000000000000000000000'`),
       db.query(`
@@ -30,7 +33,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           ORDER BY token_id, block_number DESC, vid DESC
         ) sub
         WHERE LOWER(owner) = $1
-      `, [STAKING_ADDRESS])
+      `, [STAKING_ADDRESS]),
+      db.query(`SELECT COUNT(*) as total FROM sales`),
     ]);
 
     res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=180');
@@ -41,6 +45,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       totalVolume: Number(volumeResult.rows[0].total_volume) / 1e6, // normalize pathUSD decimals directly in API
       volume24h: Number(volumeResult.rows[0].volume_24h) / 1e6,
       staked: Number(stakedResult.rows[0].staked),
+      salesCount: Number(salesResult.rows[0].total),
     });
   } catch (err: any) {
     console.error('API error:', err);
